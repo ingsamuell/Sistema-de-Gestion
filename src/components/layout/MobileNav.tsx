@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, FolderKanban, Calendar, BarChart2, Sparkles, LibraryBig } from 'lucide-react';
+import { Home, FolderKanban, Calendar, BarChart2, Sparkles, Award } from 'lucide-react';
 
 export function MobileNav() {
   const pathname = usePathname();
@@ -11,9 +11,9 @@ export function MobileNav() {
   const navItems = [
     { href: '/', icon: Home, label: 'Inicio' },
     { href: '/proyectos', icon: FolderKanban, label: 'Proyectos' },
-    { href: '/temas', icon: LibraryBig, label: 'Temas' },
     { href: '/calendario', icon: Calendar, label: 'Calendario' },
     { href: '/analitica', icon: BarChart2, label: 'Analítica' },
+    { href: '/certificaciones', icon: Award, label: 'Certif.' },
     { href: '/ia', icon: Sparkles, label: 'IA' },
   ];
 

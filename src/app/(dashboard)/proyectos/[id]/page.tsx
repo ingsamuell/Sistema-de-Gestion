@@ -16,6 +16,7 @@ import {
   Paperclip,
   Calendar,
   Pencil,
+  Award,
 } from 'lucide-react';
 import { extractTextFromFile } from '@/features/ai-assistant/utils/fileTextExtractor';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -913,15 +914,27 @@ export default function ProjectDetailPage({
               )}
             </div>
 
-            {/* Botón Editar Proyecto */}
-            <button
-              type="button"
-              onClick={() => setIsEditProjectModalOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-[#E8DCD1] bg-white hover:bg-[#FAF8F5] text-xs sm:text-sm font-bold text-[#845326] transition-all shadow-xs cursor-pointer shrink-0 self-start hover:-translate-y-0.5 active:scale-95"
-            >
-              <Pencil className="size-3.5" />
-              <span>Editar Proyecto</span>
-            </button>
+            <div className="flex items-center gap-2 shrink-0 self-start">
+              {/* Botón Certificación de Tiempo */}
+              <Link
+                href={`/certificaciones?proyectoId=${project.id}`}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-[#C68B59]/40 bg-[#FAF0DE] hover:bg-[#F5E5D0] text-xs sm:text-sm font-bold text-[#845326] transition-all shadow-xs cursor-pointer hover:-translate-y-0.5 active:scale-95"
+                title="Ver y descargar certificado oficial de tiempo invertido"
+              >
+                <Award className="size-4 text-[#845326]" />
+                <span>Certificación</span>
+              </Link>
+
+              {/* Botón Editar Proyecto */}
+              <button
+                type="button"
+                onClick={() => setIsEditProjectModalOpen(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-[#E8DCD1] bg-white hover:bg-[#FAF8F5] text-xs sm:text-sm font-bold text-[#845326] transition-all shadow-xs cursor-pointer shrink-0 self-start hover:-translate-y-0.5 active:scale-95"
+              >
+                <Pencil className="size-3.5" />
+                <span>Editar Proyecto</span>
+              </button>
+            </div>
           </div>
 
           {/* Fecha Límite destacada */}
