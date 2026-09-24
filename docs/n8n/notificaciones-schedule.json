@@ -1,0 +1,226 @@
+{
+  "name": "notificaciones-schedule",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 21 * * *"
+            }
+          ]
+        },
+        "options": {
+          "timezone": "America/Caracas"
+        }
+      },
+      "id": "schedule-streak-3h",
+      "name": "Schedule 21:00 Caracas (Racha 3h)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.APP_URL || 'http://localhost:3000' }}/jobs/notify-streak-3h",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "http-streak-3h",
+      "name": "HTTP POST /jobs/notify-streak-3h",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 100]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 0 * * *"
+            }
+          ]
+        },
+        "options": {
+          "timezone": "America/Caracas"
+        }
+      },
+      "id": "schedule-streak-expired",
+      "name": "Schedule 00:00 Caracas (Racha Expirada)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 260]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.APP_URL || 'http://localhost:3000' }}/jobs/notify-streak-expired",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "http-streak-expired",
+      "name": "HTTP POST /jobs/notify-streak-expired",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 260]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        },
+        "options": {
+          "timezone": "America/Caracas"
+        }
+      },
+      "id": "schedule-projects-7days",
+      "name": "Schedule 08:00 Caracas (Proyectos 7 Días)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 420]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.APP_URL || 'http://localhost:3000' }}/jobs/notify-projects-7days",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "http-projects-7days",
+      "name": "HTTP POST /jobs/notify-projects-7days",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 420]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 0 * * *"
+            }
+          ]
+        },
+        "options": {
+          "timezone": "America/Caracas"
+        }
+      },
+      "id": "schedule-projects-expired",
+      "name": "Schedule 00:00 Caracas (Proyectos Expirados)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 580]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.APP_URL || 'http://localhost:3000' }}/jobs/notify-projects-expired",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "http-projects-expired",
+      "name": "HTTP POST /jobs/notify-projects-expired",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 580]
+    }
+  ],
+  "connections": {
+    "Schedule 21:00 Caracas (Racha 3h)": {
+      "main": [
+        [
+          {
+            "node": "HTTP POST /jobs/notify-streak-3h",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule 00:00 Caracas (Racha Expirada)": {
+      "main": [
+        [
+          {
+            "node": "HTTP POST /jobs/notify-streak-expired",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule 08:00 Caracas (Proyectos 7 Días)": {
+      "main": [
+        [
+          {
+            "node": "HTTP POST /jobs/notify-projects-7days",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule 00:00 Caracas (Proyectos Expirados)": {
+      "main": [
+        [
+          {
+            "node": "HTTP POST /jobs/notify-projects-expired",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

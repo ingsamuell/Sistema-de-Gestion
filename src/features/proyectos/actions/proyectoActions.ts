@@ -648,6 +648,18 @@ export async function toggleTaskStatusAction(
       return { success: false, error: updateError.message };
     }
 
+    // Si la tarea se marca como completada, borrar automáticamente sus bloques respectivos en el calendario
+    if (isCompleted) {
+      try {
+        await supabase
+          .from('eventos_calendario')
+          .delete()
+          .eq('tarea_id', taskId);
+      } catch (calErr) {
+        console.warn('Aviso al eliminar bloques de calendario de tarea completada:', calErr);
+      }
+    }
+
     // 3. Gestionar racha del usuario en la tabla 'profiles'
     let updatedRacha: number;
     let updatedRachaMaxima: number;
@@ -731,6 +743,7 @@ export async function toggleTaskStatusAction(
     revalidatePath('/');
     revalidatePath('/perfil');
     revalidatePath('/analitica');
+    revalidatePath('/calendario');
 
     return {
       success: true,

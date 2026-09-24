@@ -47,6 +47,7 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith('/verificar-correo');
   const isAuthCallback = pathname.startsWith('/auth') || pathname.startsWith('/api/auth');
   const isApiRoute = pathname.startsWith('/api/');
+  const isPublicServiceRoute = pathname.startsWith('/jobs/') || pathname.startsWith('/webhooks/');
   const isPasswordResetRoute = pathname.startsWith('/restablecer-contrasena');
 
   const isRegisteredRecently = Boolean(request.cookies.get('just_registered_email')?.value);
@@ -70,6 +71,7 @@ export async function updateSession(request: NextRequest) {
     !isAuthRoute &&
     !isAuthCallback &&
     !isApiRoute &&
+    !isPublicServiceRoute &&
     !isPasswordResetRoute &&
     !isServerAction
   ) {
@@ -90,6 +92,7 @@ export async function updateSession(request: NextRequest) {
     !pathname.startsWith('/verificar-correo') &&
     !isAuthCallback &&
     !isApiRoute &&
+    !isPublicServiceRoute &&
     !isServerAction
   ) {
     const url = request.nextUrl.clone();

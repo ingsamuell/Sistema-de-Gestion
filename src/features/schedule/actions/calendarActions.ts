@@ -68,8 +68,9 @@ export async function getCalendarDataAction() {
       if (projectIds.length > 0) {
         const { data: tareasList } = await db
           .from('tareas')
-          .select('id, id_proyecto, titulo, descripcion, fecha_inicio, duracion')
+          .select('id, id_proyecto, titulo, descripcion, fecha_inicio, duracion, completado')
           .in('id_proyecto', projectIds)
+          .eq('completado', false)
           .not('fecha_inicio', 'is', null);
 
         if (tareasList && tareasList.length > 0) {
