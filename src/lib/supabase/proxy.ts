@@ -48,6 +48,7 @@ export async function updateSession(request: NextRequest) {
   const isAuthCallback = pathname.startsWith('/auth') || pathname.startsWith('/api/auth');
   const isApiRoute = pathname.startsWith('/api/');
   const isPasswordResetRoute = pathname.startsWith('/restablecer-contrasena');
+  const isPublicRoute = pathname.startsWith('/validar-certificado');
 
   const isRegisteredRecently = Boolean(request.cookies.get('just_registered_email')?.value);
   const isPendingVerification = (user && !user.email_confirmed_at) || isRegisteredRecently;
@@ -71,6 +72,7 @@ export async function updateSession(request: NextRequest) {
     !isAuthCallback &&
     !isApiRoute &&
     !isPasswordResetRoute &&
+    !isPublicRoute &&
     !isServerAction
   ) {
     const url = request.nextUrl.clone();

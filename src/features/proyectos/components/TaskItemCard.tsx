@@ -1,8 +1,20 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Clock, ExternalLink, Play, Check, Trash2, Calendar, Pencil, Award } from 'lucide-react';
+import {
+  Clock,
+  ExternalLink,
+  Play,
+  Check,
+  Trash2,
+  Calendar,
+  Pencil,
+  Award,
+  Lock,
+} from 'lucide-react';
 import { TechniqueSelectionModal } from '@/components/study/TechniqueSelectionModal';
+import { TaskCompletedDetailModal } from '@/features/proyectos/components/TaskCompletedDetailModal';
+import { useFocusSession } from '@/contexts/FocusSessionContext';
 
 export interface Task {
   id: string;
@@ -15,6 +27,10 @@ export interface Task {
   resourceName?: string;
   isCompleted: boolean;
   quizAprobado?: boolean;
+  completedAt?: string | null;
+  metodoEstudio?: string | null;
+  tiempoEmpleado?: number | null;
+  tecnicaSirvio?: boolean | null;
 }
 
 interface TaskItemCardProps {
@@ -22,10 +38,20 @@ interface TaskItemCardProps {
   projectId?: string;
   projectName: string;
   projectPriority: string;
+  userPreferredTechnique?: string | null;
   onToggleComplete: (id: string, newStatus: boolean) => void;
   onDeleteTask?: (id: string) => void;
   onEditTask?: (task: Task) => void;
   onOpenQuiz?: (taskId: string) => void;
+  onUpdateFeedback?: (
+    taskId: string,
+    feedback: {
+      metodoEstudio: string;
+      tiempoEmpleado: number;
+      tecnicaSirvio: boolean;
+      tecnicaPreferida: string;
+    },
+  ) => void;
 }
 
 function formatStartDate(dateStr?: string | null): string {
@@ -74,21 +100,34 @@ function extractUrls(rawUrl?: string | null): string[] {
 
 export function TaskItemCard({
   task,
+  projectId,
   projectName,
   projectPriority,
+  userPreferredTechnique,
   onToggleComplete,
   onDeleteTask,
   onEditTask,
   onOpenQuiz,
+  onUpdateFeedback,
 }: TaskItemCardProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [showFocusModal, setShowFocusModal] = useState(false);
+  const [showCompletedModal, setShowCompletedModal] = useState(false);
   const isCompleted = task.isCompleted;
+
+  const { isActive, activeTaskId, stopSession } = useFocusSession();
+  const isThisTaskActive = Boolean(isActive && activeTaskId === task.id);
+  const isAnotherTaskActive = Boolean(isActive && activeTaskId !== task.id);
 
   const handleToggle = async () => {
     if (isUpdating) return;
     setIsUpdating(true);
     const newStatus = !isCompleted;
+
+    // Si la tarea marcada como completada era la que tenía sesión activa, detener la sesión de estudio
+    if (newStatus && isThisTaskActive) {
+      stopSession();
+    }
 
     try {
       await onToggleComplete(task.id, newStatus);
@@ -109,7 +148,7 @@ export function TaskItemCard({
         p-4 sm:p-5 rounded-[20px] border-2 transition-all duration-300
         ${
           isCompleted
-            ? 'bg-surface-container-lowest border-transparent opacity-75'
+            ? 'bg-surface-container-lowest border-transparent'
             : 'bg-white border-[#E8DCD1] hover:shadow-md hover:border-[#d2c4bb]'
         }
       `}
@@ -221,19 +260,28 @@ export function TaskItemCard({
 
         {/* Botón de Micro-Quiz por tarea */}
         {onOpenQuiz && (
-          <div className="mt-3 flex items-center">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => {
-                if (!task.quizAprobado) onOpenQuiz(task.id);
+                if (!task.quizAprobado && isCompleted) onOpenQuiz(task.id);
               }}
-              disabled={task.quizAprobado}
+              disabled={task.quizAprobado || !isCompleted}
+              title={
+                task.quizAprobado
+                  ? 'Quiz ya aprobado'
+                  : !isCompleted
+                    ? 'Completa la tarea primero para habilitar el quiz'
+                    : 'Realizar quiz de la tarea'
+              }
               className={`
                 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all shadow-xs border
                 ${
                   task.quizAprobado
                     ? 'bg-emerald-50 text-emerald-600 border-emerald-100 opacity-80 cursor-not-allowed'
-                    : 'bg-[#FBE6DD]/60 border-[#FBE6DD] text-[#845326] hover:bg-[#FBE6DD] cursor-pointer'
+                    : !isCompleted
+                      ? 'bg-[#F2EBE5]/60 border-[#E8DCD1] text-[#A8988B] cursor-not-allowed opacity-75'
+                      : 'bg-[#FBE6DD]/60 border-[#FBE6DD] text-[#845326] hover:bg-[#FBE6DD] cursor-pointer'
                 }
               `}
             >
@@ -242,6 +290,11 @@ export function TaskItemCard({
                   <Check className="size-3.5" strokeWidth={3} />
                   Quiz Aprobado
                 </>
+              ) : !isCompleted ? (
+                <>
+                  <Lock className="size-3.5" />
+                  Realizar Quiz
+                </>
               ) : (
                 <>
                   <Award className="size-3.5" />
@@ -249,6 +302,11 @@ export function TaskItemCard({
                 </>
               )}
             </button>
+            {!isCompleted && !task.quizAprobado && (
+              <span className="text-[11px] font-medium text-[#A8988B] select-none">
+                (Completa la tarea primero)
+              </span>
+            )}
           </div>
         )}
       </div>
@@ -280,15 +338,44 @@ export function TaskItemCard({
         </div>
 
         <div className="flex justify-end w-full mt-auto pt-2">
-          <button
-            onClick={() => {
-              if (!isCompleted) setShowFocusModal(true);
-            }}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-on-surface px-5 py-2.5 text-sm font-bold text-surface transition-transform hover:scale-105 hover:bg-[#333] active:scale-95 cursor-pointer shadow-xs"
-          >
-            {isCompleted ? 'Ver más' : 'Iniciar tarea'}
-            {!isCompleted && <Play className="size-4" fill="currentColor" />}
-          </button>
+          {isCompleted ? (
+            <button
+              type="button"
+              onClick={() => setShowCompletedModal(true)}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-on-surface px-5 py-2.5 text-sm font-bold text-surface transition-transform hover:scale-105 hover:bg-[#333] active:scale-95 cursor-pointer shadow-xs"
+            >
+              <span>Ver más</span>
+            </button>
+          ) : isThisTaskActive ? (
+            <button
+              type="button"
+              disabled
+              title="Esta tarea está actualmente en sesión de estudio activa"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-amber-600 text-white px-5 py-2.5 text-sm font-bold shadow-xs cursor-not-allowed opacity-95 animate-pulse"
+            >
+              <Clock className="size-4 animate-spin text-white" />
+              <span>En sesión...</span>
+            </button>
+          ) : isAnotherTaskActive ? (
+            <button
+              type="button"
+              disabled
+              title="Ya tienes una sesión de estudio activa en otra tarea. Termínala o márcala como completada para iniciar otra."
+              className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-[#E8DCD1] text-gray-400 px-5 py-2.5 text-sm font-bold opacity-60 cursor-not-allowed shadow-none"
+            >
+              <Play className="size-4 opacity-40" fill="currentColor" />
+              <span>Iniciar tarea</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowFocusModal(true)}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-on-surface px-5 py-2.5 text-sm font-bold text-surface transition-transform hover:scale-105 hover:bg-[#333] active:scale-95 cursor-pointer shadow-xs"
+            >
+              <span>Iniciar tarea</span>
+              <Play className="size-4" fill="currentColor" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -297,6 +384,18 @@ export function TaskItemCard({
         onClose={() => setShowFocusModal(false)}
         taskId={task.id}
         taskTitle={task.title}
+      />
+
+      <TaskCompletedDetailModal
+        isOpen={showCompletedModal}
+        onClose={() => setShowCompletedModal(false)}
+        task={task}
+        projectName={projectName}
+        projectId={projectId}
+        userPreferredTechnique={userPreferredTechnique}
+        onFeedbackSaved={(feedback) => {
+          onUpdateFeedback?.(task.id, feedback);
+        }}
       />
     </div>
   );

@@ -23,12 +23,36 @@ export default async function CertificacionesPage() {
     redirect('/login');
   }
 
-  // Obtener certificados emitidos del usuario
-  const { data: certs } = await supabase
+  type CertRecord = {
+    id: string;
+    hash_sha256: string;
+    numero_certificado?: string | null;
+    fecha_emision: string;
+    horas_invertidas: number;
+    temas_aprobados: number;
+    project_id: string;
+  };
+
+  let certs: CertRecord[] | null = null;
+
+  const primaryQuery = await supabase
     .from('certificados_emitidos')
-    .select('id, hash_sha256, fecha_emision, horas_invertidas, temas_aprobados, project_id')
+    .select(
+      'id, hash_sha256, numero_certificado, fecha_emision, horas_invertidas, temas_aprobados, project_id',
+    )
     .eq('profile_id', user.id)
     .order('fecha_emision', { ascending: false });
+
+  if (!primaryQuery.error && primaryQuery.data) {
+    certs = primaryQuery.data as CertRecord[];
+  } else {
+    const fallback = await supabase
+      .from('certificados_emitidos')
+      .select('id, hash_sha256, fecha_emision, horas_invertidas, temas_aprobados, project_id')
+      .eq('profile_id', user.id)
+      .order('fecha_emision', { ascending: false });
+    certs = (fallback.data ?? []) as CertRecord[];
+  }
 
   // Obtener nombres de proyectos desde la tabla 'projects'
   const projectIds = Array.from(new Set((certs || []).map((c) => c.project_id).filter(Boolean)));
@@ -45,15 +69,28 @@ export default async function CertificacionesPage() {
     }
   }
 
-  const certificados: CertificadoViewItem[] = (certs || []).map((c) => ({
-    id: c.id,
-    hash_sha256: c.hash_sha256,
-    fecha_emision: c.fecha_emision,
-    horas_invertidas: Number(c.horas_invertidas) || 1,
-    temas_aprobados: Number(c.temas_aprobados) || 1,
-    project_id: c.project_id,
-    tituloProyecto: projectsMap[c.project_id] || 'Proyecto Académico',
-  }));
+  const certificados: CertificadoViewItem[] = (certs || []).map(
+    (c: {
+      id: string;
+      hash_sha256: string;
+      numero_certificado?: string | null;
+      fecha_emision: string;
+      horas_invertidas: number;
+      temas_aprobados: number;
+      project_id: string;
+    }) => ({
+      id: c.id,
+      hash_sha256: c.hash_sha256,
+      numero_certificado:
+        c.numero_certificado ||
+        `KMB-${new Date(c.fecha_emision).getFullYear()}-${c.hash_sha256.substring(0, 4).toUpperCase()}-${c.hash_sha256.substring(4, 8).toUpperCase()}`,
+      fecha_emision: c.fecha_emision,
+      horas_invertidas: Number(c.horas_invertidas) || 1,
+      temas_aprobados: Number(c.temas_aprobados) || 1,
+      project_id: c.project_id,
+      tituloProyecto: projectsMap[c.project_id] || 'Proyecto Académico',
+    }),
+  );
 
   return (
     <div className="flex flex-col min-h-full pb-20 animate-in fade-in duration-500 max-w-5xl mx-auto">
