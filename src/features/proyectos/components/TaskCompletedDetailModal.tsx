@@ -2,15 +2,7 @@
 
 import React, { useState, useTransition, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
-import {
-  X,
-  Check,
-  Clock,
-  Calendar,
-  Sparkles,
-  Loader2,
-  BookmarkCheck,
-} from 'lucide-react';
+import { X, Check, Clock, Calendar, Sparkles, Loader2, BookmarkCheck } from 'lucide-react';
 import { saveTaskStudyFeedbackAction } from '@/features/proyectos/actions/proyectoActions';
 import { STUDY_TECHNIQUES } from '@/features/study-methods/data/techniques';
 
@@ -42,7 +34,7 @@ function useIsMounted() {
   return useSyncExternalStore(
     () => () => {},
     () => true,
-    () => false
+    () => false,
   );
 }
 
@@ -193,9 +185,7 @@ export function TaskCompletedDetailModal({
             {task.title}
           </h3>
           {task.description && (
-            <p className="text-xs sm:text-sm text-gray-600 mt-1 line-clamp-2">
-              {task.description}
-            </p>
+            <p className="text-xs sm:text-sm text-gray-600 mt-1 line-clamp-2">{task.description}</p>
           )}
         </div>
 
@@ -259,7 +249,8 @@ export function TaskCompletedDetailModal({
               </h4>
             </div>
             <p className="text-xs text-[#845326] leading-relaxed">
-              Selecciona el método con el que lograste mayor concentración. Guardaremos esta preferencia en tu perfil para recomendarte tus sesiones ideales.
+              Selecciona el método con el que lograste mayor concentración. Guardaremos esta
+              preferencia en tu perfil para recomendarte tus sesiones ideales.
             </p>
 
             {/* Lista de técnicas de estudio seleccionables */}
@@ -327,6 +318,6 @@ export function TaskCompletedDetailModal({
         </div>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }

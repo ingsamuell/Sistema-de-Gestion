@@ -39,16 +39,20 @@ export function QuizModal({
   onSuccess,
 }: QuizModalProps) {
   const [isPending, startTransition] = useTransition();
-  const [step, setStep] = useState<'loading' | 'quiz' | 'evaluating' | 'result' | 'error'>('loading');
+  const [step, setStep] = useState<'loading' | 'quiz' | 'evaluating' | 'result' | 'error'>(
+    'loading',
+  );
 
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [provider, setProvider] = useState<'gemini' | 'n8n' | 'fallback'>('gemini');
-  const [quizScore, setQuizScore] = useState<{ score: number; total: number; passed: boolean } | null>(
-    null,
-  );
+  const [quizScore, setQuizScore] = useState<{
+    score: number;
+    total: number;
+    passed: boolean;
+  } | null>(null);
 
   const handleSafeClose = useCallback(() => {
     if (quizScore?.passed && taskId) {
@@ -214,7 +218,12 @@ export function QuizModal({
             <span>Quiz de Conocimiento</span>
             {step === 'quiz' && (
               <span className="text-[10px] opacity-80 font-normal ml-1">
-                • {provider === 'gemini' ? 'Gemini IA' : provider === 'n8n' ? 'n8n IA' : 'Contingencia'}
+                •{' '}
+                {provider === 'gemini'
+                  ? 'Gemini IA'
+                  : provider === 'n8n'
+                    ? 'n8n IA'
+                    : 'Contingencia'}
               </span>
             )}
           </div>
@@ -340,7 +349,9 @@ export function QuizModal({
                   <AlertCircle className="size-8 text-amber-600" />
                 </div>
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 text-xs font-bold mb-3 border border-amber-200">
-                  <span>Puntaje: {quizScore.score} de {quizScore.total}</span>
+                  <span>
+                    Puntaje: {quizScore.score} de {quizScore.total}
+                  </span>
                 </div>
                 <h4 className="text-xl sm:text-2xl font-bold text-[#2C1F14] mb-2">
                   Casi lo logras
@@ -381,9 +392,7 @@ export function QuizModal({
                 <span>
                   Pregunta {currentQuestionIndex + 1} de {questions.length}
                 </span>
-                <span>
-                  {Math.round(((currentQuestionIndex + 1) / questions.length) * 100)}%
-                </span>
+                <span>{Math.round(((currentQuestionIndex + 1) / questions.length) * 100)}%</span>
               </div>
               <div className="grid grid-cols-4 gap-2">
                 {questions.map((_, idx) => (
@@ -394,8 +403,8 @@ export function QuizModal({
                       selectedAnswers[idx] !== undefined && idx < currentQuestionIndex
                         ? 'bg-emerald-600'
                         : idx === currentQuestionIndex
-                        ? 'bg-[#845326]'
-                        : 'bg-[#E8DCD1]/60',
+                          ? 'bg-[#845326]'
+                          : 'bg-[#E8DCD1]/60',
                     )}
                   />
                 ))}

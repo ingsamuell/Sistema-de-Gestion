@@ -165,7 +165,9 @@ function ValidarCertificadoContent() {
         {isPending && (
           <div className="flex flex-col items-center justify-center py-12 text-[#845326]">
             <Loader2 className="size-8 animate-spin mb-3 text-[#845326]" />
-            <p className="text-sm font-semibold">Consultando registro inmutable de certificados...</p>
+            <p className="text-sm font-semibold">
+              Consultando registro inmutable de certificados...
+            </p>
           </div>
         )}
 
@@ -209,7 +211,11 @@ function ValidarCertificadoContent() {
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#E8DCD1] hover:bg-[#FAF3EC] text-xs font-bold text-[#845326] transition-colors cursor-pointer self-start sm:self-auto"
                 title="Copiar enlace directo de verificación"
               >
-                {copied ? <Check className="size-3.5 text-emerald-600" /> : <Copy className="size-3.5" />}
+                {copied ? (
+                  <Check className="size-3.5 text-emerald-600" />
+                ) : (
+                  <Copy className="size-3.5" />
+                )}
                 <span>{copied ? 'Enlace Copiado' : 'Compartir Verificación'}</span>
               </button>
             </div>
@@ -238,7 +244,9 @@ function ValidarCertificadoContent() {
                   <span className="text-[11px] font-bold text-[#845326] uppercase tracking-wider block">
                     Tiempo Dedicado
                   </span>
-                  <p className="text-base font-black text-[#2C1F14]">{result.horas_invertidas} horas de estudio</p>
+                  <p className="text-base font-black text-[#2C1F14]">
+                    {result.horas_invertidas} horas de estudio
+                  </p>
                 </div>
               </div>
 
@@ -295,7 +303,10 @@ function ValidarCertificadoContent() {
 
       {/* Footer */}
       <footer className="border-t border-[#E8DCD1] py-6 px-4 text-center text-xs text-[#845326]/70">
-        <p>Komorebi Study Studio © {new Date().getFullYear()} • Sistema Criptográfico de Certificación y Productividad Académica</p>
+        <p>
+          Komorebi Study Studio © {new Date().getFullYear()} • Sistema Criptográfico de
+          Certificación y Productividad Académica
+        </p>
       </footer>
     </div>
   );

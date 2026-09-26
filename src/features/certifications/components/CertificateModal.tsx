@@ -96,7 +96,7 @@ export function CertificateModal({
         }
       : null;
 
-  const data = effectiveIsPreview ? previewCertData : (fetchedData || officialDataFromProps);
+  const data = effectiveIsPreview ? previewCertData : fetchedData || officialDataFromProps;
   const loading = effectiveIsPreview ? false : !data && !!hash;
 
   useEffect(() => {
@@ -165,9 +165,9 @@ export function CertificateModal({
   // Validación para habilitar la descarga: debe ser oficial, tener código único y estar completado
   const hasValidVerificationCode = Boolean(
     data?.numero_certificado &&
-      data.numero_certificado !== 'KMB-PENDIENTE' &&
-      data?.hash_sha256 &&
-      data.hash_sha256 !== 'KMB-PENDIENTE-VERIFICACION',
+    data.numero_certificado !== 'KMB-PENDIENTE' &&
+    data?.hash_sha256 &&
+    data.hash_sha256 !== 'KMB-PENDIENTE-VERIFICACION',
   );
 
   const isEligibleForDownload = !effectiveIsPreview && hasValidVerificationCode;
@@ -328,7 +328,8 @@ export function CertificateModal({
 
                     {/* Descripción */}
                     <p className="text-[#2C1F14] text-xs sm:text-sm mb-2 max-w-2xl mx-auto leading-relaxed">
-                      Ha dedicado y completado con disciplina un tiempo efectivo de foco y estudio de:
+                      Ha dedicado y completado con disciplina un tiempo efectivo de foco y estudio
+                      de:
                     </p>
 
                     {/* Estadísticas */}
@@ -408,7 +409,9 @@ export function CertificateModal({
                       <div className="bg-[#F2EFE8] border border-[#E8DCD1] px-3 py-1 rounded-lg inline-block self-start shadow-2xs">
                         <span className="font-mono text-[10px] sm:text-xs text-[#2C1F14] font-black tracking-wider uppercase">
                           {data.numero_certificado ||
-                            (data.hash_sha256 ? `KMB-${data.hash_sha256.substring(0, 8).toUpperCase()}` : 'PENDIENTE')}
+                            (data.hash_sha256
+                              ? `KMB-${data.hash_sha256.substring(0, 8).toUpperCase()}`
+                              : 'PENDIENTE')}
                         </span>
                       </div>
                       <div

@@ -78,7 +78,8 @@ export function CertificadosGallery({ certificados }: CertificadosGalleryProps) 
                   <div className="flex items-center justify-between text-[11px]">
                     <span className="text-[#845326] font-bold">Nº de Certificado:</span>
                     <span className="font-mono font-black text-[#2C1F14]">
-                      {cert.numero_certificado || `KMB-${cert.hash_sha256.substring(0, 8).toUpperCase()}`}
+                      {cert.numero_certificado ||
+                        `KMB-${cert.hash_sha256.substring(0, 8).toUpperCase()}`}
                     </span>
                   </div>
                   <div className="font-mono text-[9px] text-outline break-all truncate">

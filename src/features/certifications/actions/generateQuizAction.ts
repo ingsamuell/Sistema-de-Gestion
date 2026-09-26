@@ -239,11 +239,7 @@ async function generateQuizWithGemini(
   taskDescription?: string,
 ): Promise<QuizQuestion[] | null> {
   // Modelos ordenados por velocidad y disponibilidad
-  const modelsToTry = [
-    'gemini-3.5-flash-lite',
-    GEMINI_DEFAULT_MODEL,
-    'gemini-3.6-flash',
-  ];
+  const modelsToTry = ['gemini-3.5-flash-lite', GEMINI_DEFAULT_MODEL, 'gemini-3.6-flash'];
 
   const prompt = `Actúa como profesor evaluador riguroso. Genera un cuestionario de opción múltiple de EXACTAMENTE 4 preguntas sobre esta tarea:
 Título: "${taskTitle}"
@@ -294,7 +290,10 @@ Devuelve estrictamente un JSON con esta estructura:
         }
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        console.warn(`[generateQuizWithGemini] Error con modelo ${model} (intento ${attempts + 1}):`, msg);
+        console.warn(
+          `[generateQuizWithGemini] Error con modelo ${model} (intento ${attempts + 1}):`,
+          msg,
+        );
 
         if (msg.includes('429') || msg.includes('503') || msg.includes('RESOURCE_EXHAUSTED')) {
           markActiveKeyExhaustedAndRotate(5000);
@@ -417,8 +416,16 @@ export async function generateQuizAction(input: GenerateQuizInput): Promise<Gene
       };
     }
 
-    const finalTitle: string = (input.taskTitle?.trim() || task.titulo || 'Estudio del tema').trim();
-    const finalDescription: string = (input.taskDescription?.trim() || task.descripcion || '').trim();
+    const finalTitle: string = (
+      input.taskTitle?.trim() ||
+      task.titulo ||
+      'Estudio del tema'
+    ).trim();
+    const finalDescription: string = (
+      input.taskDescription?.trim() ||
+      task.descripcion ||
+      ''
+    ).trim();
 
     // Si el usuario forzó la evaluación de contingencia
     if (input.forceFallback) {
@@ -433,7 +440,9 @@ export async function generateQuizAction(input: GenerateQuizInput): Promise<Gene
     // =========================================================================
     // 1. IA PRINCIPAL: Google Gemini (Optimizado para ultra velocidad)
     // =========================================================================
-    console.log(`[generateQuizAction] Iniciando generación con Gemini (IA Principal) para: "${finalTitle}"`);
+    console.log(
+      `[generateQuizAction] Iniciando generación con Gemini (IA Principal) para: "${finalTitle}"`,
+    );
     const geminiQuestions = await generateQuizWithGemini(finalTitle, finalDescription);
 
     if (geminiQuestions && geminiQuestions.length === 4) {

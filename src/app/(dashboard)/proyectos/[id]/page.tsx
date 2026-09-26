@@ -665,8 +665,7 @@ export default function ProjectDetailPage({
 
         // Si ya aprobó todos los quizzes de las tareas pero no se ha emitido el certificado, emitirlo automáticamente
         const total = project.tasks.length;
-        const allQuizzesApproved =
-          total > 0 && project.tasks.every((t) => Boolean(t.quizAprobado));
+        const allQuizzesApproved = total > 0 && project.tasks.every((t) => Boolean(t.quizAprobado));
         if (!certRes.issued && allQuizzesApproved) {
           import('@/features/certifications/actions/issueCertificateAction').then(
             ({ issueCertificateAction }) => {
@@ -703,9 +702,8 @@ export default function ProjectDetailPage({
       setIsIssuingCert(true);
       setActionErrorMessage(null);
       try {
-        const { issueCertificateAction } = await import(
-          '@/features/certifications/actions/issueCertificateAction'
-        );
+        const { issueCertificateAction } =
+          await import('@/features/certifications/actions/issueCertificateAction');
         const res = await issueCertificateAction({ projectId: project.id });
         if (res.success && res.hash) {
           setCertStatus((c) => ({
@@ -2317,8 +2315,7 @@ export default function ProjectDetailPage({
               );
 
               const total = newTasks.length;
-              const allDone =
-                total > 0 && newTasks.every((t) => Boolean(t.quizAprobado));
+              const allDone = total > 0 && newTasks.every((t) => Boolean(t.quizAprobado));
 
               if (allDone) {
                 // Auto trigger issue certificate

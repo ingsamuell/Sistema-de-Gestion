@@ -92,7 +92,9 @@ export async function issueCertificateAction(
     if (existingCert) {
       const year = new Date(existingCert.fecha_emision || Date.now()).getFullYear();
       const fallbackNumero = `KMB-${year}-${existingCert.hash_sha256.slice(0, 4).toUpperCase()}-${existingCert.hash_sha256.slice(4, 8).toUpperCase()}`;
-      const numero = (existingCert as { numero_certificado?: string | null })?.numero_certificado || fallbackNumero;
+      const numero =
+        (existingCert as { numero_certificado?: string | null })?.numero_certificado ||
+        fallbackNumero;
 
       if (!existingCert.numero_certificado) {
         // Intentar actualizar retrospectivamente en segundo plano si la columna existe
@@ -122,9 +124,7 @@ export async function issueCertificateAction(
       temas_aprobados: allTasks.length,
     };
 
-    let { error: insertError } = await supabase
-      .from('certificados_emitidos')
-      .insert(insertPayload);
+    let { error: insertError } = await supabase.from('certificados_emitidos').insert(insertPayload);
 
     // Si falla porque la columna numero_certificado no existe aún en la base de datos remota, reintentar sin ella
     if (

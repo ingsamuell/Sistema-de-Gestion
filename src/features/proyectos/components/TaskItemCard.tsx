@@ -1,7 +1,17 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Clock, ExternalLink, Play, Check, Trash2, Calendar, Pencil, Award, Lock } from 'lucide-react';
+import {
+  Clock,
+  ExternalLink,
+  Play,
+  Check,
+  Trash2,
+  Calendar,
+  Pencil,
+  Award,
+  Lock,
+} from 'lucide-react';
 import { TechniqueSelectionModal } from '@/components/study/TechniqueSelectionModal';
 import { TaskCompletedDetailModal } from '@/features/proyectos/components/TaskCompletedDetailModal';
 import { useFocusSession } from '@/contexts/FocusSessionContext';
@@ -261,8 +271,8 @@ export function TaskItemCard({
                 task.quizAprobado
                   ? 'Quiz ya aprobado'
                   : !isCompleted
-                  ? 'Completa la tarea primero para habilitar el quiz'
-                  : 'Realizar quiz de la tarea'
+                    ? 'Completa la tarea primero para habilitar el quiz'
+                    : 'Realizar quiz de la tarea'
               }
               className={`
                 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all shadow-xs border
@@ -270,8 +280,8 @@ export function TaskItemCard({
                   task.quizAprobado
                     ? 'bg-emerald-50 text-emerald-600 border-emerald-100 opacity-80 cursor-not-allowed'
                     : !isCompleted
-                    ? 'bg-[#F2EBE5]/60 border-[#E8DCD1] text-[#A8988B] cursor-not-allowed opacity-75'
-                    : 'bg-[#FBE6DD]/60 border-[#FBE6DD] text-[#845326] hover:bg-[#FBE6DD] cursor-pointer'
+                      ? 'bg-[#F2EBE5]/60 border-[#E8DCD1] text-[#A8988B] cursor-not-allowed opacity-75'
+                      : 'bg-[#FBE6DD]/60 border-[#FBE6DD] text-[#845326] hover:bg-[#FBE6DD] cursor-pointer'
                 }
               `}
             >
