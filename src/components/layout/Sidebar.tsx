@@ -23,7 +23,10 @@ export async function Sidebar({ initialUser }: SidebarProps) {
   }
 
   return (
-    <aside id="tour-sidebar" className="hidden md:flex w-64 flex-col border-r border-outline-variant/30 bg-surface h-screen sticky top-0 left-0">
+    <aside
+      id="tour-sidebar"
+      className="hidden md:flex w-64 flex-col border-r border-outline-variant/30 bg-surface h-screen sticky top-0 left-0"
+    >
       <div className="p-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="bg-primary/10 p-1 rounded-lg text-primary flex items-center justify-center w-10 h-10 relative">

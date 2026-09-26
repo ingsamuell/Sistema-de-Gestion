@@ -699,7 +699,10 @@ export default function CalendarioPage() {
             </p>
           </div>
 
-          <div id="tour-calendar-integrations" className="relative z-10 sm:ml-auto mt-4 sm:mt-0 w-full sm:w-auto min-h-[42px] flex items-center justify-end">
+          <div
+            id="tour-calendar-integrations"
+            className="relative z-10 sm:ml-auto mt-4 sm:mt-0 w-full sm:w-auto min-h-[42px] flex items-center justify-end"
+          >
             {!isMounted ? null : !isGoogleConnected ? (
               <button
                 type="button"
@@ -764,7 +767,10 @@ export default function CalendarioPage() {
           </div>
         </div>
 
-        <div id="tour-calendar-month-grid" className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div
+          id="tour-calendar-month-grid"
+          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"
+        >
           {months.map((month) => {
             const isCurrentMonth = isSameMonth(new Date(), month);
             const isPastMonth =
@@ -975,15 +981,19 @@ export default function CalendarioPage() {
 
         if (mappedAvails.length > 0) {
           const keys = new Set(mappedAvails.map((m) => `${m.date}_${m.startTime}`));
+          let mergedList: Availability[] = [];
           setAvailabilities((prev) => {
             const filtered = prev.filter((p) => !keys.has(`${p.date}_${p.startTime}`));
-            const merged = [...filtered, ...mappedAvails];
-            const consolidated = consolidateAvailabilitySlots(merged);
-            syncAvailabilityBlocksAction(consolidated).catch((err) =>
+            mergedList = [...filtered, ...mappedAvails];
+            return mergedList;
+          });
+
+          if (mergedList.length > 0) {
+            const consolidated = consolidateAvailabilitySlots(mergedList);
+            await syncAvailabilityBlocksAction(consolidated).catch((err) =>
               console.warn('Error sincronizando bloques tras extracción:', err),
             );
-            return merged;
-          });
+          }
         }
 
         // Recargar eventos de Supabase para reflejar de inmediato tareas reagendadas por IA
@@ -2492,7 +2502,10 @@ export default function CalendarioPage() {
         </div>
 
         {/* LEYENDA VISUAL DE COLORES */}
-        <div id="tour-calendar-legend" className="flex-shrink-0 py-4 flex justify-center flex-wrap gap-x-6 gap-y-4 px-4">
+        <div
+          id="tour-calendar-legend"
+          className="flex-shrink-0 py-4 flex justify-center flex-wrap gap-x-6 gap-y-4 px-4"
+        >
           <div className="flex items-center gap-2 shrink-0">
             <div className="w-4 h-4 rounded bg-[#C8D6AF] border border-[#3A4A28]/20"></div>
             <span className="text-xs font-bold text-[#845326]">Tareas</span>

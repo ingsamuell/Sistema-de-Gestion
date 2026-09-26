@@ -7,7 +7,7 @@ export async function captureChartImage(elementId: string): Promise<string | nul
     const element = document.getElementById(elementId);
     if (!element) return null;
 
-    const html2canvas = (await import('html2canvas')).default;
+    const html2canvas = (await import('html2canvas-pro')).default;
 
     const canvas = await html2canvas(element, {
       backgroundColor: '#fff8f4', // --color-surface
@@ -25,7 +25,7 @@ export async function captureChartImage(elementId: string): Promise<string | nul
 
 export async function exportAsImage(elementId: string, aiText: string, title: string) {
   const chartImage = await captureChartImage(elementId);
-  const html2canvas = (await import('html2canvas')).default;
+  const html2canvas = (await import('html2canvas-pro')).default;
 
   const container = document.createElement('div');
   container.style.position = 'absolute';

@@ -36,7 +36,7 @@ export function StudyMethodCard({ technique, isDefault }: StudyMethodCardProps) 
       onClick={() => setIsHovered(!isHovered)}
     >
       {/* Background and Base Layer */}
-      <div 
+      <div
         className="absolute inset-0 p-6 flex flex-col justify-between transition-opacity duration-300"
         style={{ background: technique.gradient }}
       >
@@ -48,12 +48,15 @@ export function StudyMethodCard({ technique, isDefault }: StudyMethodCardProps) 
             </span>
           </div>
           {isDefault && (
-            <div className="bg-accent-amber p-2 rounded-full text-white shadow-sm" title="Técnica Predeterminada">
+            <div
+              className="bg-accent-amber p-2 rounded-full text-white shadow-sm"
+              title="Técnica Predeterminada"
+            >
               <Star className="size-5 fill-current" />
             </div>
           )}
         </div>
-        
+
         <div className="flex items-center text-[#845326] font-medium gap-2 opacity-70 group-hover:opacity-0 transition-opacity">
           <Info className="size-5" />
           <span>Haz clic o pasa el cursor para ver detalles</span>
@@ -61,7 +64,7 @@ export function StudyMethodCard({ technique, isDefault }: StudyMethodCardProps) 
       </div>
 
       {/* Overlay Content */}
-      <div 
+      <div
         className={`absolute inset-0 bg-white/95 backdrop-blur-md p-6 flex flex-col justify-between transition-all duration-300 ease-in-out ${
           isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
         }`}
@@ -81,13 +84,13 @@ export function StudyMethodCard({ technique, isDefault }: StudyMethodCardProps) 
             <Play className="size-4" />
             Iniciar Estudio
           </button>
-          
+
           <button
             onClick={handleSetDefault}
             disabled={isDefault || isPending}
             className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold transition-colors ${
-              isDefault 
-                ? 'bg-status-success-bg text-status-success cursor-default' 
+              isDefault
+                ? 'bg-status-success-bg text-status-success cursor-default'
                 : 'bg-surface-container-high text-on-surface hover:bg-surface-container-highest'
             }`}
           >

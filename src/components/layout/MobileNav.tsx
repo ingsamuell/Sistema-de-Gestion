@@ -18,7 +18,10 @@ export function MobileNav() {
   ];
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-outline-variant/30 px-2 py-2 pb-safe flex items-center justify-between z-50">
+    <nav
+      id="tour-mobile-nav"
+      className="md:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-outline-variant/30 px-2 py-2 pb-safe flex items-center justify-between z-50"
+    >
       {navItems.map((item) => {
         const Icon = item.icon;
         const isActive = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);

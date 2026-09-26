@@ -63,7 +63,7 @@ export function HomeDashboardClient({
 }: HomeDashboardClientProps) {
   const [greeting, setGreeting] = useState('¡Buenos días');
   const [currentDate, setCurrentDate] = useState('');
-  
+
   const { startTour } = useOnboardingTour();
 
   useEffect(() => {
@@ -114,7 +114,11 @@ export function HomeDashboardClient({
       animate="visible"
       className="space-y-8"
     >
-      <motion.header variants={itemVariants} id="tour-greeting" className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+      <motion.header
+        variants={itemVariants}
+        id="tour-greeting"
+        className="flex flex-col sm:flex-row sm:items-start justify-between gap-4"
+      >
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
@@ -131,10 +135,10 @@ export function HomeDashboardClient({
             <span className="capitalize">{currentDate}</span>
             {' · '}
             {totalPendingTasks === 0
-            ? 'No tienes tareas pendientes próximas. Disfruta tu tiempo libre o explora nuevos temas.'
-            : totalPendingTasks === 1
-              ? 'Tienes 1 tarea pendiente en tu lista. Concéntrate y avanza a tu ritmo.'
-              : `Tienes ${totalPendingTasks} tareas pendientes en tu lista. Respeta tus ritmos y tiempos de descanso.`}
+              ? 'No tienes tareas pendientes próximas. Disfruta tu tiempo libre o explora nuevos temas.'
+              : totalPendingTasks === 1
+                ? 'Tienes 1 tarea pendiente en tu lista. Concéntrate y avanza a tu ritmo.'
+                : `Tienes ${totalPendingTasks} tareas pendientes en tu lista. Respeta tus ritmos y tiempos de descanso.`}
           </p>
         </div>
       </motion.header>

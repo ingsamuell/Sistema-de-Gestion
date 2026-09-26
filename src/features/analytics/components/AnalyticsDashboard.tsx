@@ -52,7 +52,7 @@ const metricIds = Object.keys(metrics) as AnalyticsMetricId[];
 
 export function AnalyticsDashboard({ data }: { data: AnalyticsDashboardData }) {
   const [activeMetric, setActiveMetric] = useState<AnalyticsMetricId>('workload');
-  
+
   useAnalyticsTour();
 
   const active = metrics[activeMetric];
@@ -189,7 +189,10 @@ export function AnalyticsDashboard({ data }: { data: AnalyticsDashboardData }) {
         </div>
       </Card>
 
-      <section id="tour-analytics-ai" className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+      <section
+        id="tour-analytics-ai"
+        className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center"
+      >
         <div className="rounded-2xl border border-primary/10 bg-primary/[0.025] p-5 sm:p-6">
           <div className="flex gap-3">
             <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-on-primary">

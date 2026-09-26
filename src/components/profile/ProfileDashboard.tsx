@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import {
   ArrowUpRight,
+  Bot,
   BookOpen,
   CalendarClock,
   CheckCircle2,
@@ -26,6 +27,7 @@ import {
   ShieldCheck,
   Sparkles,
   Target,
+  Award,
 } from 'lucide-react';
 import { ChangePasswordModal } from '@/components/profile/ChangePasswordModal';
 import { AddPasswordModal } from '@/components/profile/AddPasswordModal';
@@ -40,6 +42,7 @@ import {
 } from '@/features/profile/data/learningOptions';
 import { updateProfileIdentity } from '@/features/profile/actions/updateProfileIdentityAction';
 import { updateLearningPreferences } from '@/features/profile/actions/updateLearningPreferencesAction';
+import { useProfileTour } from '@/hooks/useProfileTour';
 
 export type ProfileDashboardData = {
   userId?: string;
@@ -76,6 +79,8 @@ type EditableSection = 'identity' | 'learning' | null;
 export function ProfileDashboard({ profile }: { profile: ProfileDashboardData }) {
   const router = useRouter();
   const [editingSection, setEditingSection] = useState<EditableSection>(null);
+
+  useProfileTour();
 
   // Estados de Contraseña y Seguridad
   const [hasPassword, setHasPassword] = useState(profile.hasPassword ?? true);
@@ -281,6 +286,7 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
       <div className="space-y-6">
         {/* SECCIÓN 1: Identidad y presencia */}
         <WideSection
+          id="tour-profile-identity"
           title="Identidad y presencia"
           description="La información con la que te reconocemos dentro de Komorebi y los datos principales de tu cuenta."
           icon={<Edit3 className="size-5" />}
@@ -715,6 +721,7 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
 
         {/* SECCIÓN 2: Perfil de aprendizaje e Información complementaria */}
         <WideSection
+          id="tour-profile-learning"
           title="Perfil de aprendizaje"
           description="Tus preferencias de estudio y la información complementaria para adaptar la planificación y tus ritmos."
           icon={<GraduationCap className="size-5" />}
@@ -1037,6 +1044,7 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
 
         {/* SECCIÓN 3: Términos y privacidad */}
         <WideSection
+          id="tour-profile-privacy"
           title="Términos y privacidad"
           description="Consulta las condiciones de uso de Komorebi y cómo cuidamos tu información."
           icon={<FileText className="size-5" />}
@@ -1100,13 +1108,76 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
           </div>
         </WideSection>
 
-        {/* SECCIÓN 4: Mi espacio de aprendizaje y Rachas */}
+        {/* SECCIÓN 4: Guía rápida del bot */}
         <WideSection
+          id="tour-profile-bot-guide"
+          title="Cómo usar el bot Komo"
+          description="Una guía breve para consultar tu organización desde Telegram."
+          icon={<Bot className="size-5" />}
+        >
+          <div className="rounded-2xl border border-primary/15 bg-primary/[0.035] p-4 sm:p-5">
+            <div className="flex items-start gap-3 border-b border-outline-variant/40 pb-4">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-container-lowest text-primary">
+                <Bot className="size-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-on-surface">Guía rápida</h3>
+                <p className="mt-1 max-w-2xl text-sm leading-relaxed text-on-surface-variant">
+                  Komo te ayuda a consultar proyectos y vencimientos sin salir de Telegram.
+                </p>
+              </div>
+            </div>
+
+            <ol className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {[
+                {
+                  title: 'Abre el bot',
+                  description:
+                    'Usa el acceso de Komo disponible en la plataforma para iniciar Telegram.',
+                },
+                {
+                  title: 'Vinculación automática',
+                  description: 'El enlace identifica tu cuenta para que el bot pueda reconocerte.',
+                },
+                {
+                  title: 'Consulta tu organización',
+                  description: 'Revisa tus proyectos activos y sus fechas de vencimiento.',
+                },
+                {
+                  title: 'Navega con botones',
+                  description: 'No necesitas memorizar comandos: selecciona los botones del bot.',
+                },
+              ].map((step, index) => (
+                <li
+                  key={step.title}
+                  className="rounded-xl border border-outline-variant/60 bg-surface-container-lowest/80 p-4"
+                >
+                  <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
+                    {index + 1}
+                  </span>
+                  <h4 className="mt-4 text-sm font-bold text-on-surface">{step.title}</h4>
+                  <p className="mt-1 text-xs leading-relaxed text-on-surface-variant">
+                    {step.description}
+                  </p>
+                </li>
+              ))}
+            </ol>
+
+            <p className="mt-4 rounded-xl bg-surface-container-low px-3 py-2.5 text-xs leading-relaxed text-on-surface-variant">
+              Si el bot no reconoce tu cuenta, vuelve a abrirlo desde la plataforma para generar el
+              enlace correcto.
+            </p>
+          </div>
+        </WideSection>
+
+        {/* SECCIÓN 5: Mi espacio de aprendizaje y Rachas */}
+        <WideSection
+          id="tour-profile-stats"
           title="Mi espacio de aprendizaje"
           description="La conexión entre tu perfil, tus temas, proyectos y el contexto que autorizas para la IA."
           icon={<Sparkles className="size-5" />}
         >
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_15rem]">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_15rem]">
             <Link
               href="/temas"
               className="group rounded-2xl border border-outline-variant/60 bg-surface-container-lowest/80 p-4 shadow-sm transition-colors hover:border-primary/35 hover:bg-surface-container-low"
@@ -1136,6 +1207,22 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
               <h3 className="mt-5 font-bold">Proyectos</h3>
               <p className="mt-1 text-sm leading-relaxed text-on-surface-variant">
                 Mantén una vista clara de lo que estás construyendo.
+              </p>
+            </Link>
+
+            <Link
+              href="/certificaciones"
+              className="group rounded-2xl border border-outline-variant/60 bg-surface-container-lowest/80 p-4 shadow-sm transition-colors hover:border-primary/35 hover:bg-surface-container-low"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <Award className="size-5" />
+                </div>
+                <ArrowUpRight className="size-4 text-outline transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-primary" />
+              </div>
+              <h3 className="mt-5 font-bold">Certificaciones</h3>
+              <p className="mt-1 text-sm leading-relaxed text-on-surface-variant">
+                Tus logros e inversión de tiempo validados.
               </p>
             </Link>
 
@@ -1275,6 +1362,7 @@ function WideSection({
   actionLabel,
   onAction,
   children,
+  id,
 }: {
   title: string;
   description: string;
@@ -1282,9 +1370,11 @@ function WideSection({
   actionLabel?: string;
   onAction?: () => void;
   children: React.ReactNode;
+  id?: string;
 }) {
   return (
     <motion.div
+      id={id}
       layout
       transition={{ type: 'spring', bounce: 0, duration: 0.5 }}
       className="max-w-full rounded-2xl border border-outline-variant/60 bg-surface-container-lowest/75 p-5 shadow-[0_10px_30px_-18px_rgba(74,53,37,0.3)] backdrop-blur-sm sm:p-6"

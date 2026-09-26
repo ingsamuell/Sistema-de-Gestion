@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { getAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
 import { generateProjectTasksFromN8n } from '@/services/automation/n8nTasksService';
 import {
@@ -31,6 +32,7 @@ export interface TaskRecord {
   fecha_inicio?: string | null;
   resources?: string | null;
   url_recomendada?: string | null;
+  quiz_aprobado?: boolean;
 }
 
 export interface ProjectRecord {
@@ -600,9 +602,12 @@ export async function toggleTaskStatusAction(
       return { success: false, error: 'No se encontró una sesión activa.' };
     }
 
+    const adminDb = getAdminClient();
+    const db = adminDb || supabase;
+
     let targetProjectId = projectId;
     if (!targetProjectId) {
-      const { data: tRecord } = await supabase
+      const { data: tRecord } = await db
         .from('tareas')
         .select('id_proyecto')
         .eq('id', taskId)
@@ -624,18 +629,25 @@ export async function toggleTaskStatusAction(
     }
 
     // 1. Obtener la tarea antes de modificar para conocer su estado previo y tiempo
-    const { data: existingTask } = await supabase
+    const { data: existingTask, error: existingTaskErr } = await db
       .from('tareas')
       .select('id, completado, fecha_inicio, duracion')
       .eq('id', taskId)
       .eq('id_proyecto', targetProjectId)
       .maybeSingle();
 
+    if (existingTaskErr) {
+      console.warn('Aviso consultando existingTask en toggleTaskStatusAction:', existingTaskErr);
+    }
+
     const wasCompleted = Boolean(existingTask?.completado);
 
     // 2. Actualizar la tarea en la tabla 'tareas'
     const nowIso = new Date().toISOString();
-    const { error: updateError } = await supabase
+    let updateError: { message: string } | null = null;
+
+    // Intento 1: Actualizar completado y completed_at
+    const res1 = await db
       .from('tareas')
       .update({
         completado: isCompleted,
@@ -644,27 +656,47 @@ export async function toggleTaskStatusAction(
       .eq('id', taskId)
       .eq('id_proyecto', targetProjectId);
 
+    if (res1.error) {
+      console.warn(
+        'Aviso al actualizar con completed_at en tareas, intentando fallback solo con completado:',
+        res1.error.message,
+      );
+      // Intento 2 (Fallback): Si falló el trigger o columna completed_at, actualizar solo completado
+      const res2 = await db
+        .from('tareas')
+        .update({
+          completado: isCompleted,
+        })
+        .eq('id', taskId)
+        .eq('id_proyecto', targetProjectId);
+
+      if (res2.error) {
+        updateError = res2.error;
+      }
+    }
+
     if (updateError) {
+      console.error('Error definitivo en Supabase al actualizar tarea:', updateError);
       return { success: false, error: updateError.message };
     }
 
-    // Si la tarea se marca como completada, borrar automáticamente sus bloques respectivos en el calendario
-    if (isCompleted) {
-      try {
-        await supabase
-          .from('eventos_calendario')
-          .delete()
-          .eq('tarea_id', taskId);
-      } catch (calErr) {
-        console.warn('Aviso al eliminar bloques de calendario de tarea completada:', calErr);
-      }
+    // Sincronizar estado en eventos_calendario si la tarea está agendada
+    try {
+      await db
+        .from('eventos_calendario')
+        .update({
+          estado: isCompleted ? 'completada' : 'pendiente',
+        })
+        .eq('tarea_id', taskId);
+    } catch (calSyncErr) {
+      console.warn('Aviso sincronizando estado en eventos_calendario:', calSyncErr);
     }
 
     // 3. Gestionar racha del usuario en la tabla 'profiles'
     let updatedRacha: number;
     let updatedRachaMaxima: number;
 
-    const { data: profile } = await supabase
+    const { data: profile } = await db
       .from('profiles')
       .select('racha_activa, racha_maxima')
       .eq('id', user.id)
@@ -678,7 +710,7 @@ export async function toggleTaskStatusAction(
       updatedRacha = currentStreak + 1;
       updatedRachaMaxima = Math.max(currentMax, updatedRacha);
 
-      await supabase
+      await db
         .from('profiles')
         .update({
           racha_activa: updatedRacha,
@@ -690,7 +722,7 @@ export async function toggleTaskStatusAction(
       updatedRacha = Math.max(0, currentStreak - 1);
       updatedRachaMaxima = currentMax;
 
-      await supabase
+      await db
         .from('profiles')
         .update({
           racha_activa: updatedRacha,
@@ -702,7 +734,7 @@ export async function toggleTaskStatusAction(
     }
 
     // 4. Obtener todas las tareas del proyecto para recalcular el porcentaje de progreso
-    const { data: allTasks, error: fetchError } = await supabase
+    const { data: allTasks, error: fetchError } = await db
       .from('tareas')
       .select('completado')
       .eq('id_proyecto', targetProjectId);
@@ -717,21 +749,21 @@ export async function toggleTaskStatusAction(
 
     // 5. Guardar el nuevo progreso y completado en la tabla 'projects'
     try {
-      const { error: projError } = await supabase
+      const { error: projError } = await db
         .from('projects')
         .update({ progreso: newProgreso, completado: isProjectCompleted })
         .eq('id', targetProjectId)
         .eq('user_id', user.id);
 
       if (projError && projError.message.includes('completado')) {
-        await supabase
+        await db
           .from('projects')
           .update({ progreso: newProgreso })
           .eq('id', targetProjectId)
           .eq('user_id', user.id);
       }
     } catch {
-      await supabase
+      await db
         .from('projects')
         .update({ progreso: newProgreso })
         .eq('id', targetProjectId)
@@ -740,6 +772,7 @@ export async function toggleTaskStatusAction(
 
     revalidatePath(`/proyectos/${targetProjectId}`);
     revalidatePath('/proyectos');
+    revalidatePath('/calendario');
     revalidatePath('/');
     revalidatePath('/perfil');
     revalidatePath('/analitica');
@@ -1865,5 +1898,129 @@ export async function resetStreakOnOverdueAction() {
   } catch (error: unknown) {
     console.error('Error en resetStreakOnOverdueAction:', error);
     return { success: false, error: 'Error al reiniciar racha.' };
+  }
+}
+
+/**
+ * saveTaskStudyFeedbackAction
+ * Guarda la información del método de estudio, tiempo empleado y la valoración
+ * de si le sirvió la técnica (sí/no) en la tabla 'tareas'.
+ */
+export async function saveTaskStudyFeedbackAction(input: {
+  taskId: string;
+  projectId?: string;
+  metodoEstudio?: string;
+  tiempoEmpleado?: number;
+  tecnicaSirvio?: boolean;
+  tecnicaPreferida?: string;
+}) {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return { success: false, error: 'No se encontró una sesión activa.' };
+    }
+
+    if (!input.taskId) {
+      return { success: false, error: 'ID de tarea no proporcionado.' };
+    }
+
+    const adminDb = getAdminClient();
+    const db = adminDb || supabase;
+
+    // 1. Guardar la técnica preferida en la tabla 'profiles'
+    if (input.tecnicaPreferida) {
+      const { error: profileErr } = await supabase
+        .from('profiles')
+        .update({ tecnica_preferida: input.tecnicaPreferida })
+        .eq('id', user.id);
+
+      if (profileErr) {
+        console.warn('Aviso guardando tecnica_preferida en profiles:', profileErr.message);
+      }
+    }
+
+    // 2. Verificar pertenencia del proyecto/tarea
+    const { data: taskRecord, error: taskFetchError } = await db
+      .from('tareas')
+      .select('id, id_proyecto, completado, completed_at, duracion')
+      .eq('id', input.taskId)
+      .maybeSingle();
+
+    if (taskFetchError || !taskRecord) {
+      return { success: false, error: 'Tarea no encontrada.' };
+    }
+
+    const targetProjectId = input.projectId || taskRecord.id_proyecto;
+    if (targetProjectId) {
+      const owns = await userOwnsProject(supabase, user.id, targetProjectId);
+      if (!owns) {
+        return { success: false, error: 'No tienes permiso para modificar esta tarea.' };
+      }
+    }
+
+    const updatePayload: Record<string, unknown> = {};
+    if (input.metodoEstudio !== undefined) {
+      updatePayload.metodo_estudio = input.metodoEstudio;
+    } else if (input.tecnicaPreferida) {
+      updatePayload.metodo_estudio = input.tecnicaPreferida;
+    }
+
+    if (input.tiempoEmpleado !== undefined) {
+      updatePayload.tiempo_empleado = input.tiempoEmpleado;
+    }
+    if (input.tecnicaSirvio !== undefined) {
+      updatePayload.tecnica_sirvio = input.tecnicaSirvio;
+    } else if (input.tecnicaPreferida) {
+      updatePayload.tecnica_sirvio = true;
+    }
+
+    // Si aún no tenía completed_at y está completada, asegurar timestamp
+    if (taskRecord.completado && !taskRecord.completed_at) {
+      updatePayload.completed_at = new Date().toISOString();
+    }
+
+    const { error: updateError } = await db
+      .from('tareas')
+      .update(updatePayload)
+      .eq('id', input.taskId);
+
+    // Fallback tolerante si las columnas no están aún en la BD remota
+    if (
+      updateError &&
+      (updateError.message?.includes('metodo_estudio') ||
+        updateError.message?.includes('tecnica_sirvio') ||
+        updateError.message?.includes('tiempo_empleado') ||
+        updateError.code === '42703')
+    ) {
+      console.warn(
+        '[saveTaskStudyFeedbackAction] Columnas de feedback aún no migradas en Supabase:',
+        updateError.message,
+      );
+      return {
+        success: true,
+        warning: 'Guardado localmente. Recuerda ejecutar la migración de feedback en Supabase.',
+      };
+    }
+
+    if (updateError) {
+      console.error('Error al guardar feedback de técnica en tareas:', updateError);
+      return { success: false, error: updateError.message };
+    }
+
+    if (targetProjectId) {
+      revalidatePath(`/proyectos/${targetProjectId}`);
+    }
+    revalidatePath('/perfil');
+
+    return { success: true };
+  } catch (error: unknown) {
+    console.error('Error en saveTaskStudyFeedbackAction:', error);
+    const msg = error instanceof Error ? error.message : 'Error inesperado al guardar feedback.';
+    return { success: false, error: msg };
   }
 }

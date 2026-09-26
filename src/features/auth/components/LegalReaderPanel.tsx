@@ -16,8 +16,8 @@ export function LegalReaderPanel() {
   return (
     <section className="rounded-2xl border border-primary/15 bg-surface-container-lowest/70 p-4 shadow-sm backdrop-blur-sm">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 gap-3">
-          <div className="mt-0.5 rounded-xl bg-primary/10 p-2 text-primary">
+        <div className="flex min-w-0 items-start gap-3">
+          <div className="mt-0.5 shrink-0 rounded-xl bg-primary/10 p-2 text-primary">
             <FileText className="h-4 w-4" aria-hidden="true" />
           </div>
           <div>

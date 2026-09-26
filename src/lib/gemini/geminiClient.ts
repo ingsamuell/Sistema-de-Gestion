@@ -19,11 +19,11 @@ function initializeKeyPool(): void {
   const mainKey = process.env.GEMINI_API_KEY?.trim();
   if (mainKey) rawKeys.push(mainKey);
 
-  const key2 = process.env.GEMINI_API_KEY_2?.trim();
-  if (key2) rawKeys.push(key2);
-
-  const key3 = process.env.GEMINI_API_KEY_3?.trim();
-  if (key3) rawKeys.push(key3);
+  // Soporte dinámico para GEMINI_API_KEY_2 hasta GEMINI_API_KEY_10
+  for (let i = 2; i <= 10; i++) {
+    const keyN = process.env[`GEMINI_API_KEY_${i}`]?.trim();
+    if (keyN) rawKeys.push(keyN);
+  }
 
   const commaKeys = process.env.GEMINI_API_KEYS?.split(',')
     .map((k) => k.trim())
@@ -36,9 +36,7 @@ function initializeKeyPool(): void {
   const uniqueKeys = Array.from(new Set(rawKeys.filter(Boolean)));
 
   if (uniqueKeys.length === 0) {
-    throw new Error(
-      'No hay ninguna GEMINI_API_KEY configurada en las variables de entorno (.env.local).',
-    );
+    throw new Error('No hay ninguna GEMINI_API_KEY configurada en las variables de entorno.');
   }
 
   // Si las keys cambiaron o se inicializa por primera vez

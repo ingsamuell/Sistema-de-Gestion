@@ -312,7 +312,7 @@ export function HomeTaskList({ initialTasks, onTaskToggled }: HomeTaskListProps)
         })}
       </div>
 
-      <TechniqueSelectionModal 
+      <TechniqueSelectionModal
         isOpen={!!focusModalTask}
         onClose={() => setFocusModalTask(null)}
         taskId={focusModalTask?.id}

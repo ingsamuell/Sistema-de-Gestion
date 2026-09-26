@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { STUDY_TECHNIQUES, StudyTechnique } from '@/features/study-methods/data/techniques';
 import { useToast } from '@/components/ui/Toast';
 
@@ -44,65 +44,69 @@ export function FocusSessionProvider({ children }: { children: React.ReactNode }
 
   const { success, info } = useToast();
 
-  const stateRef = useRef(state);
-  stateRef.current = state;
+  const handlePhaseComplete = useCallback(() => {
+    setState((prev) => {
+      if (!prev.technique) return prev;
+
+      if (prev.phase === 'focus') {
+        const nextCycle = prev.cycleCount + 1;
+        const isLongBreak = nextCycle % prev.technique.cyclesBeforeLongBreak === 0;
+        const nextPhase = isLongBreak ? 'longBreak' : 'break';
+        const duration = isLongBreak
+          ? prev.technique.longBreakMinutes * 60
+          : prev.technique.breakMinutes * 60;
+
+        playBeep();
+        success(
+          isLongBreak
+            ? '¡Tiempo de enfoque terminado! Toma un descanso largo bien merecido.'
+            : '¡Tiempo de enfoque terminado! Tómate un breve respiro.',
+        );
+
+        return {
+          ...prev,
+          phase: nextPhase,
+          cycleCount: nextCycle,
+          timeLeft: duration,
+          totalDuration: duration,
+          isPlaying: false, // Wait for user to start break
+        };
+      } else {
+        // Break is over, back to focus
+        const duration = prev.technique.focusMinutes * 60;
+
+        playBeep();
+        info('El descanso ha terminado. ¡Hora de volver al enfoque!');
+
+        return {
+          ...prev,
+          phase: 'focus',
+          timeLeft: duration,
+          totalDuration: duration,
+          isPlaying: false, // Wait for user to start next focus session
+        };
+      }
+    });
+  }, [success, info]);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    if (!state.isActive || !state.isPlaying) return;
 
-    if (state.isActive && state.isPlaying && state.timeLeft > 0) {
-      interval = setInterval(() => {
-        setState((prev) => ({ ...prev, timeLeft: prev.timeLeft - 1 }));
-      }, 1000);
-    } else if (state.isActive && state.isPlaying && state.timeLeft === 0) {
-      handlePhaseComplete();
-    }
+    const interval = setInterval(() => {
+      setState((prev) => {
+        if (prev.timeLeft <= 1) {
+          clearInterval(interval);
+          handlePhaseComplete();
+          return { ...prev, timeLeft: 0 };
+        }
+        return { ...prev, timeLeft: prev.timeLeft - 1 };
+      });
+    }, 1000);
 
     return () => {
-      if (interval) clearInterval(interval);
+      clearInterval(interval);
     };
-  }, [state.isActive, state.isPlaying, state.timeLeft]);
-
-  const handlePhaseComplete = useCallback(() => {
-    const s = stateRef.current;
-    if (!s.technique) return;
-
-    if (s.phase === 'focus') {
-      const nextCycle = s.cycleCount + 1;
-      const isLongBreak = nextCycle % s.technique.cyclesBeforeLongBreak === 0;
-      const nextPhase = isLongBreak ? 'longBreak' : 'break';
-      const duration = isLongBreak ? s.technique.longBreakMinutes * 60 : s.technique.breakMinutes * 60;
-
-      setState((prev) => ({
-        ...prev,
-        phase: nextPhase,
-        cycleCount: nextCycle,
-        timeLeft: duration,
-        totalDuration: duration,
-        isPlaying: false, // Wait for user to start break
-      }));
-      
-      playBeep();
-      success(
-        isLongBreak 
-          ? '¡Tiempo de enfoque terminado! Toma un descanso largo bien merecido.' 
-          : '¡Tiempo de enfoque terminado! Tómate un breve respiro.'
-      );
-    } else {
-      // Break is over, back to focus
-      const duration = s.technique.focusMinutes * 60;
-      setState((prev) => ({
-        ...prev,
-        phase: 'focus',
-        timeLeft: duration,
-        totalDuration: duration,
-        isPlaying: false, // Wait for user to start next focus session
-      }));
-      
-      playBeep();
-      info('El descanso ha terminado. ¡Hora de volver al enfoque!');
-    }
-  }, [success, info]);
+  }, [state.isActive, state.isPlaying, handlePhaseComplete]);
 
   const startSession = useCallback((techniqueId: string, taskId?: string, taskTitle?: string) => {
     const tech = STUDY_TECHNIQUES.find((t) => t.id === techniqueId);
@@ -177,30 +181,35 @@ export function useFocusSession() {
   return context;
 }
 
+interface WindowWithWebkitAudio extends Window {
+  webkitAudioContext?: typeof AudioContext;
+}
+
 // Función auxiliar para emitir un sonido cuando se acaba el tiempo
 function playBeep() {
   if (typeof window !== 'undefined') {
     try {
-      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioContext) return;
-      const ctx = new AudioContext();
+      const AudioContextClass =
+        window.AudioContext || (window as unknown as WindowWithWebkitAudio).webkitAudioContext;
+      if (!AudioContextClass) return;
+      const ctx = new AudioContextClass();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      
+
       osc.type = 'sine';
       osc.frequency.setValueAtTime(523.25, ctx.currentTime); // Do (C5)
       osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.1); // Sube a A5
-      
+
       gain.gain.setValueAtTime(0, ctx.currentTime);
       gain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.05);
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-      
+
       osc.connect(gain);
       gain.connect(ctx.destination);
-      
+
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 0.5);
-    } catch (e) {
+    } catch {
       // Browser might block audio context if not interacted, ignore
     }
   }

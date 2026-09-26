@@ -73,6 +73,9 @@ export type AssistantContext = {
     view: AnalyticsMetricId;
     period: 'week';
   };
+  quizContext?: {
+    taskId: string;
+  };
 };
 
 export const GENERAL_ASSISTANT_CONTEXT: AssistantContext = {

@@ -5,7 +5,7 @@ import { driver, DriveStep } from 'driver.js';
 import 'driver.js/dist/driver.css';
 import { useTourContext } from '@/contexts/TourContext';
 
-export function useAnalyticsTour() {
+export function useProfileTour() {
   const { registerTour } = useTourContext();
 
   const startTour = useCallback(() => {
@@ -13,42 +13,42 @@ export function useAnalyticsTour() {
 
     const steps: DriveStep[] = [
       {
-        element: '#tour-analytics-tabs',
+        element: '#tour-profile-identity',
         popover: {
-          title: 'Métricas Disponibles',
+          title: 'Tu Identidad en Komorebi',
           description:
-            'Navega entre diferentes vistas para analizar tu progreso, carga de trabajo, prioridades y fechas de entrega.',
+            'Aquí puedes personalizar tu nombre, nombre de usuario y foto de perfil. Toca "Editar" para ajustar esta información y tus ajustes de seguridad de la cuenta.',
           side: 'bottom',
-          align: 'start',
+          align: 'center',
         },
       },
       {
-        element: '#exportable-chart-area',
+        element: '#tour-profile-learning',
         popover: {
-          title: 'Tus Datos Visualizados',
+          title: 'Preferencias de Aprendizaje',
           description:
-            'Aquí verás el detalle gráfico de la métrica seleccionada. Pasa el cursor sobre los elementos para obtener más información puntual.',
+            'Ajusta tu metodología, ritmo, áreas prioritarias y disponibilidad. Usamos esta información para adaptar las sugerencias de Komo a tu estilo de estudio.',
           side: 'top',
           align: 'center',
         },
       },
       {
-        element: '#tour-analytics-ai',
+        element: '#tour-profile-privacy',
         popover: {
-          title: 'Consultar a la IA',
+          title: 'Términos y Privacidad',
           description:
-            'Si tienes dudas sobre tus números o no sabes qué priorizar, puedes iniciar un chat con Komo pasándole exactamente el contexto de esta gráfica.',
+            'Aquí puedes consultar las condiciones de uso de Komorebi y nuestra política de privacidad.',
           side: 'top',
           align: 'center',
         },
       },
       {
-        element: '#tour-analytics-actions',
+        element: '#tour-profile-stats',
         popover: {
-          title: 'Exportar Reporte',
+          title: 'Tu Espacio de Aprendizaje',
           description:
-            'Usa este menú para descargar tu gráfica como imagen o exportar los datos en formato CSV para un registro externo.',
-          side: 'left',
+            'Accesos directos a tus temas y proyectos, además de tu nivel actual, rachas de estudio e hitos desbloqueados.',
+          side: 'top',
           align: 'center',
         },
       },

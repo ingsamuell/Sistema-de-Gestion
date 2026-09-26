@@ -17,91 +17,98 @@ export function StudyTimer({ technique, onFinish }: StudyTimerProps) {
   const [cyclesCompleted, setCyclesCompleted] = useState(0);
   const [timeLeft, setTimeLeft] = useState(technique.focusMinutes * 60);
   const [isActive, setIsActive] = useState(false);
-  
-  // Update initial time if technique changes
-  useEffect(() => {
+
+  // Update initial time if technique changes (render-time adjustment)
+  const [prevTechnique, setPrevTechnique] = useState(technique);
+  if (prevTechnique !== technique) {
+    setPrevTechnique(technique);
     setPhase('focus');
     setCyclesCompleted(0);
     setTimeLeft(technique.focusMinutes * 60);
     setIsActive(false);
-  }, [technique]);
+  }
 
-  const getPhaseDuration = useCallback((currentPhase: TimerPhase, currentCycles: number) => {
-    switch (currentPhase) {
-      case 'focus':
-        return technique.focusMinutes * 60;
-      case 'break':
-        return technique.breakMinutes * 60;
-      case 'long_break':
-        return technique.longBreakMinutes * 60;
-      default:
-        return technique.focusMinutes * 60;
-    }
-  }, [technique]);
+  const getPhaseDuration = useCallback(
+    (currentPhase: TimerPhase) => {
+      switch (currentPhase) {
+        case 'focus':
+          return technique.focusMinutes * 60;
+        case 'break':
+          return technique.breakMinutes * 60;
+        case 'long_break':
+          return technique.longBreakMinutes * 60;
+        default:
+          return technique.focusMinutes * 60;
+      }
+    },
+    [technique],
+  );
 
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
+  const handlePhaseComplete = useCallback(() => {
+    setIsActive(false);
 
-    if (isActive && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft((time) => time - 1);
-      }, 1000);
-    } else if (isActive && timeLeft === 0) {
-      // Phase completed
-      setIsActive(false);
-      handlePhaseComplete();
-    }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isActive, timeLeft]);
-
-  const handlePhaseComplete = () => {
-    // Play sound notification here if needed
-    // new Audio('/sounds/notification.mp3').play();
-    
     if (phase === 'focus') {
       const newCycles = cyclesCompleted + 1;
       setCyclesCompleted(newCycles);
-      
+
       if (newCycles % technique.cyclesBeforeLongBreak === 0) {
         setPhase('long_break');
-        setTimeLeft(getPhaseDuration('long_break', newCycles));
+        setTimeLeft(getPhaseDuration('long_break'));
       } else {
         setPhase('break');
-        setTimeLeft(getPhaseDuration('break', newCycles));
+        setTimeLeft(getPhaseDuration('break'));
       }
     } else {
       // Return to focus after a break
       setPhase('focus');
-      setTimeLeft(getPhaseDuration('focus', cyclesCompleted));
+      setTimeLeft(getPhaseDuration('focus'));
+      onFinish?.();
     }
-  };
+  }, [cyclesCompleted, getPhaseDuration, onFinish, phase, technique.cyclesBeforeLongBreak]);
+
+  useEffect(() => {
+    if (!isActive) return;
+
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          handlePhaseComplete();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [isActive, handlePhaseComplete]);
 
   const toggleTimer = () => setIsActive(!isActive);
-  
+
   const resetTimer = () => {
     setIsActive(false);
-    setTimeLeft(getPhaseDuration(phase, cyclesCompleted));
+    setTimeLeft(getPhaseDuration(phase));
   };
-  
+
   const skipPhase = () => {
-    setIsActive(false);
     handlePhaseComplete();
   };
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
-  const percentage = ((getPhaseDuration(phase, cyclesCompleted) - timeLeft) / getPhaseDuration(phase, cyclesCompleted)) * 100;
+  const currentDuration = getPhaseDuration(phase);
+  const percentage =
+    currentDuration > 0 ? ((currentDuration - timeLeft) / currentDuration) * 100 : 0;
 
   return (
     <div className="flex flex-col items-center justify-center w-full max-w-md mx-auto bg-surface p-8 rounded-[32px] border border-outline-variant shadow-sm relative overflow-hidden">
       {/* Background subtle gradient based on phase */}
-      <div 
+      <div
         className={cn(
-          "absolute inset-0 opacity-10 transition-colors duration-1000",
-          phase === 'focus' ? "bg-accent-amber" : "bg-status-success"
+          'absolute inset-0 opacity-10 transition-colors duration-1000',
+          phase === 'focus' ? 'bg-accent-amber' : 'bg-status-success',
         )}
       />
 
@@ -111,9 +118,13 @@ export function StudyTimer({ technique, onFinish }: StudyTimerProps) {
           <h2 className="text-2xl font-bold text-on-surface mb-2">{technique.name}</h2>
           <div className="flex items-center justify-center gap-2 text-on-surface-variant font-medium">
             {phase === 'focus' ? (
-              <><Brain className="size-5 text-accent-amber" /> <span>Fase de Enfoque</span></>
+              <>
+                <Brain className="size-5 text-accent-amber" /> <span>Fase de Enfoque</span>
+              </>
             ) : (
-              <><Coffee className="size-5 text-status-success" /> <span>Fase de Descanso</span></>
+              <>
+                <Coffee className="size-5 text-status-success" /> <span>Fase de Descanso</span>
+              </>
             )}
             <span className="mx-2">•</span>
             <span>Ciclo {cyclesCompleted + 1}</span>
@@ -144,8 +155,8 @@ export function StudyTimer({ technique, onFinish }: StudyTimerProps) {
               strokeDashoffset={289.026 - (289.026 * percentage) / 100}
               strokeLinecap="round"
               className={cn(
-                "transition-all duration-1000 ease-linear",
-                phase === 'focus' ? "text-accent-amber" : "text-status-success"
+                'transition-all duration-1000 ease-linear',
+                phase === 'focus' ? 'text-accent-amber' : 'text-status-success',
               )}
             />
           </svg>
@@ -165,17 +176,23 @@ export function StudyTimer({ technique, onFinish }: StudyTimerProps) {
           >
             <RotateCcw className="size-6" />
           </button>
-          
+
           <button
             onClick={toggleTimer}
             className={cn(
-              "p-6 rounded-full text-white shadow-md transition-all hover:scale-105 active:scale-95",
-              phase === 'focus' ? "bg-accent-amber hover:bg-accent-amber/90" : "bg-status-success hover:bg-status-success/90"
+              'p-6 rounded-full text-white shadow-md transition-all hover:scale-105 active:scale-95',
+              phase === 'focus'
+                ? 'bg-accent-amber hover:bg-accent-amber/90'
+                : 'bg-status-success hover:bg-status-success/90',
             )}
           >
-            {isActive ? <Pause className="size-8 fill-current" /> : <Play className="size-8 fill-current ml-1" />}
+            {isActive ? (
+              <Pause className="size-8 fill-current" />
+            ) : (
+              <Play className="size-8 fill-current ml-1" />
+            )}
           </button>
-          
+
           <button
             onClick={skipPhase}
             className="p-4 rounded-full bg-surface-container hover:bg-surface-container-high transition-colors text-on-surface-variant"

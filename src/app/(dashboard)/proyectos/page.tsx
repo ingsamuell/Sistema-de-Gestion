@@ -153,12 +153,8 @@ export default function ProyectosPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-12">
           {/* Tarjetas de Proyectos Creados */}
           {proyectos.map((proyecto, index) => (
-            <div key={proyecto.id} id={index === 0 ? "tour-project-card" : undefined}>
-              <ProjectCard
-                project={proyecto}
-                index={index}
-                onDelete={handleDeleteClick}
-              />
+            <div key={proyecto.id} id={index === 0 ? 'tour-project-card' : undefined}>
+              <ProjectCard project={proyecto} index={index} onDelete={handleDeleteClick} />
             </div>
           ))}
 

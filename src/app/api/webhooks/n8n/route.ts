@@ -15,11 +15,17 @@ const requestSchema = z.object({
     })
     .optional(),
   contexto: z
-    .object({
-      origen: z.literal('analytics'),
-      view: z.enum(['workload', 'progress', 'priorities', 'deadlines']),
-      period: z.literal('week'),
-    })
+    .union([
+      z.object({
+        origen: z.literal('analytics'),
+        view: z.enum(['workload', 'progress', 'priorities', 'deadlines']),
+        period: z.literal('week'),
+      }),
+      z.object({
+        origen: z.literal('quiz'),
+        taskId: z.string(),
+      }),
+    ])
     .optional(),
 });
 
@@ -41,7 +47,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const webhookUrl = process.env.N8N_WEBHOOK_URL;
+  const webhookUrl = process.env.N8N_WEBHOOK_URL?.split(',')[0].trim();
   if (!webhookUrl) {
     return NextResponse.json(
       { success: false, error: 'Komo no está configurado todavía. Inténtalo más tarde.' },
@@ -114,7 +120,16 @@ export async function POST(request: Request) {
     `   - Explica que para ahorrarle tiempo se han obviado las 2 primeras preguntas (nombre y objetivo) en el formulario.\n` +
     `   - Proporciona el enlace al formulario con los datos acordados en la URL: [Completar configuración en el formulario](/proyectos/nuevo?step=2&titulo=TITULO_AQUI&objetivo=OBJETIVO_AQUI)\n\n`;
 
-  const promptConContexto = `${systemRulesText}${proyectosContextText}${
+  let quizRules = '';
+  if (parsed.data.contexto?.origen === 'quiz') {
+    quizRules =
+      `\n[REGLAS MUY IMPORTANTES DE EVALUACIÓN (QUIZ)]:\n` +
+      `Estás evaluando el conocimiento del usuario sobre una tarea específica. Hazle 2 a 4 preguntas sobre el tema de la tarea.\n` +
+      `Si el usuario demuestra que domina el tema y sus respuestas son correctas, felicítalo y DEBES agregar EXACTAMENTE la siguiente etiqueta oculta al final de tu mensaje: [QUIZ_APROBADO_${parsed.data.contexto.taskId}]\n` +
+      `¡NUNCA olvides escribir esa etiqueta si el usuario aprueba, ya que es el comando interno del sistema para actualizar la base de datos y otorgarle el certificado!\n\n`;
+  }
+
+  const promptConContexto = `${systemRulesText}${quizRules}${proyectosContextText}${
     userAiContextText ? `${userAiContextText}\n\n` : ''
   }Instrucción o consulta del usuario:\n${parsed.data.mensaje}`;
 
@@ -136,6 +151,12 @@ export async function POST(request: Request) {
         temas_y_fuentes: temasContextData,
         archivo: parsed.data.archivo,
         contexto: parsed.data.contexto,
+        geminiApiKey: process.env.GEMINI_API_KEY || null,
+        geminiApiKey2: process.env.GEMINI_API_KEY_2 || null,
+        geminiApiKey3: process.env.GEMINI_API_KEY_3 || null,
+        geminiApiKeys: Array.from({ length: 10 }, (_, i) =>
+          i === 0 ? process.env.GEMINI_API_KEY : process.env[`GEMINI_API_KEY_${i + 1}`],
+        ).filter(Boolean) as string[],
       }),
     });
 

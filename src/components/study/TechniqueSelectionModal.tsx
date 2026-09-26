@@ -3,7 +3,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Play, Clock } from 'lucide-react';
-import { STUDY_TECHNIQUES, StudyTechnique } from '@/features/study-methods/data/techniques';
+import { STUDY_TECHNIQUES } from '@/features/study-methods/data/techniques';
 import { useFocusSession } from '@/contexts/FocusSessionContext';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -15,7 +15,12 @@ interface TechniqueSelectionModalProps {
   taskTitle?: string;
 }
 
-export function TechniqueSelectionModal({ isOpen, onClose, taskId, taskTitle }: TechniqueSelectionModalProps) {
+export function TechniqueSelectionModal({
+  isOpen,
+  onClose,
+  taskId,
+  taskTitle,
+}: TechniqueSelectionModalProps) {
   const { startSession } = useFocusSession();
 
   const handleStart = (techniqueId: string) => {
@@ -35,7 +40,7 @@ export function TechniqueSelectionModal({ isOpen, onClose, taskId, taskTitle }: 
           onClick={onClose}
           className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         />
-        
+
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -62,33 +67,28 @@ export function TechniqueSelectionModal({ isOpen, onClose, taskId, taskTitle }: 
           <div className="p-6 overflow-y-auto">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {STUDY_TECHNIQUES.map((technique) => (
-                <Card 
+                <Card
                   key={technique.id}
                   className="p-5 hover:shadow-md transition-shadow flex flex-col h-full border border-surface-container-highest cursor-pointer hover:border-primary/50 group"
                   onClick={() => handleStart(technique.id)}
                 >
-                  <div 
+                  <div
                     className="h-2 w-16 rounded-full mb-4 opacity-70 group-hover:opacity-100 transition-opacity"
                     style={{ background: technique.gradient }}
                   />
-                  
-                  <h3 className="text-lg font-bold text-on-surface mb-1">
-                    {technique.name}
-                  </h3>
-                  
+
+                  <h3 className="text-lg font-bold text-on-surface mb-1">{technique.name}</h3>
+
                   <div className="flex items-center text-sm font-medium text-primary mb-3">
                     <Clock className="size-4 mr-1.5" />
                     {technique.shortDescription}
                   </div>
-                  
+
                   <p className="text-sm text-on-surface-variant mb-4 flex-grow">
                     {technique.description}
                   </p>
 
-                  <Button 
-                    className="w-full gap-2 mt-auto" 
-                    variant="secondary"
-                  >
+                  <Button className="w-full gap-2 mt-auto" variant="secondary">
                     <Play className="size-4" /> Iniciar Sesión
                   </Button>
                 </Card>

@@ -23,6 +23,7 @@ import {
   addTasksToExistingProjectAction,
   getUserProjectsForChatAction,
 } from '@/features/ai-assistant/actions/chatActions';
+import { markTaskQuizPassedAction } from '@/features/certifications/actions/generateQuizAction';
 import { extractAssistantResponseAndTitle } from '@/features/ai-assistant/utils/responseParser';
 import {
   detectMessageIntent,
@@ -35,7 +36,9 @@ export default function IAPage() {
   const [isGeneralMode, setIsGeneralMode] = useState(false);
   const context = isGeneralMode
     ? GENERAL_ASSISTANT_CONTEXT
-    : (getAnalyticsContext(searchParams) ?? GENERAL_ASSISTANT_CONTEXT);
+    : (getAnalyticsContext(searchParams) ??
+      getQuizContext(searchParams) ??
+      GENERAL_ASSISTANT_CONTEXT);
 
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [userProjects, setUserProjects] = useState<UserProjectItem[]>([]);
@@ -228,7 +231,9 @@ export default function IAPage() {
           : undefined,
         contexto: params.context.analyticsContext
           ? { origen: 'analytics' as const, ...params.context.analyticsContext }
-          : undefined,
+          : params.context.quizContext
+            ? { origen: 'quiz' as const, ...params.context.quizContext }
+            : undefined,
       }),
     });
 
@@ -248,6 +253,19 @@ export default function IAPage() {
 
     let cleanReply = parsed.reply;
     const aiTitle = parsed.title;
+
+    // Detectar si el quiz fue aprobado por la palabra secreta [QUIZ_APROBADO_taskId]
+    const quizMatch = cleanReply.match(/\[QUIZ_APROBADO_([a-zA-Z0-9-]+)\]/);
+    if (quizMatch) {
+      const passedTaskId = quizMatch[1];
+      try {
+        await markTaskQuizPassedAction(passedTaskId);
+        // Ocultar la palabra clave de la respuesta
+        cleanReply = cleanReply.replace(quizMatch[0], '').trim();
+      } catch (err) {
+        console.error('Error al intentar aprobar el quiz desde IA:', err);
+      }
+    }
 
     // Solo preservar tareas si la intención era expresamente actualizar un proyecto existente
     const aiTasks =
@@ -408,6 +426,7 @@ export default function IAPage() {
             }
           : undefined
       }
+      initialDraft={searchParams.get('prompt') || undefined}
     />
   );
 }
@@ -436,5 +455,19 @@ function getAnalyticsContext(params: URLSearchParams): AssistantContext | null {
       ? [question.slice(0, 240), 'Explícame esta vista']
       : ['Explícame esta vista'],
     analyticsContext: { view, period: 'week' },
+  };
+}
+
+function getQuizContext(params: URLSearchParams): AssistantContext | null {
+  const taskId = params.get('quizTaskId');
+  if (!taskId) return null;
+
+  return {
+    scope: 'project',
+    title: 'Evaluación de Conocimiento',
+    label: 'Quiz de Certificación',
+    description:
+      'Komo actuará como tu evaluador para asegurar que dominas el tema de la tarea y te otorgará progreso en tu certificación.',
+    quizContext: { taskId },
   };
 }

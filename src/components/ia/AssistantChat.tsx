@@ -56,6 +56,7 @@ type AssistantChatProps = {
   ) => Promise<string | void> | void;
   onSend?: SendAssistantMessage;
   onClearContext?: () => void;
+  initialDraft?: string;
 };
 
 export function AssistantChat({
@@ -72,9 +73,10 @@ export function AssistantChat({
   onUpdateProject,
   onSend,
   onClearContext,
+  initialDraft = '',
 }: AssistantChatProps) {
   const [conversation, setConversation] = useState(messages);
-  const [draft, setDraft] = useState('');
+  const [draft, setDraft] = useState(initialDraft);
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [pendingContent, setPendingContent] = useState('');
   const [attachedFile, setAttachedFile] = useState<FileAttachment | null>(null);
@@ -92,6 +94,18 @@ export function AssistantChat({
   useIATour();
 
   const isConnected = Boolean(onSend);
+
+  const hasAutoSent = useRef(false);
+  useEffect(() => {
+    if (initialDraft && initialDraft.trim() && isConnected && !hasAutoSent.current) {
+      hasAutoSent.current = true;
+      // Use setTimeout to avoid state updates during render or immediately after mount issues
+      setTimeout(() => {
+        sendMessage(initialDraft);
+      }, 100);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialDraft, isConnected]);
 
   // Sincronizar estado cuando cambian las props desde el padre
   const [prevMessages, setPrevMessages] = useState(messages);
@@ -477,7 +491,10 @@ export function AssistantChat({
         </Card>
 
         {/* Columna lateral con scroll interno adaptado */}
-        <aside id="tour-ia-history" className="space-y-4 lg:h-[calc(100vh-13.5rem)] lg:min-h-[32rem] lg:max-h-[46rem] lg:overflow-y-auto lg:pr-1">
+        <aside
+          id="tour-ia-history"
+          className="space-y-4 lg:h-[calc(100vh-13.5rem)] lg:min-h-[32rem] lg:max-h-[46rem] lg:overflow-y-auto lg:pr-1"
+        >
           {/* Card de Historial de Chats (sin botón de nuevo a la derecha) */}
           <div className="hidden lg:block">
             <ChatHistoryCard

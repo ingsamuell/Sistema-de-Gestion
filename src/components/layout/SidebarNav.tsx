@@ -3,7 +3,15 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, FolderKanban, Calendar, BarChart2, Sparkles, LibraryBig, HelpCircle } from 'lucide-react';
+import {
+  Home,
+  FolderKanban,
+  Calendar,
+  BarChart2,
+  Sparkles,
+  LibraryBig,
+  HelpCircle,
+} from 'lucide-react';
 import {
   getProjectsAction,
   type ProjectRecord,
