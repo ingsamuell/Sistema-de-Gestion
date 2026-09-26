@@ -24,7 +24,7 @@ export interface AvailabilityBlockItem {
   fecha_especifica?: string | null;
   hora_inicio: string;
   hora_fin: string;
-  tipo: 'ocupado' | 'tareas' | 'estudio' | 'trabajo' | 'otra_actividad';
+  tipo: 'ocupado' | 'tareas' | 'estudio' | 'trabajo' | 'otra_actividad' | 'descanso';
   origen: string;
 }
 
@@ -323,8 +323,8 @@ export async function syncAvailabilityBlocksAction(
     const adminDb = getAdminClient();
     const db = adminDb || supabase;
 
-    // Eliminar bloques previos del usuario en bloques_disponibilidad para actualizarlos de forma consistente
-    await db.from('bloques_disponibilidad').delete().eq('usuario_id', user.id);
+    // Eliminar bloques previos del usuario en bloques_disponibilidad para actualizarlos de forma consistente (ignorando los extraidos por IA)
+    await db.from('bloques_disponibilidad').delete().eq('usuario_id', user.id).eq('origen', 'manual');
 
     if (blocks.length > 0) {
       const inserts = blocks.map((b) => ({

@@ -3,7 +3,10 @@
 import { createClient } from '@/lib/supabase/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
-import { generateProjectTasksFromN8n } from '@/services/automation/n8nTasksService';
+import {
+  generateProjectTasksFromN8n,
+  notifyTaskCompletedToN8n,
+} from '@/services/automation/n8nTasksService';
 import {
   generateProjectTasksAndScheduleWithGemini,
   checkProjectFeasibilityWithGemini,
@@ -69,7 +72,27 @@ async function userOwnsProject(
     .eq('user_id', userId)
     .maybeSingle();
 
-  return !error && Boolean(data);
+  return !error && !!data;
+}
+
+export async function getActiveProjectsSimpleAction() {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: 'No autenticado' };
+
+    const { data, error } = await supabase
+      .from('projects')
+      .select('id, titulo')
+      .eq('user_id', user.id)
+      .neq('completado', true);
+
+    if (error) throw error;
+    return { success: true, projects: data || [] };
+  } catch (err) {
+    console.error('Error fetching active projects:', err);
+    return { success: false, error: 'Error al obtener proyectos' };
+  }
 }
 
 /**
@@ -631,7 +654,7 @@ export async function toggleTaskStatusAction(
     // 1. Obtener la tarea antes de modificar para conocer su estado previo y tiempo
     const { data: existingTask, error: existingTaskErr } = await db
       .from('tareas')
-      .select('id, completado, fecha_inicio, duracion')
+      .select('id, titulo, completado, fecha_inicio, duracion')
       .eq('id', taskId)
       .eq('id_proyecto', targetProjectId)
       .maybeSingle();
@@ -698,7 +721,7 @@ export async function toggleTaskStatusAction(
 
     const { data: profile } = await db
       .from('profiles')
-      .select('racha_activa, racha_maxima')
+      .select('racha_activa, racha_maxima, telegram_chat_id, nombre_usuario, nombre_completo')
       .eq('id', user.id)
       .maybeSingle();
 
@@ -768,6 +791,33 @@ export async function toggleTaskStatusAction(
         .update({ progreso: newProgreso })
         .eq('id', targetProjectId)
         .eq('user_id', user.id);
+    }
+
+    // 6. Notificar a n8n en segundo plano si la tarea se acaba de completar
+    if (isCompleted && !wasCompleted) {
+      (async () => {
+        try {
+          const { data: projData } = await db
+            .from('projects')
+            .select('titulo')
+            .eq('id', targetProjectId)
+            .maybeSingle();
+
+          await notifyTaskCompletedToN8n({
+            taskId,
+            taskTitle: existingTask?.titulo || 'Tarea completada',
+            projectId: targetProjectId,
+            projectTitle: projData?.titulo || undefined,
+            userId: user.id,
+            userName: profile?.nombre_completo || profile?.nombre_usuario || undefined,
+            telegramChatId: profile?.telegram_chat_id ?? null,
+            completedAt: nowIso,
+            rachaActiva: updatedRacha,
+          });
+        } catch (n8nErr) {
+          console.warn('Aviso notificando finalización de tarea a n8n:', n8nErr);
+        }
+      })();
     }
 
     revalidatePath(`/proyectos/${targetProjectId}`);

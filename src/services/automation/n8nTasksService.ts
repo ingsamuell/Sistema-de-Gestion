@@ -1084,3 +1084,101 @@ Devuelve un JSON con la estructura:
     clearTimeout(timeoutId);
   }
 }
+
+export interface TaskCompletedNotificationPayload {
+  taskId: string;
+  taskTitle: string;
+  projectId: string;
+  projectTitle?: string;
+  userId: string;
+  userName?: string;
+  telegramChatId?: number | null;
+  completedAt: string;
+  rachaActiva?: number;
+}
+
+/**
+ * Notifica a n8n cuando un usuario completa una tarea para enviar
+ * una alerta de confirmación / felicitación por Telegram.
+ */
+export async function notifyTaskCompletedToN8n(
+  payload: TaskCompletedNotificationPayload,
+): Promise<{ success: boolean; message?: string }> {
+  const webhookUrl =
+    process.env.N8N_TASK_COMPLETED_WEBHOOK_URL?.trim() ||
+    process.env.N8N_WEBHOOK_URL?.split(',')[0].trim();
+
+  if (!webhookUrl) {
+    return {
+      success: false,
+      message: 'Ni N8N_TASK_COMPLETED_WEBHOOK_URL ni N8N_WEBHOOK_URL están configuradas.',
+    };
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+  try {
+    const formattedMessage =
+      `🎉 ¡Felicidades${payload.userName ? ` ${payload.userName}` : ''}! ` +
+      `Has completado la tarea "${payload.taskTitle}"` +
+      `${payload.projectTitle ? ` del proyecto "${payload.projectTitle}"` : ''}.` +
+      (payload.rachaActiva ? ` Tu racha actual es de ${payload.rachaActiva} 🔥.` : '');
+
+    const body = {
+      tipo_evento: 'task_completed',
+      event: 'task_completed',
+      taskId: payload.taskId,
+      taskTitle: payload.taskTitle,
+      projectId: payload.projectId,
+      projectTitle: payload.projectTitle,
+      userId: payload.userId,
+      userName: payload.userName,
+      telegramChatId: payload.telegramChatId,
+      chat_id: payload.telegramChatId,
+      completedAt: payload.completedAt,
+      rachaActiva: payload.rachaActiva,
+      mensaje: formattedMessage,
+    };
+
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const errText = await response.text().catch(() => '');
+      console.warn(`[notifyTaskCompletedToN8n] Fallo webhook n8n (${response.status}):`, errText);
+      return { success: false, message: `Status ${response.status}` };
+    }
+
+    try {
+      const adminDb = getAdminClient();
+      if (adminDb && payload.telegramChatId) {
+        await adminDb.from('notificaciones_enviadas').insert({
+          usuario_id: payload.userId,
+          tipo_evento: 'task_completed',
+          referencia_id: payload.taskId,
+          fecha_envio: payload.completedAt,
+        });
+      }
+    } catch (auditErr) {
+      console.warn(
+        '[notifyTaskCompletedToN8n] Error registrando auditoría en notificaciones_enviadas:',
+        auditErr,
+      );
+    }
+
+    return { success: true };
+  } catch (error: unknown) {
+    const errMessage = error instanceof Error ? error.message : String(error);
+    console.warn('[notifyTaskCompletedToN8n] Error conectando con n8n:', errMessage);
+    return { success: false, message: errMessage };
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
