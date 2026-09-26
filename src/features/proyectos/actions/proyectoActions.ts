@@ -72,7 +72,27 @@ async function userOwnsProject(
     .eq('user_id', userId)
     .maybeSingle();
 
-  return !error && Boolean(data);
+  return !error && !!data;
+}
+
+export async function getActiveProjectsSimpleAction() {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: 'No autenticado' };
+
+    const { data, error } = await supabase
+      .from('projects')
+      .select('id, titulo')
+      .eq('user_id', user.id)
+      .neq('completado', true);
+
+    if (error) throw error;
+    return { success: true, projects: data || [] };
+  } catch (err) {
+    console.error('Error fetching active projects:', err);
+    return { success: false, error: 'Error al obtener proyectos' };
+  }
 }
 
 /**

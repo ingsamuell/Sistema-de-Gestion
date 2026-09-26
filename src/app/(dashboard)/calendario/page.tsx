@@ -1,5 +1,7 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+
 import React, { useState, useEffect } from 'react';
 import {
   format,
@@ -47,6 +49,7 @@ import {
   syncAvailabilityBlocksAction,
   updateCalendarEventDetailsAction,
 } from '@/features/schedule/actions/calendarActions';
+import { getActiveProjectsSimpleAction, createTaskAction } from '@/features/proyectos/actions/proyectoActions';
 import { createClient } from '@/lib/supabase/client';
 import { useCalendarTour } from '@/hooks/useCalendarTour';
 
@@ -58,7 +61,7 @@ interface Availability {
   label: string;
   type?:
     'tareas' | 'descanso' | 'trabajo' | 'estudiando' | 'otra_actividad' | 'estudio' | 'ocupado';
-  source?: 'google' | 'local' | 'supabase';
+  source?: 'google' | 'local' | 'supabase' | 'supabase_ia';
   eventId?: string;
   blockId?: string;
 }
@@ -142,7 +145,7 @@ const parseISODate = (dateStr: string) => {
 const endOfMonthFn = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0);
 
 function consolidateAvailabilitySlots(slots: Availability[]) {
-  const nonTasks = slots.filter((a) => !a.eventId && a.source !== 'google');
+  const nonTasks = slots.filter((a) => !a.eventId && a.source !== 'google' && a.source !== 'supabase_ia');
   if (nonTasks.length === 0) return [];
 
   const byDate: Record<string, Availability[]> = {};
@@ -155,7 +158,7 @@ function consolidateAvailabilitySlots(slots: Availability[]) {
     fecha_especifica: string;
     hora_inicio: string;
     hora_fin: string;
-    tipo: 'ocupado' | 'tareas' | 'estudio' | 'trabajo' | 'otra_actividad';
+    tipo: 'ocupado' | 'tareas' | 'estudio' | 'trabajo' | 'otra_actividad' | 'descanso';
     label: string;
     color?: string | null;
     origen: string;
@@ -181,14 +184,16 @@ function consolidateAvailabilitySlots(slots: Availability[]) {
         current.end = slot.endTime;
       } else {
         if (current) {
-          let normalizedType: 'ocupado' | 'tareas' | 'estudio' | 'trabajo' | 'otra_actividad' =
+          let normalizedType: 'ocupado' | 'tareas' | 'estudio' | 'trabajo' | 'otra_actividad' | 'descanso' =
             'tareas';
           if (current.type === 'estudio' || current.type === 'estudiando')
             normalizedType = 'estudio';
           else if (current.type === 'trabajo' || current.type === 'ocupado')
             normalizedType = 'trabajo';
-          else if (current.type === 'otra_actividad' || current.type === 'descanso')
+          else if (current.type === 'otra_actividad')
             normalizedType = 'otra_actividad';
+          else if (current.type === 'descanso')
+            normalizedType = 'descanso';
           else normalizedType = 'tareas';
 
           consolidated.push({
@@ -211,12 +216,12 @@ function consolidateAvailabilitySlots(slots: Availability[]) {
     }
 
     if (current) {
-      let normalizedType: 'ocupado' | 'tareas' | 'estudio' | 'trabajo' | 'otra_actividad' =
+      let normalizedType: 'ocupado' | 'tareas' | 'estudio' | 'trabajo' | 'otra_actividad' | 'descanso' =
         'tareas';
       if (current.type === 'estudio' || current.type === 'estudiando') normalizedType = 'estudio';
       else if (current.type === 'trabajo' || current.type === 'ocupado') normalizedType = 'trabajo';
-      else if (current.type === 'otra_actividad' || current.type === 'descanso')
-        normalizedType = 'otra_actividad';
+      else if (current.type === 'otra_actividad') normalizedType = 'otra_actividad';
+      else if (current.type === 'descanso') normalizedType = 'descanso';
       else normalizedType = 'tareas';
 
       consolidated.push({
@@ -234,6 +239,7 @@ function consolidateAvailabilitySlots(slots: Availability[]) {
 }
 
 export default function CalendarioPage() {
+  const router = useRouter();
   const [view, setView] = useState<'month' | 'week'>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -270,6 +276,14 @@ export default function CalendarioPage() {
   const [editType, setEditType] = useState<
     'tareas' | 'descanso' | 'trabajo' | 'estudiando' | 'otra_actividad'
   >('tareas');
+
+  const [projectSelectorState, setProjectSelectorState] = useState<{
+    visible: boolean;
+    date: string;
+    startTime: string;
+    endTime: string;
+    projects: { id: string; titulo: string }[];
+  } | null>(null);
 
   // Bloque seleccionado (para resaltado con borde negro)
   const [selectedBlock, setSelectedBlock] = useState<{
@@ -312,6 +326,8 @@ export default function CalendarioPage() {
   const [uploadStatusText, setUploadStatusText] = useState<string>('Analizando con Gemini...');
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccessMsg, setUploadSuccessMsg] = useState<string | null>(null);
+  const [uploadReplicateOption, setUploadReplicateOption] = useState<'mes' | 'todos' | 'semanas'>('todos');
+  const [uploadSelectedWeeks, setUploadSelectedWeeks] = useState<string[]>([]);
 
   const [isMounted, setIsMounted] = useState(false);
   const [isGoogleConnected, setIsGoogleConnected] = useState(false);
@@ -401,10 +417,16 @@ export default function CalendarioPage() {
               }
             }
           });
-        } else if (res.availabilities && res.availabilities.length > 0) {
+        }
+        
+        if (res.availabilities && res.availabilities.length > 0) {
+          const today = new Date();
+          const startRange = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+          const endRange = new Date(today.getFullYear(), today.getMonth() + 6, 0);
+          const activeDays = eachDayOfInterval({ start: startRange, end: endRange });
+
           res.availabilities.forEach((b) => {
             if (b.tipo === 'tareas') return; // 'tareas' representan slots libres
-            if (!b.fecha_especifica) return;
 
             const startSlot = b.hora_inicio.slice(0, 5);
             const endSlot = b.hora_fin.slice(0, 5);
@@ -417,26 +439,58 @@ export default function CalendarioPage() {
             if (b.tipo === 'estudio') normalizedType = 'estudiando';
             else if (b.tipo === 'trabajo') normalizedType = 'trabajo';
             else if (b.tipo === 'otra_actividad') normalizedType = 'otra_actividad';
+            else if (b.tipo === 'descanso') normalizedType = 'descanso';
             else if (b.tipo === 'ocupado') normalizedType = 'trabajo';
 
-            const dayOfWeekName = format(parseISODate(b.fecha_especifica), 'EEEE', { locale: es });
-            const blockId = `block_${b.fecha_especifica}_${startIdx}_${endIdx}`;
+            const labelVal = b.tipo === 'estudio' ? 'Estudio' : b.tipo === 'trabajo' ? 'Trabajo' : b.tipo === 'descanso' ? 'Descanso' : b.tipo === 'otra_actividad' ? 'Otra actividad' : 'Ocupado';
 
-            for (let i = startIdx; i < endIdx; i++) {
-              const slot = TIME_SLOTS[i];
-              if (slot && slot !== '24:00') {
-                dbEvents.push({
-                  date: b.fecha_especifica,
-                  dayOfWeek: dayOfWeekName,
-                  startTime: slot,
-                  endTime: TIME_SLOTS[i + 1] || '24:00',
-                  label:
-                    b.tipo === 'estudio' ? 'Estudio' : b.tipo === 'trabajo' ? 'Trabajo' : 'Ocupado',
-                  type: normalizedType,
-                  source: 'supabase',
-                  blockId,
-                });
+            if (b.fecha_especifica) {
+              const dayOfWeekName = format(parseISODate(b.fecha_especifica), 'EEEE', { locale: es });
+              const blockId = `block_${b.fecha_especifica}_${startIdx}_${endIdx}`;
+
+              for (let i = startIdx; i < endIdx; i++) {
+                const slot = TIME_SLOTS[i];
+                if (slot && slot !== '24:00') {
+                  if (!dbEvents.some(ev => ev.date === b.fecha_especifica && ev.startTime === slot)) {
+                    dbEvents.push({
+                      date: b.fecha_especifica,
+                      dayOfWeek: dayOfWeekName,
+                      startTime: slot,
+                      endTime: TIME_SLOTS[i + 1] || '24:00',
+                      label: labelVal,
+                      type: normalizedType,
+                      source: b.origen === 'extraido_ia' ? 'supabase_ia' : 'supabase',
+                      blockId,
+                    });
+                  }
+                }
               }
+            } else if (b.dia_semana !== null && b.dia_semana !== undefined) {
+              const matchingDays = activeDays.filter(d => d.getDay() === b.dia_semana);
+              matchingDays.forEach(d => {
+                const dateStr = format(d, 'yyyy-MM-dd');
+                const dayOfWeekName = format(d, 'EEEE', { locale: es });
+                const blockId = `block_rec_${dateStr}_${startIdx}_${endIdx}`;
+                
+                for (let i = startIdx; i < endIdx; i++) {
+                  const slot = TIME_SLOTS[i];
+                  if (slot && slot !== '24:00') {
+                    // Evitar duplicados si hay un bloque manual superpuesto (priorizamos el manual si ya está en dbEvents)
+                    if (!dbEvents.some(ev => ev.date === dateStr && ev.startTime === slot)) {
+                      dbEvents.push({
+                        date: dateStr,
+                        dayOfWeek: dayOfWeekName,
+                        startTime: slot,
+                        endTime: TIME_SLOTS[i + 1] || '24:00',
+                        label: labelVal,
+                        type: normalizedType,
+                        source: b.origen === 'extraido_ia' ? 'supabase_ia' : 'supabase',
+                        blockId,
+                      });
+                    }
+                  }
+                }
+              });
             }
           });
         }
@@ -904,6 +958,10 @@ export default function CalendarioPage() {
       const { base64Data, mimeType } = await compressImageForUpload(uploadFile);
       setUploadStatusText('Analizando horario con IA Gemini...');
 
+      const selectedWeekStarts = futureWeeksList
+        .filter(w => uploadSelectedWeeks.includes(w.label))
+        .map(w => w.start.toISOString());
+
       const res = await fetch('/api/calendar/extract-schedule', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -912,6 +970,8 @@ export default function CalendarioPage() {
           mimeType,
           guardarEnDisponibilidad: true,
           categoria: scheduleCategory,
+          replicarOpcion: uploadReplicateOption,
+          semanasEspecificas: uploadReplicateOption === 'semanas' ? selectedWeekStarts : undefined,
         }),
       });
 
@@ -922,79 +982,7 @@ export default function CalendarioPage() {
       }
 
       if (data.bloques && data.bloques.length > 0) {
-        // Calcular la semana activa actual
-        const start = startOfWeek(currentDate, { weekStartsOn: 1 });
-        const weekDays = eachDayOfInterval({
-          start,
-          end: endOfWeek(currentDate, { weekStartsOn: 1 }),
-        });
-
-        const mappedAvails: Availability[] = [];
-
-        data.bloques.forEach(
-          (b: {
-            dia_semana: number;
-            hora_inicio: string;
-            hora_fin: string;
-            tipo: string;
-            etiqueta?: string;
-          }) => {
-            // Mapear dia_semana (0: Domingo, 1: Lunes.. 6: Sábado) al día correspondiente en la semana visible
-            const targetDay = weekDays.find((d) => d.getDay() === b.dia_semana);
-            if (!targetDay) return;
-
-            const dateStr = format(targetDay, 'yyyy-MM-dd');
-            const dayOfWeekName = format(targetDay, 'EEEE', { locale: es });
-
-            // Normalizar horas al slot más cercano
-            const startSlot =
-              b.hora_inicio.length === 5 ? b.hora_inicio : `${b.hora_inicio.padStart(5, '0')}`;
-            const endSlot = b.hora_fin.length === 5 ? b.hora_fin : `${b.hora_fin.padStart(5, '0')}`;
-
-            const startIdx = TIME_SLOTS.indexOf(startSlot);
-            const endIdx = TIME_SLOTS.indexOf(endSlot);
-
-            const fromIdx = startIdx !== -1 ? startIdx : 0;
-            const toIdx = endIdx !== -1 && endIdx > fromIdx ? endIdx : fromIdx + 12;
-
-            const mappedType: 'tareas' | 'descanso' | 'trabajo' | 'estudiando' | 'otra_actividad' =
-              scheduleCategory === 'trabajo' ? 'trabajo' : 'estudiando';
-            const defaultLabel = scheduleCategory === 'trabajo' ? 'Trabajo' : 'Estudio';
-            const blockLabel = b.etiqueta && b.etiqueta.trim() !== '' ? b.etiqueta : defaultLabel;
-
-            for (let i = fromIdx; i < toIdx; i++) {
-              const slot = TIME_SLOTS[i];
-              if (slot && slot !== '24:00') {
-                mappedAvails.push({
-                  date: dateStr,
-                  dayOfWeek: dayOfWeekName,
-                  startTime: slot,
-                  endTime: TIME_SLOTS[i + 1] || '24:00',
-                  label: blockLabel,
-                  type: mappedType,
-                  source: 'local',
-                });
-              }
-            }
-          },
-        );
-
-        if (mappedAvails.length > 0) {
-          const keys = new Set(mappedAvails.map((m) => `${m.date}_${m.startTime}`));
-          let mergedList: Availability[] = [];
-          setAvailabilities((prev) => {
-            const filtered = prev.filter((p) => !keys.has(`${p.date}_${p.startTime}`));
-            mergedList = [...filtered, ...mappedAvails];
-            return mergedList;
-          });
-
-          if (mergedList.length > 0) {
-            const consolidated = consolidateAvailabilitySlots(mergedList);
-            await syncAvailabilityBlocksAction(consolidated).catch((err) =>
-              console.warn('Error sincronizando bloques tras extracción:', err),
-            );
-          }
-        }
+        await loadCalendarEventsFromSupabase();
 
         // Recargar eventos de Supabase para reflejar de inmediato tareas reagendadas por IA
         await loadCalendarEventsFromSupabase();
@@ -1571,6 +1559,24 @@ export default function CalendarioPage() {
       return;
     }
 
+    if (editType === 'tareas') {
+      getActiveProjectsSimpleAction().then((res) => {
+        if (res.success && res.projects && res.projects.length > 0) {
+          setProjectSelectorState({
+            visible: true,
+            date: editingCell.date,
+            startTime: editingCell.time,
+            endTime: TIME_SLOTS[endIdx + 1] || '24:00',
+            projects: res.projects
+          });
+          setEditingCell(null);
+        } else {
+          setToastMessage({ type: 'error', text: 'No tienes proyectos activos para crear una tarea.' });
+        }
+      });
+      return;
+    }
+
     const existingCount = availabilities.filter(
       (a) => a.date === editingCell.date && targetSet.has(a.startTime),
     ).length;
@@ -1746,9 +1752,12 @@ export default function CalendarioPage() {
                 <button
                   id="tour-calendar-ai-upload"
                   onClick={() => {
+                    generateFutureWeeks(start);
                     setUploadFile(null);
                     setUploadError(null);
                     setUploadSuccessMsg(null);
+                    setUploadReplicateOption('todos');
+                    setUploadSelectedWeeks([]);
                     setShowUploadModal(true);
                   }}
                   className="flex items-center gap-2 px-3.5 py-2 bg-[#845326] hover:bg-[#6c421f] text-white rounded-xl text-sm font-bold transition-all shadow-sm active:scale-[0.98] cursor-pointer"
@@ -1975,8 +1984,7 @@ export default function CalendarioPage() {
                     <X className="size-5" />
                   </button>
                 </div>
-
-                <div className="p-6 space-y-4">
+                <div className="p-6 space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
                   {uploadError && (
                     <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2">
                       <AlertCircle className="size-4 shrink-0" />
@@ -2056,6 +2064,64 @@ export default function CalendarioPage() {
                       </button>
                     </div>
                   </div>
+
+                  {/* Selector de Replicación */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-[#845326] block">
+                      ¿Dónde deseas replicar este horario?
+                    </label>
+                    <div className="flex flex-col gap-2">
+                      <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                        <input
+                          type="radio"
+                          checked={uploadReplicateOption === 'todos'}
+                          onChange={() => setUploadReplicateOption('todos')}
+                          className="accent-[#845326]"
+                        />
+                        En todos los meses (predeterminado)
+                      </label>
+                      <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                        <input
+                          type="radio"
+                          checked={uploadReplicateOption === 'mes'}
+                          onChange={() => setUploadReplicateOption('mes')}
+                          className="accent-[#845326]"
+                        />
+                        Solo en todo este mes
+                      </label>
+                      <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                        <input
+                          type="radio"
+                          checked={uploadReplicateOption === 'semanas'}
+                          onChange={() => setUploadReplicateOption('semanas')}
+                          className="accent-[#845326]"
+                        />
+                        En semanas específicas...
+                      </label>
+                    </div>
+                  </div>
+
+                  {uploadReplicateOption === 'semanas' && (
+                    <div className="border border-[#EAE3DC] rounded-xl p-3 bg-[#FDFBF9] max-h-40 overflow-y-auto custom-scrollbar">
+                      <p className="text-xs text-on-surface-variant mb-2 font-semibold">Selecciona las semanas:</p>
+                      <div className="flex flex-col gap-1.5">
+                        {futureWeeksList.map((week) => (
+                          <label key={week.label} className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={uploadSelectedWeeks.includes(week.label)}
+                              onChange={(e) => {
+                                if (e.target.checked) setUploadSelectedWeeks((prev) => [...prev, week.label]);
+                                else setUploadSelectedWeeks((prev) => prev.filter((l) => l !== week.label));
+                              }}
+                              className="accent-[#845326]"
+                            />
+                            Semana del {week.label}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="border-2 border-dashed border-[#E2D9D0] rounded-2xl p-6 flex flex-col items-center justify-center text-center bg-[#FDFBF9] hover:bg-[#F5EFE9] transition-colors relative cursor-pointer">
                     <input
@@ -2548,6 +2614,57 @@ export default function CalendarioPage() {
           >
             <X className="size-4" />
           </button>
+        </div>
+      )}
+
+      {projectSelectorState?.visible && (
+        <div className="fixed inset-0 z-[200] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-[#FDFBF9]">
+              <h3 className="font-bold text-[#4A2D69]">Selecciona un Proyecto</h3>
+              <button
+                onClick={() => setProjectSelectorState(null)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+            <div className="p-4 max-h-[60vh] overflow-y-auto">
+              {projectSelectorState.projects.map((proj) => (
+                <button
+                  key={proj.id}
+                  onClick={async () => {
+                    const sIso = new Date(`${projectSelectorState.date}T${projectSelectorState.startTime}:00`).toISOString();
+                    const eSlot = projectSelectorState.endTime === '24:00' ? '23:59:59' : `${projectSelectorState.endTime}:00`;
+                    const eIso = new Date(`${projectSelectorState.date}T${eSlot}`).toISOString();
+                    const durationMins = Math.round((new Date(eIso).getTime() - new Date(sIso).getTime()) / 60000);
+                    
+                    setToastMessage({ type: 'success', text: 'Creando tarea...' });
+                    setProjectSelectorState(null);
+
+                    const res = await createTaskAction({
+                      projectId: proj.id,
+                      titulo: editLabel || 'Nueva Tarea',
+                      duracion: durationMins,
+                      fecha_inicio: sIso
+                    });
+
+                    if (res.success && res.task?.id) {
+                      router.push(`/proyectos/${proj.id}?editTask=${res.task.id}`);
+                    } else if (res.success) {
+                      router.push(`/proyectos/${proj.id}`);
+                    } else {
+                      setToastMessage({ type: 'error', text: res.error || 'Error al crear la tarea' });
+                    }
+                  }}
+                  className="w-full text-left px-4 py-3 hover:bg-[#F4EFEA] rounded-xl transition-colors mb-2 font-medium text-gray-700 flex items-center gap-3 border border-transparent hover:border-[#EAE3DC]"
+                >
+                  <Briefcase className="size-4 text-[#845326]" />
+                  {proj.titulo}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </div>
