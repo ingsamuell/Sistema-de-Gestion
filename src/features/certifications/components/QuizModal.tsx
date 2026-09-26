@@ -1,8 +1,18 @@
 'use client';
 
 import React, { useState, useEffect, useTransition, useCallback } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import { X, Loader2, Brain, AlertCircle, Award } from 'lucide-react';
+import {
+  X,
+  Loader2,
+  Brain,
+  AlertCircle,
+  Award,
+  Sparkles,
+  ArrowRight,
+  ArrowLeft,
+  CheckCircle2,
+  RefreshCw,
+} from 'lucide-react';
 import {
   generateQuizAction,
   QuizQuestion,
@@ -10,50 +20,104 @@ import {
 } from '@/features/certifications/actions/generateQuizAction';
 import { cn } from '@/lib/utils';
 
-interface QuizModalProps {
+export interface QuizModalProps {
   taskId: string | null;
+  taskTitle?: string;
+  taskDescription?: string;
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (taskId: string) => void;
-  hasFullName: boolean;
+  hasFullName?: boolean;
 }
 
-export function QuizModal({ taskId, isOpen, onClose, onSuccess, hasFullName }: QuizModalProps) {
-  const supabase = createClient();
+export function QuizModal({
+  taskId,
+  taskTitle,
+  taskDescription,
+  isOpen,
+  onClose,
+  onSuccess,
+}: QuizModalProps) {
   const [isPending, startTransition] = useTransition();
-  const [step, setStep] = useState<'name' | 'loading' | 'quiz' | 'evaluating' | 'error'>('loading');
-  const [fullNameInput, setFullNameInput] = useState('');
+  const [step, setStep] = useState<'loading' | 'quiz' | 'evaluating' | 'result' | 'error'>('loading');
 
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [isFallback, setIsFallback] = useState(false);
+  const [provider, setProvider] = useState<'gemini' | 'n8n' | 'fallback'>('gemini');
+  const [quizScore, setQuizScore] = useState<{ score: number; total: number; passed: boolean } | null>(
+    null,
+  );
 
-  // Render-time state reset when modal opens or taskId changes
+  const handleSafeClose = useCallback(() => {
+    if (quizScore?.passed && taskId) {
+      onSuccess(taskId);
+    }
+    onClose();
+  }, [quizScore?.passed, taskId, onSuccess, onClose]);
+
+  // Manejo de la tecla Escape para cerrar
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && step !== 'evaluating') {
+        handleSafeClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, step, handleSafeClose]);
+
+  // Bloquear scroll de la página de fondo cuando el modal está abierto
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
+  // Reiniciar estado al abrir o cambiar de tarea
   const [prevTaskId, setPrevTaskId] = useState<string | null>(null);
   if (isOpen && taskId && prevTaskId !== taskId) {
     setPrevTaskId(taskId);
-    setStep(hasFullName ? 'loading' : 'name');
+    setStep('loading');
     setQuestions([]);
     setCurrentQuestionIndex(0);
     setSelectedAnswers([]);
     setError(null);
-    setIsFallback(false);
+    setQuizScore(null);
   } else if (!isOpen && prevTaskId !== null) {
     setPrevTaskId(null);
   }
 
+  // Carga o regeneración del quiz
   const fetchQuiz = useCallback(
     (forceFallback = false) => {
       if (!taskId) return;
       startTransition(async () => {
         setError(null);
         setStep('loading');
-        const res = await generateQuizAction({ taskId, forceFallback });
+        setQuizScore(null);
+        setSelectedAnswers([]);
+        setCurrentQuestionIndex(0);
+
+        const res = await generateQuizAction({
+          taskId,
+          taskTitle,
+          taskDescription,
+          forceFallback,
+        });
+
         if (res.success && res.questions && res.questions.length > 0) {
           setQuestions(res.questions);
-          setIsFallback(Boolean(res.isFallback));
+          setProvider(res.provider || (res.isFallback ? 'fallback' : 'gemini'));
           setStep('quiz');
         } else {
           setError(res.error || 'No se pudo generar el cuestionario con IA.');
@@ -61,43 +125,15 @@ export function QuizModal({ taskId, isOpen, onClose, onSuccess, hasFullName }: Q
         }
       });
     },
-    [taskId],
+    [taskId, taskTitle, taskDescription],
   );
 
+  // Cargar preguntas automáticamente al abrir
   useEffect(() => {
-    if (
-      isOpen &&
-      taskId &&
-      hasFullName &&
-      step === 'loading' &&
-      questions.length === 0 &&
-      !error &&
-      !isPending
-    ) {
+    if (isOpen && taskId && step === 'loading' && questions.length === 0 && !error && !isPending) {
       fetchQuiz();
     }
-  }, [isOpen, taskId, hasFullName, step, questions.length, error, isPending, fetchQuiz]);
-
-  const handleSaveName = async () => {
-    if (fullNameInput.trim().length < 3) {
-      setError('Por favor, ingresa tu nombre completo real para el certificado.');
-      return;
-    }
-    setError(null);
-    setStep('loading');
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (user) {
-      await supabase
-        .from('profiles')
-        .update({ nombre_completo: fullNameInput.trim() })
-        .eq('id', user.id);
-    }
-
-    fetchQuiz();
-  };
+  }, [isOpen, taskId, step, questions.length, error, isPending, fetchQuiz]);
 
   const handleSelectAnswer = (optionIndex: number) => {
     const newAnswers = [...selectedAnswers];
@@ -119,24 +155,28 @@ export function QuizModal({ taskId, isOpen, onClose, onSuccess, hasFullName }: Q
     startTransition(async () => {
       let score = 0;
       questions.forEach((q, i) => {
-        if (selectedAnswers[i] === q.correctAnswerIndex) score++;
+        if (selectedAnswers[i] === q.correctAnswerIndex) {
+          score++;
+        }
       });
 
-      // 75% para aprobar (ej: 3 de 4)
+      // Se requiere al menos un 75% para aprobar (3 de 4 preguntas)
       const passingScore = Math.ceil(questions.length * 0.75);
-      if (score >= passingScore) {
+      const passed = score >= passingScore;
+
+      setQuizScore({ score, total: questions.length, passed });
+
+      if (passed) {
         const res = await markTaskQuizPassedAction(taskId);
         if (res.success) {
           onSuccess(taskId);
+          setStep('result');
         } else {
-          setError(res.error || 'Aprobaste, pero no se pudo guardar tu progreso.');
+          setError(res.error || 'Aprobaste, pero hubo un error al guardar tu progreso.');
           setStep('quiz');
         }
       } else {
-        setError(
-          `Obtuviste ${score} de ${questions.length}. Necesitas al menos ${passingScore} correctas para aprobar. Vuelve a estudiar el tema e inténtalo luego.`,
-        );
-        setStep('quiz');
+        setStep('result');
       }
     });
   };
@@ -144,194 +184,302 @@ export function QuizModal({ taskId, isOpen, onClose, onSuccess, hasFullName }: Q
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg max-h-[90vh] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-outline-variant/30 flex justify-between items-center bg-surface-container-lowest shrink-0">
-          <div className="flex items-center gap-2 text-primary font-bold">
-            <Brain className="size-5" />
-            Evaluación de Certificación
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && step !== 'evaluating') {
+          handleSafeClose();
+        }
+      }}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="quiz-modal-title"
+    >
+      <div className="bg-white rounded-3xl p-6 sm:p-8 w-full max-w-xl shadow-2xl relative animate-in zoom-in-95 duration-200 border border-[#E8DCD1] overflow-hidden flex flex-col max-h-[90vh]">
+        {/* Botón cerrar X en la esquina superior derecha */}
+        <button
+          type="button"
+          onClick={handleSafeClose}
+          disabled={step === 'evaluating'}
+          className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors cursor-pointer disabled:opacity-50"
+          aria-label="Cerrar cuestionario"
+        >
+          <X className="size-5" />
+        </button>
+
+        {/* Encabezado con estética cálida */}
+        <div className="mb-4 pr-8">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FAF3EC] border border-[#E8DCD1] text-xs font-semibold text-[#845326] mb-2.5">
+            <Sparkles className="size-3.5 text-[#845326]" />
+            <span>Quiz de Conocimiento</span>
+            {step === 'quiz' && (
+              <span className="text-[10px] opacity-80 font-normal ml-1">
+                • {provider === 'gemini' ? 'Gemini IA' : provider === 'n8n' ? 'n8n IA' : 'Contingencia'}
+              </span>
+            )}
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-full hover:bg-surface-container transition-colors text-outline"
+
+          <h3
+            id="quiz-modal-title"
+            className="text-xl sm:text-2xl font-bold text-[#2C1F14] leading-tight"
           >
-            <X className="size-5" />
-          </button>
+            {taskTitle || 'Evaluación de la tarea'}
+          </h3>
+          <p className="text-xs sm:text-sm text-[#845326] mt-1 line-clamp-1">
+            4 preguntas de selección simple para validar tu aprendizaje y acreditar esta tarea.
+          </p>
         </div>
 
-        {/* Content */}
-        <div className="p-6 md:p-8 flex-1 overflow-y-auto flex flex-col min-h-[300px]">
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-800 rounded-xl text-sm flex gap-2 items-start">
-              <AlertCircle className="size-5 shrink-0 text-red-500" />
-              <span>{error}</span>
-            </div>
-          )}
+        {/* Mensaje de error general si existe */}
+        {error && (
+          <div className="mb-4 p-3.5 bg-red-50 border border-red-200 text-red-800 rounded-2xl text-xs sm:text-sm flex gap-2.5 items-start">
+            <AlertCircle className="size-4 shrink-0 text-red-600 mt-0.5" />
+            <span className="leading-snug">{error}</span>
+          </div>
+        )}
 
-          {step === 'name' && (
-            <div className="flex-1 flex flex-col justify-center animate-in fade-in slide-in-from-bottom-4">
-              <div className="mx-auto w-16 h-16 bg-accent-amber/10 rounded-full flex items-center justify-center mb-6 text-accent-amber">
-                <Award className="size-8" />
-              </div>
-              <h2 className="text-xl font-bold text-center text-on-surface mb-2">
-                Nombre para tu Certificado
-              </h2>
-              <p className="text-center text-sm text-on-surface-variant mb-6">
-                Notamos que no has configurado tu nombre legal. Ingresa tu nombre completo real tal
-                y como quieres que aparezca impreso en tu certificado.
-              </p>
-              <input
-                type="text"
-                value={fullNameInput}
-                onChange={(e) => setFullNameInput(e.target.value)}
-                placeholder="Ej. María Pérez García"
-                className="w-full px-4 py-3 rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary mb-6"
-                autoFocus
-              />
+        {/* Estado 1: CARGANDO (Generación con IA ultra rápida) */}
+        {step === 'loading' && (
+          <div className="flex-1 flex flex-col items-center justify-center text-center py-10 animate-in fade-in">
+            <div className="w-14 h-14 rounded-2xl bg-[#FAF3EC] border border-[#E8DCD1] flex items-center justify-center text-[#845326] mb-4 shadow-xs">
+              <Sparkles className="size-7 text-[#845326] animate-pulse" />
+            </div>
+            <h4 className="text-lg font-bold text-[#2C1F14]">Generando preguntas con IA...</h4>
+            <p className="text-xs sm:text-sm text-[#845326] mt-1.5 max-w-sm leading-relaxed">
+              Estructurando 4 preguntas personalizadas sobre el contenido de tu tarea.
+            </p>
+            <div className="mt-5 flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FAF7F4] border border-[#E8DCD1] text-xs font-medium text-[#845326]">
+              <Loader2 className="size-3.5 animate-spin text-[#845326]" />
+              <span>Priorizando generación rápida (Gemini Flash & n8n)</span>
+            </div>
+          </div>
+        )}
+
+        {/* Estado 2: EVALUANDO RESPUESTAS */}
+        {step === 'evaluating' && (
+          <div className="flex-1 flex flex-col items-center justify-center text-center py-12 animate-in fade-in">
+            <div className="w-14 h-14 rounded-2xl bg-[#FAF3EC] border border-[#E8DCD1] flex items-center justify-center text-[#845326] mb-4 shadow-xs">
+              <Loader2 className="size-7 animate-spin text-[#845326]" />
+            </div>
+            <h4 className="text-lg font-bold text-[#2C1F14]">Evaluando tus respuestas...</h4>
+            <p className="text-xs sm:text-sm text-[#845326] mt-1 max-w-xs leading-relaxed">
+              Validando el resultado para registrar tu acreditación en el sistema.
+            </p>
+          </div>
+        )}
+
+        {/* Estado 3: ERROR DE GENERACIÓN */}
+        {step === 'error' && (
+          <div className="flex-1 flex flex-col items-center justify-center text-center py-8 animate-in fade-in">
+            <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700 mb-4">
+              <Brain className="size-7" />
+            </div>
+            <h4 className="text-lg font-bold text-[#2C1F14] mb-1.5">No se pudo generar el quiz</h4>
+            <p className="text-xs sm:text-sm text-[#845326] max-w-sm mb-6 leading-relaxed">
+              Los servicios de IA están experimentando alta demanda momentánea. Puedes reintentar o
+              utilizar el cuestionario de contingencia académica.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
               <button
-                onClick={handleSaveName}
-                disabled={fullNameInput.length < 3 || isPending}
-                className="w-full py-3 bg-primary text-on-primary rounded-xl font-bold hover:bg-primary/90 transition-colors disabled:opacity-50"
+                type="button"
+                onClick={() => fetchQuiz(false)}
+                disabled={isPending}
+                className="flex-1 py-3 px-4 rounded-2xl border border-[#E8DCD1] bg-white hover:bg-[#FAF7F4] text-[#2C1F14] font-semibold text-xs sm:text-sm transition-colors cursor-pointer"
               >
-                {isPending ? (
-                  <Loader2 className="size-5 animate-spin mx-auto" />
-                ) : (
-                  'Guardar y Continuar'
-                )}
+                Reintentar
+              </button>
+              <button
+                type="button"
+                onClick={() => fetchQuiz(true)}
+                disabled={isPending}
+                className="flex-1 py-3 px-4 rounded-2xl bg-[#2C1F14] hover:bg-[#433022] text-white font-semibold text-xs sm:text-sm transition-colors cursor-pointer shadow-xs"
+              >
+                Cuestionario Rápido
               </button>
             </div>
-          )}
+          </div>
+        )}
 
-          {(step === 'loading' || step === 'evaluating') && (
-            <div className="flex-1 flex flex-col items-center justify-center text-center animate-in fade-in">
-              <Loader2 className="size-10 animate-spin text-primary mb-4" />
-              <h2 className="text-lg font-bold text-on-surface">
-                {step === 'loading'
-                  ? 'Generando evaluación personalizada...'
-                  : 'Evaluando tus respuestas...'}
-              </h2>
-              <p className="text-sm text-on-surface-variant mt-2 max-w-sm">
-                {step === 'loading'
-                  ? 'Komorebi está estructurando las preguntas basadas en la tarea que realizaste.'
-                  : 'Validando tus respuestas para acreditar la tarea...'}
-              </p>
-            </div>
-          )}
-
-          {step === 'error' && (
-            <div className="flex-1 flex flex-col items-center justify-center text-center animate-in fade-in p-2">
-              <div className="w-14 h-14 bg-amber-100 rounded-full flex items-center justify-center text-amber-700 mb-4">
-                <Brain className="size-7" />
-              </div>
-              <h2 className="text-lg font-bold text-on-surface mb-2">
-                Servicio de IA de Gemini Ocupado
-              </h2>
-              <p className="text-sm text-on-surface-variant max-w-md mb-6 leading-relaxed">
-                El modelo de Google Gemini se encuentra con alta demanda temporal o saturación de
-                cuota. Puedes reintentar la conexión con la IA o realizar de inmediato el
-                cuestionario de contingencia académica para no frenar tu avance.
-              </p>
-
-              <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm">
+        {/* Estado 4: RESULTADO (Aprobado o No Aprobado) */}
+        {step === 'result' && quizScore && (
+          <div className="flex-1 flex flex-col items-center justify-center text-center py-6 animate-in fade-in">
+            {quizScore.passed ? (
+              <>
+                <div className="w-16 h-16 rounded-3xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center text-emerald-600 mb-4 shadow-xs">
+                  <Award className="size-8 text-emerald-600" />
+                </div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-bold mb-3 border border-emerald-200">
+                  <CheckCircle2 className="size-3.5" />
+                  <span>¡Quiz Aprobado!</span>
+                </div>
+                <h4 className="text-xl sm:text-2xl font-bold text-[#2C1F14] mb-2">
+                  ¡Excelente dominio del tema!
+                </h4>
+                <p className="text-xs sm:text-sm text-[#845326] max-w-sm mb-4 leading-relaxed">
+                  Has obtenido{' '}
+                  <strong className="text-[#2C1F14]">
+                    {quizScore.score} de {quizScore.total} respuestas correctas
+                  </strong>
+                  . Esta tarea ha quedado acreditada para tu certificación.
+                </p>
                 <button
                   type="button"
-                  onClick={() => fetchQuiz(false)}
-                  disabled={isPending}
-                  className="flex-1 py-3 px-4 border border-outline-variant bg-white hover:bg-surface-container text-on-surface rounded-xl font-bold text-sm transition-colors cursor-pointer"
+                  onClick={() => {
+                    if (taskId) onSuccess(taskId);
+                    onClose();
+                  }}
+                  className="w-full max-w-xs py-3.5 px-5 rounded-2xl bg-[#2C1F14] hover:bg-[#433022] text-white font-semibold text-sm transition-all shadow-sm active:scale-98 cursor-pointer flex items-center justify-center gap-2"
                 >
-                  Reintentar con IA
+                  <span>Continuar</span>
+                  <ArrowRight className="size-4" />
                 </button>
-                <button
-                  type="button"
-                  onClick={() => fetchQuiz(true)}
-                  disabled={isPending}
-                  className="flex-1 py-3 px-4 bg-primary text-on-primary hover:bg-primary/90 rounded-xl font-bold text-sm transition-colors cursor-pointer shadow-sm"
-                >
-                  Cuestionario Rápido
-                </button>
-              </div>
-            </div>
-          )}
-
-          {step === 'quiz' && questions.length > 0 && (
-            <div className="flex-1 flex flex-col animate-in slide-in-from-right-4 min-h-0">
-              {isFallback && (
-                <div className="mb-4 px-3.5 py-2 bg-amber-50/80 border border-amber-200/70 rounded-xl text-amber-900 text-xs flex items-center justify-between gap-2 shrink-0">
-                  <span className="flex items-center gap-1.5 font-medium">
-                    <span className="size-2 rounded-full bg-amber-500 animate-pulse inline-block" />
-                    Modo contingencia activo: Evaluación estructurada sobre los objetivos del tema.
-                  </span>
+              </>
+            ) : (
+              <>
+                <div className="w-16 h-16 rounded-3xl bg-amber-50 border border-amber-200/80 flex items-center justify-center text-amber-700 mb-4 shadow-xs">
+                  <AlertCircle className="size-8 text-amber-600" />
+                </div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 text-xs font-bold mb-3 border border-amber-200">
+                  <span>Puntaje: {quizScore.score} de {quizScore.total}</span>
+                </div>
+                <h4 className="text-xl sm:text-2xl font-bold text-[#2C1F14] mb-2">
+                  Casi lo logras
+                </h4>
+                <p className="text-xs sm:text-sm text-[#845326] max-w-sm mb-6 leading-relaxed">
+                  Necesitas al menos 3 de 4 respuestas correctas (75%) para aprobar la tarea. Revisa
+                  los recursos del tema e inténtalo de nuevo.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="flex-1 py-3 px-4 rounded-2xl border border-[#E8DCD1] bg-white hover:bg-[#FAF7F4] text-[#2C1F14] font-semibold text-xs sm:text-sm transition-colors cursor-pointer"
+                  >
+                    Estudiar más
+                  </button>
                   <button
                     type="button"
                     onClick={() => fetchQuiz(false)}
-                    className="text-[11px] font-bold text-amber-800 underline hover:text-amber-950 shrink-0"
+                    disabled={isPending}
+                    className="flex-1 py-3 px-4 rounded-2xl bg-[#2C1F14] hover:bg-[#433022] text-white font-semibold text-xs sm:text-sm transition-all shadow-sm active:scale-98 cursor-pointer flex items-center justify-center gap-1.5"
                   >
-                    Usar IA
+                    <RefreshCw className="size-3.5" />
+                    <span>Reintentar</span>
                   </button>
                 </div>
-              )}
+              </>
+            )}
+          </div>
+        )}
 
-              <div className="flex items-center justify-between text-xs font-bold text-outline uppercase tracking-wider mb-6 shrink-0">
+        {/* Estado 5: PREGUNTAS DEL QUIZ (4 preguntas de selección simple) */}
+        {step === 'quiz' && questions.length > 0 && (
+          <div className="flex-1 flex flex-col min-h-0 animate-in fade-in">
+            {/* Barra de progreso de 4 preguntas */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between text-xs font-bold text-[#845326] mb-2">
                 <span>
                   Pregunta {currentQuestionIndex + 1} de {questions.length}
                 </span>
-                <span className="text-primary">
+                <span>
                   {Math.round(((currentQuestionIndex + 1) / questions.length) * 100)}%
                 </span>
               </div>
-
-              <h2 className="text-lg font-bold text-on-surface mb-6 leading-relaxed shrink-0">
-                {questions[currentQuestionIndex].question}
-              </h2>
-
-              <div className="flex flex-col gap-3 mb-6 flex-1 overflow-y-auto pr-1 min-h-0">
-                {questions[currentQuestionIndex].options.map((opt, idx) => (
-                  <button
+              <div className="grid grid-cols-4 gap-2">
+                {questions.map((_, idx) => (
+                  <div
                     key={idx}
-                    onClick={() => handleSelectAnswer(idx)}
                     className={cn(
-                      'text-left p-4 rounded-xl border transition-all duration-200 text-sm',
-                      selectedAnswers[currentQuestionIndex] === idx
-                        ? 'border-primary bg-primary/5 text-primary font-bold shadow-sm'
-                        : 'border-outline-variant bg-surface-container-lowest text-on-surface hover:border-primary/40 hover:bg-surface-container-low',
+                      'h-1.5 rounded-full transition-all duration-300',
+                      selectedAnswers[idx] !== undefined && idx < currentQuestionIndex
+                        ? 'bg-emerald-600'
+                        : idx === currentQuestionIndex
+                        ? 'bg-[#845326]'
+                        : 'bg-[#E8DCD1]/60',
                     )}
-                  >
-                    <div className="flex gap-3 items-start">
-                      <div
-                        className={cn(
-                          'mt-0.5 size-4 rounded-full border shrink-0 flex items-center justify-center transition-colors',
-                          selectedAnswers[currentQuestionIndex] === idx
-                            ? 'border-primary bg-primary'
-                            : 'border-outline',
-                        )}
-                      >
-                        {selectedAnswers[currentQuestionIndex] === idx && (
-                          <div className="size-1.5 bg-white rounded-full" />
-                        )}
-                      </div>
-                      <span>{opt}</span>
-                    </div>
-                  </button>
+                  />
                 ))}
               </div>
+            </div>
 
+            {/* Recuadro de la pregunta actual */}
+            <div className="p-4 bg-[#FAF7F4] border border-[#EAE3DC] rounded-2xl mb-4 shrink-0">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#845326] block mb-1">
+                Pregunta {currentQuestionIndex + 1}
+              </span>
+              <p className="text-sm sm:text-base font-bold text-[#2C1F14] leading-relaxed">
+                {questions[currentQuestionIndex].question}
+              </p>
+            </div>
+
+            {/* Las 4 opciones de selección simple */}
+            <div className="flex flex-col gap-2.5 mb-5 flex-1 overflow-y-auto pr-1 min-h-0">
+              {questions[currentQuestionIndex].options.map((option, idx) => {
+                const letter = String.fromCharCode(65 + idx); // A, B, C, D
+                const isSelected = selectedAnswers[currentQuestionIndex] === idx;
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleSelectAnswer(idx)}
+                    className={cn(
+                      'w-full text-left p-3 sm:p-3.5 rounded-2xl border transition-all duration-200 text-xs sm:text-sm flex items-center gap-3 cursor-pointer',
+                      isSelected
+                        ? 'border-2 border-[#845326] bg-[#FAF3EC] text-[#2C1F14] font-semibold shadow-xs'
+                        : 'border-[#E8DCD1] bg-[#FAF7F4] hover:bg-[#FAF3EC]/60 hover:border-[#845326]/40 text-[#433022]',
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        'size-6 sm:size-7 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 transition-colors',
+                        isSelected
+                          ? 'bg-[#845326] text-white'
+                          : 'bg-white border border-[#E8DCD1] text-[#845326]',
+                      )}
+                    >
+                      {letter}
+                    </div>
+                    <span className="flex-1 leading-snug">{option}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Barra de navegación de preguntas */}
+            <div className="flex items-center gap-3 pt-3 border-t border-[#E8DCD1]/60 shrink-0">
+              {currentQuestionIndex > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setCurrentQuestionIndex((c) => c - 1)}
+                  className="px-4 py-3 rounded-2xl border border-[#E8DCD1] text-[#433022] hover:bg-[#FAF7F4] font-semibold text-xs sm:text-sm transition-colors cursor-pointer flex items-center gap-1.5"
+                >
+                  <ArrowLeft className="size-3.5" />
+                  <span>Anterior</span>
+                </button>
+              )}
               <button
+                type="button"
                 onClick={handleNext}
                 disabled={selectedAnswers[currentQuestionIndex] === undefined || isPending}
-                className="w-full py-3.5 bg-primary text-on-primary rounded-xl font-bold hover:bg-primary/90 transition-colors disabled:opacity-50 mt-2 shrink-0 flex items-center justify-center gap-2"
+                className="flex-1 py-3.5 px-5 rounded-2xl bg-[#2C1F14] hover:bg-[#433022] text-white font-semibold text-xs sm:text-sm transition-all shadow-sm active:scale-98 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isPending ? (
-                  <Loader2 className="size-5 animate-spin" />
+                  <Loader2 className="size-4 animate-spin" />
                 ) : currentQuestionIndex === questions.length - 1 ? (
-                  'Enviar Respuestas'
+                  <>
+                    <span>Finalizar y Evaluar</span>
+                    <CheckCircle2 className="size-4" />
+                  </>
                 ) : (
-                  'Siguiente Pregunta'
+                  <>
+                    <span>Siguiente Pregunta</span>
+                    <ArrowRight className="size-4" />
+                  </>
                 )}
               </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

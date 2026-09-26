@@ -10,6 +10,7 @@ import { CertificateModal } from '@/features/certifications/components/Certifica
 export interface CertificadoViewItem {
   id: string;
   hash_sha256: string;
+  numero_certificado?: string;
   fecha_emision: string;
   horas_invertidas: number;
   temas_aprobados: number;
@@ -73,8 +74,16 @@ export function CertificadosGallery({ certificados }: CertificadosGalleryProps) 
                   </div>
                 </div>
 
-                <div className="bg-surface-container-lowest rounded-xl p-3 mb-6 border border-outline-variant/50 font-mono text-[10px] text-outline break-all">
-                  Hash: {cert.hash_sha256}
+                <div className="bg-surface-container-lowest rounded-xl p-3 mb-6 border border-outline-variant/50 flex flex-col gap-1">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-[#845326] font-bold">Nº de Certificado:</span>
+                    <span className="font-mono font-black text-[#2C1F14]">
+                      {cert.numero_certificado || `KMB-${cert.hash_sha256.substring(0, 8).toUpperCase()}`}
+                    </span>
+                  </div>
+                  <div className="font-mono text-[9px] text-outline break-all truncate">
+                    Hash: {cert.hash_sha256}
+                  </div>
                 </div>
               </div>
 

@@ -291,11 +291,14 @@ export default function ProjectDetailPage({
   const [certStatus, setCertStatus] = useState<{
     issued: boolean;
     hash?: string;
+    numeroCertificado?: string;
     hasFullName?: boolean;
     fullName?: string;
   }>({ issued: false });
   const [quizModalTaskId, setQuizModalTaskId] = useState<string | null>(null);
   const [isCertModalOpen, setIsCertModalOpen] = useState(false);
+  const [isIssuingCert, setIsIssuingCert] = useState(false);
+  const [userPreferredTechnique, setUserPreferredTechnique] = useState<string | null>(null);
 
   // Registrar el tour contextual
   useProjectDetailTour(project?.tasks.length === 0);
@@ -574,6 +577,10 @@ export default function ProjectDetailPage({
                 resources?: string;
                 recurso_url?: string;
                 material_url?: string;
+                completed_at?: string;
+                metodo_estudio?: string;
+                tiempo_empleado?: number;
+                tecnica_sirvio?: boolean;
               })[]) || []
             ).map((t) => ({
               id: t.id,
@@ -584,6 +591,10 @@ export default function ProjectDetailPage({
               resourceUrl: t.resources || t.recurso_url || t.material_url || null,
               isCompleted: Boolean(t.completado),
               quizAprobado: Boolean(t.quiz_aprobado),
+              completedAt: t.completed_at || null,
+              metodoEstudio: t.metodo_estudio || null,
+              tiempoEmpleado: typeof t.tiempo_empleado === 'number' ? t.tiempo_empleado : null,
+              tecnicaSirvio: typeof t.tecnica_sirvio === 'boolean' ? t.tecnica_sirvio : null,
             }));
 
             const charCodeSum = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -639,17 +650,85 @@ export default function ProjectDetailPage({
     if (project?.id) {
       Promise.all([
         checkCertificateStatus(project.id),
-        createClient().from('profiles').select('nombre_completo').single(),
+        createClient().from('profiles').select('nombre_completo, tecnica_preferida').single(),
       ]).then(([certRes, profileRes]) => {
         setCertStatus({
           issued: certRes.issued,
           hash: certRes.hash,
+          numeroCertificado: certRes.numeroCertificado,
           hasFullName: !!profileRes.data?.nombre_completo,
           fullName: profileRes.data?.nombre_completo || '',
         });
+        if (profileRes.data?.tecnica_preferida) {
+          setUserPreferredTechnique(profileRes.data.tecnica_preferida);
+        }
+
+        // Si ya aprobó todos los quizzes de las tareas pero no se ha emitido el certificado, emitirlo automáticamente
+        const total = project.tasks.length;
+        const allQuizzesApproved =
+          total > 0 && project.tasks.every((t) => Boolean(t.quizAprobado));
+        if (!certRes.issued && allQuizzesApproved) {
+          import('@/features/certifications/actions/issueCertificateAction').then(
+            ({ issueCertificateAction }) => {
+              issueCertificateAction({ projectId: project.id }).then((res) => {
+                if (res.success && res.hash) {
+                  setCertStatus((c) => ({
+                    ...c,
+                    issued: true,
+                    hash: res.hash,
+                    numeroCertificado: res.numeroCertificado,
+                  }));
+                }
+              });
+            },
+          );
+        }
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.id]);
+
+  const isProjectAllDone = Boolean(
+    project?.tasks.length && project.tasks.every((t) => Boolean(t.quizAprobado)),
+  );
+
+  const handleOpenCertificate = async () => {
+    if (!project) return;
+    if (certStatus.issued && certStatus.hash) {
+      setIsCertModalOpen(true);
+      return;
+    }
+
+    if (isProjectAllDone) {
+      setIsIssuingCert(true);
+      setActionErrorMessage(null);
+      try {
+        const { issueCertificateAction } = await import(
+          '@/features/certifications/actions/issueCertificateAction'
+        );
+        const res = await issueCertificateAction({ projectId: project.id });
+        if (res.success && res.hash) {
+          setCertStatus((c) => ({
+            ...c,
+            issued: true,
+            hash: res.hash,
+            numeroCertificado: res.numeroCertificado,
+          }));
+          setIsCertModalOpen(true);
+        } else {
+          if (res.error) setActionErrorMessage(res.error);
+        }
+      } catch (err) {
+        console.error('Error al emitir certificado:', err);
+        setActionErrorMessage('Error inesperado al emitir el certificado.');
+      } finally {
+        setIsIssuingCert(false);
+      }
+      return;
+    }
+
+    setIsCertModalOpen(true);
+  };
 
   // Manejador para marcar/desmarcar tarea completada con reversión optimista ante fallos
   const handleToggleTask = async (taskId: string, newStatus: boolean) => {
@@ -662,7 +741,13 @@ export default function ProjectDetailPage({
 
     // Actualización optimista en interfaz
     const updatedTasks = project.tasks.map((t) =>
-      t.id === taskId ? { ...t, isCompleted: newStatus } : t,
+      t.id === taskId
+        ? {
+            ...t,
+            isCompleted: newStatus,
+            completedAt: newStatus ? t.completedAt || new Date().toISOString() : null,
+          }
+        : t,
     );
     const completedCount = updatedTasks.filter((t) => t.isCompleted).length;
     const optimisticProgress =
@@ -1284,10 +1369,32 @@ export default function ProjectDetailPage({
               }}
             />
           </div>
-          {!certStatus.issued && (
+          {certStatus.issued ? (
+            <button
+              onClick={handleOpenCertificate}
+              disabled={isIssuingCert}
+              className="text-xs font-bold text-status-success underline hover:text-emerald-700 transition-colors mt-2 cursor-pointer inline-flex items-center gap-1.5"
+            >
+              <Award className="size-3.5" />
+              <span>Ver Certificado Oficial</span>
+            </button>
+          ) : isProjectAllDone ? (
+            <button
+              onClick={handleOpenCertificate}
+              disabled={isIssuingCert}
+              className="text-xs font-bold text-[#845326] underline hover:text-[#433022] transition-colors mt-2 cursor-pointer inline-flex items-center gap-1.5"
+            >
+              {isIssuingCert ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Award className="size-3.5" />
+              )}
+              <span>¡Proyecto completado! Ver Certificado Oficial</span>
+            </button>
+          ) : (
             <button
               onClick={() => setIsCertModalOpen(true)}
-              className="text-xs font-bold text-[#845326] underline hover:text-[#433022] transition-colors mt-2"
+              className="text-xs font-bold text-[#845326] underline hover:text-[#433022] transition-colors mt-2 cursor-pointer"
             >
               Ver vista previa del Certificado
             </button>
@@ -1299,13 +1406,18 @@ export default function ProjectDetailPage({
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h2 className="text-xl font-bold text-on-surface">Plan de Acción</h2>
 
-        {certStatus.issued && (
+        {(certStatus.issued || isProjectAllDone) && (
           <button
-            onClick={() => setIsCertModalOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-status-success-bg text-status-success border border-status-success/20 rounded-xl font-bold text-sm hover:bg-status-success/10 transition-colors shadow-sm"
+            onClick={handleOpenCertificate}
+            disabled={isIssuingCert}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#845326] hover:bg-[#433022] text-white border border-[#845326] rounded-xl font-bold text-sm transition-all shadow-sm active:scale-98 cursor-pointer"
           >
-            <Award className="size-4" />
-            Ver Certificado
+            {isIssuingCert ? (
+              <Loader2 className="size-4 animate-spin text-white" />
+            ) : (
+              <Award className="size-4 text-[#FEB800]" />
+            )}
+            <span>Ver Certificado Oficial</span>
           </button>
         )}
       </div>
@@ -1393,21 +1505,35 @@ export default function ProjectDetailPage({
                 projectId={project.id}
                 projectName={project.title}
                 projectPriority={project.priority}
+                userPreferredTechnique={userPreferredTechnique}
                 onToggleComplete={handleToggleTask}
                 onDeleteTask={handleDeleteTaskClick}
                 onEditTask={handleOpenEditModal}
                 onOpenQuiz={(taskId) => {
-                  const t = project.tasks.find((task) => task.id === taskId);
-                  if (t) {
-                    router.push(
-                      '/ia?quizTaskId=' +
-                        taskId +
-                        '&prompt=' +
-                        encodeURIComponent(
-                          `Quiero realizar el quiz de la tarea "${t.title}" del proyecto "${project.title}"`,
-                        ),
-                    );
+                  const targetTask = project.tasks.find((t) => t.id === taskId);
+                  if (!targetTask?.isCompleted || targetTask?.quizAprobado) return;
+                  setQuizModalTaskId(taskId);
+                }}
+                onUpdateFeedback={(taskId, feedback) => {
+                  if (feedback.tecnicaPreferida) {
+                    setUserPreferredTechnique(feedback.tecnicaPreferida);
                   }
+                  setProject((prev) => {
+                    if (!prev) return prev;
+                    return {
+                      ...prev,
+                      tasks: prev.tasks.map((t) =>
+                        t.id === taskId
+                          ? {
+                              ...t,
+                              metodoEstudio: feedback.metodoEstudio,
+                              tiempoEmpleado: feedback.tiempoEmpleado,
+                              tecnicaSirvio: feedback.tecnicaSirvio,
+                            }
+                          : t,
+                      ),
+                    };
+                  });
                 }}
               />
             ))}
@@ -2175,6 +2301,8 @@ export default function ProjectDetailPage({
       {project && (
         <QuizModal
           taskId={quizModalTaskId}
+          taskTitle={project.tasks.find((t) => t.id === quizModalTaskId)?.title}
+          taskDescription={project.tasks.find((t) => t.id === quizModalTaskId)?.description}
           isOpen={!!quizModalTaskId}
           onClose={() => setQuizModalTaskId(null)}
           hasFullName={!!certStatus.hasFullName}
@@ -2185,19 +2313,25 @@ export default function ProjectDetailPage({
             setProject((prev) => {
               if (!prev) return prev;
               const newTasks = prev.tasks.map((t) =>
-                t.id === taskId ? { ...t, quizAprobado: true } : t,
+                t.id === taskId ? { ...t, quizAprobado: true, isCompleted: true } : t,
               );
 
               const total = newTasks.length;
-              const approved = newTasks.filter((t) => t.quizAprobado).length;
+              const allDone =
+                total > 0 && newTasks.every((t) => Boolean(t.quizAprobado));
 
-              if (total > 0 && approved === total) {
+              if (allDone) {
                 // Auto trigger issue certificate
                 import('@/features/certifications/actions/issueCertificateAction').then(
                   ({ issueCertificateAction }) => {
                     issueCertificateAction({ projectId: project.id }).then((res) => {
                       if (res.success && res.hash) {
-                        setCertStatus((c) => ({ ...c, issued: true, hash: res.hash }));
+                        setCertStatus((c) => ({
+                          ...c,
+                          issued: true,
+                          hash: res.hash,
+                          numeroCertificado: res.numeroCertificado,
+                        }));
                         setIsCertModalOpen(true);
                       } else if (res.error) {
                         setActionErrorMessage(res.error);
@@ -2220,7 +2354,7 @@ export default function ProjectDetailPage({
           onClose={() => setIsCertModalOpen(false)}
           isPreview={!certStatus.issued}
           previewData={
-            !certStatus.issued && project
+            project
               ? {
                   tituloProyecto: project.title,
                   horasInvertidas: Math.max(
@@ -2234,7 +2368,8 @@ export default function ProjectDetailPage({
                     ),
                   ),
                   tareasAprobadas: project.tasks.map((t) => ({ titulo: t.title, id: t.id })),
-                  nombreCompleto: certStatus.fullName || 'Estudiante Pendiente',
+                  nombreCompleto: certStatus.fullName || 'Estudiante Komorebi',
+                  numeroCertificado: certStatus.numeroCertificado,
                 }
               : undefined
           }

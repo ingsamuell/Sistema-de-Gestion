@@ -10,12 +10,15 @@ create table if not exists public.certificados_emitidos (
     id uuid default gen_random_uuid() primary key,
     profile_id uuid not null references public.profiles(id) on delete cascade,
     project_id uuid not null references public.projects(id) on delete cascade,
+    numero_certificado text unique,
     hash_sha256 text not null unique,
     fecha_emision timestamptz default now() not null,
     horas_invertidas numeric(10,2) not null default 0,
     temas_aprobados integer not null default 0,
     unique(profile_id, project_id)
 );
+
+alter table public.certificados_emitidos add column if not exists numero_certificado text unique;
 
 -- 3. Vista de compatibilidad para evitar fallos si algún servicio busca 'proyectos'
 create or replace view public.proyectos as 
