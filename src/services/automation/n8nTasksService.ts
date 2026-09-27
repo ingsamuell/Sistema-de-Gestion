@@ -1088,11 +1088,11 @@ Devuelve un JSON con la estructura:
 export interface TaskCompletedNotificationPayload {
   taskId: string;
   taskTitle: string;
-  projectId: string;
+  projectId?: string;
   projectTitle?: string;
   userId: string;
   userName?: string;
-  telegramChatId?: number | null;
+  telegramChatId?: string | number | null;
   completedAt: string;
   rachaActiva?: number;
 }
@@ -1134,8 +1134,8 @@ export async function notifyTaskCompletedToN8n(
       projectTitle: payload.projectTitle,
       userId: payload.userId,
       userName: payload.userName,
-      telegramChatId: payload.telegramChatId,
-      chat_id: payload.telegramChatId,
+      telegramChatId: payload.telegramChatId ? String(payload.telegramChatId) : null,
+      chat_id: payload.telegramChatId ? String(payload.telegramChatId) : null,
       completedAt: payload.completedAt,
       rachaActiva: payload.rachaActiva,
       mensaje: formattedMessage,
