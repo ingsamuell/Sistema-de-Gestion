@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import React, { useRef, useState, useTransition } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   ArrowUpRight,
   Bot,
@@ -43,6 +43,8 @@ import {
 import { updateProfileIdentity } from '@/features/profile/actions/updateProfileIdentityAction';
 import { updateLearningPreferences } from '@/features/profile/actions/updateLearningPreferencesAction';
 import { useProfileTour } from '@/hooks/useProfileTour';
+import { defaultLocale, getLocaleFromPathname } from '@/lib/i18n/locale';
+import { localizedHref } from '@/lib/i18n/routes';
 
 export type ProfileDashboardData = {
   userId?: string;
@@ -78,6 +80,67 @@ type EditableSection = 'identity' | 'learning' | null;
 
 export function ProfileDashboard({ profile }: { profile: ProfileDashboardData }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const locale = getLocaleFromPathname(pathname) ?? defaultLocale;
+  const copy =
+    locale === 'es'
+      ? {
+          personal: 'Espacio personal',
+          profile: 'Perfil',
+          intro:
+            'Tu información de identidad y preferencias de aprendizaje, organizadas para que puedas ajustarlas cuando lo requieras.',
+          identity: 'Identidad y presencia',
+          identityDescription:
+            'La información con la que te reconocemos dentro de Komorebi y los datos principales de tu cuenta.',
+          edit: 'Editar',
+          closeEdit: 'Cerrar edición',
+          legal: 'Términos y privacidad',
+          legalDescription:
+            'Consulta las condiciones de uso de Komorebi y cómo cuidamos tu información.',
+          terms: 'Términos y condiciones',
+          privacy: 'Política de privacidad',
+          topics: 'Temas',
+          projects: 'Proyectos',
+          certifications: 'Certificaciones',
+          learningSpace: 'Mi espacio de aprendizaje',
+          learningDescription:
+            'La conexión entre tu perfil, tus temas, proyectos y el contexto que autorizas para la IA.',
+          streak: 'Constancia',
+          currentStreak: 'Racha actual',
+          bestStreak: 'Mejor racha',
+          days: 'días',
+          controlled: 'Contexto bajo tu control',
+          controlledDescription:
+            'La IA solo usará fuentes de Temas y Proyectos que decidas incluir.',
+        }
+      : {
+          personal: 'Personal space',
+          profile: 'Profile',
+          intro:
+            'Your identity and learning preferences, organized so you can update them whenever you need.',
+          identity: 'Identity and presence',
+          identityDescription:
+            'How Komorebi recognizes you and the main information about your account.',
+          edit: 'Edit',
+          closeEdit: 'Close editing',
+          legal: 'Terms and privacy',
+          legalDescription: 'Review Komorebi terms of use and how we handle your information.',
+          terms: 'Terms and conditions',
+          privacy: 'Privacy policy',
+          topics: 'Topics',
+          projects: 'Projects',
+          certifications: 'Certifications',
+          learningSpace: 'My learning space',
+          learningDescription:
+            'The connection between your profile, topics, projects, and the context you authorize for AI.',
+          streak: 'Consistency',
+          currentStreak: 'Current streak',
+          bestStreak: 'Best streak',
+          days: 'days',
+          controlled: 'Context you control',
+          controlledDescription:
+            'AI only uses the Topics and Projects sources you choose to include.',
+        };
   const [editingSection, setEditingSection] = useState<EditableSection>(null);
 
   useProfileTour();
@@ -274,23 +337,20 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
 
       <header className="mb-6">
         <p className="text-xs font-semibold uppercase tracking-wider text-accent-amber">
-          Espacio personal
+          {copy.personal}
         </p>
-        <h1 className="mt-1 text-3xl font-bold tracking-tight md:text-4xl">Perfil</h1>
-        <p className="mt-2 max-w-2xl text-on-surface-variant">
-          Tu información de identidad y preferencias de aprendizaje, organizadas para que puedas
-          ajustarlas cuando lo requieras.
-        </p>
+        <h1 className="mt-1 text-3xl font-bold tracking-tight md:text-4xl">{copy.profile}</h1>
+        <p className="mt-2 max-w-2xl text-on-surface-variant">{copy.intro}</p>
       </header>
 
       <div className="space-y-6">
         {/* SECCIÓN 1: Identidad y presencia */}
         <WideSection
           id="tour-profile-identity"
-          title="Identidad y presencia"
-          description="La información con la que te reconocemos dentro de Komorebi y los datos principales de tu cuenta."
+          title={copy.identity}
+          description={copy.identityDescription}
           icon={<Edit3 className="size-5" />}
-          actionLabel={editingSection === 'identity' ? 'Cerrar edición' : 'Editar'}
+          actionLabel={editingSection === 'identity' ? copy.closeEdit : copy.edit}
           onAction={() => toggleEditing('identity')}
         >
           <AnimatePresence mode="wait">
@@ -1045,8 +1105,8 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
         {/* SECCIÓN 3: Términos y privacidad */}
         <WideSection
           id="tour-profile-privacy"
-          title="Términos y privacidad"
-          description="Consulta las condiciones de uso de Komorebi y cómo cuidamos tu información."
+          title={copy.legal}
+          description={copy.legalDescription}
           icon={<FileText className="size-5" />}
         >
           <div className="rounded-2xl border border-primary/15 bg-primary/[0.035] p-4 sm:p-5">
@@ -1072,14 +1132,14 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <Link
-                href="/terms"
+                href={localizedHref(locale, 'terms')}
                 className="group rounded-xl border border-outline-variant/60 bg-surface-container-lowest/80 p-4 transition-colors hover:border-primary/35 hover:bg-surface-container-low"
               >
                 <div className="flex items-start justify-between gap-3">
                   <FileText className="size-5 text-primary" />
                   <ArrowUpRight className="size-4 text-outline transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-primary" />
                 </div>
-                <h4 className="mt-5 text-sm font-bold text-on-surface">Términos y condiciones</h4>
+                <h4 className="mt-5 text-sm font-bold text-on-surface">{copy.terms}</h4>
                 <p className="mt-1 text-xs leading-relaxed text-on-surface-variant">
                   Conoce las reglas de uso, convivencia e integridad académica.
                 </p>
@@ -1089,14 +1149,14 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
               </Link>
 
               <Link
-                href="/privacy"
+                href={localizedHref(locale, 'privacy')}
                 className="group rounded-xl border border-outline-variant/60 bg-surface-container-lowest/80 p-4 transition-colors hover:border-primary/35 hover:bg-surface-container-low"
               >
                 <div className="flex items-start justify-between gap-3">
                   <ShieldCheck className="size-5 text-primary" />
                   <ArrowUpRight className="size-4 text-outline transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-primary" />
                 </div>
-                <h4 className="mt-5 text-sm font-bold text-on-surface">Política de privacidad</h4>
+                <h4 className="mt-5 text-sm font-bold text-on-surface">{copy.privacy}</h4>
                 <p className="mt-1 text-xs leading-relaxed text-on-surface-variant">
                   Entiende qué información usamos y las decisiones que puedes tomar sobre ella.
                 </p>
@@ -1173,13 +1233,13 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
         {/* SECCIÓN 5: Mi espacio de aprendizaje y Rachas */}
         <WideSection
           id="tour-profile-stats"
-          title="Mi espacio de aprendizaje"
-          description="La conexión entre tu perfil, tus temas, proyectos y el contexto que autorizas para la IA."
+          title={copy.learningSpace}
+          description={copy.learningDescription}
           icon={<Sparkles className="size-5" />}
         >
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_15rem]">
             <Link
-              href="/temas"
+              href={localizedHref(locale, 'topics')}
               className="group rounded-2xl border border-outline-variant/60 bg-surface-container-lowest/80 p-4 shadow-sm transition-colors hover:border-primary/35 hover:bg-surface-container-low"
             >
               <div className="flex items-start justify-between gap-3">
@@ -1188,14 +1248,14 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
                 </div>
                 <ArrowUpRight className="size-4 text-outline transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-primary" />
               </div>
-              <h3 className="mt-5 font-bold">Temas</h3>
+              <h3 className="mt-5 font-bold">{copy.topics}</h3>
               <p className="mt-1 text-sm leading-relaxed text-on-surface-variant">
                 Organiza notas y fuentes para reutilizarlas en tus proyectos.
               </p>
             </Link>
 
             <Link
-              href="/proyectos"
+              href={localizedHref(locale, 'projects')}
               className="group rounded-2xl border border-outline-variant/60 bg-surface-container-lowest/80 p-4 shadow-sm transition-colors hover:border-primary/35 hover:bg-surface-container-low"
             >
               <div className="flex items-start justify-between gap-3">
@@ -1204,14 +1264,14 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
                 </div>
                 <ArrowUpRight className="size-4 text-outline transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-primary" />
               </div>
-              <h3 className="mt-5 font-bold">Proyectos</h3>
+              <h3 className="mt-5 font-bold">{copy.projects}</h3>
               <p className="mt-1 text-sm leading-relaxed text-on-surface-variant">
                 Mantén una vista clara de lo que estás construyendo.
               </p>
             </Link>
 
             <Link
-              href="/certificaciones"
+              href={localizedHref(locale, 'certifications')}
               className="group rounded-2xl border border-outline-variant/60 bg-surface-container-lowest/80 p-4 shadow-sm transition-colors hover:border-primary/35 hover:bg-surface-container-low"
             >
               <div className="flex items-start justify-between gap-3">
@@ -1220,7 +1280,7 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
                 </div>
                 <ArrowUpRight className="size-4 text-outline transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-primary" />
               </div>
-              <h3 className="mt-5 font-bold">Certificaciones</h3>
+              <h3 className="mt-5 font-bold">{copy.certifications}</h3>
               <p className="mt-1 text-sm leading-relaxed text-on-surface-variant">
                 Tus logros e inversión de tiempo validados.
               </p>
@@ -1230,11 +1290,14 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
             <div className="rounded-2xl border border-outline-variant/60 bg-surface-container-low p-4">
               <div className="flex items-center gap-2 text-sm font-bold text-primary">
                 <Flame className="size-4 text-accent-amber" />
-                Constancia
+                {copy.streak}
               </div>
               <div className="mt-5 space-y-3">
-                <Streak value={`${profile.currentStreak ?? 0} días`} label="Racha actual" />
-                <Streak value={`${profile.bestStreak ?? 0} días`} label="Mejor racha" />
+                <Streak
+                  value={`${profile.currentStreak ?? 0} ${copy.days}`}
+                  label={copy.currentStreak}
+                />
+                <Streak value={`${profile.bestStreak ?? 0} ${copy.days}`} label={copy.bestStreak} />
               </div>
             </div>
           </div>
@@ -1243,10 +1306,8 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
             <div className="flex items-start gap-3">
               <ShieldCheck className="mt-0.5 size-5 shrink-0 text-primary" />
               <div>
-                <p className="text-sm font-bold">Contexto bajo tu control</p>
-                <p className="mt-1 text-sm text-on-surface-variant">
-                  La IA solo usará fuentes de Temas y Proyectos que decidas incluir.
-                </p>
+                <p className="text-sm font-bold">{copy.controlled}</p>
+                <p className="mt-1 text-sm text-on-surface-variant">{copy.controlledDescription}</p>
               </div>
             </div>
             <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-surface-container-high px-3 py-1.5 text-xs font-semibold text-on-surface-variant">

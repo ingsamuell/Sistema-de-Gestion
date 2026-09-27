@@ -4,17 +4,38 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, FolderKanban, Calendar, BarChart2, Sparkles, LibraryBig } from 'lucide-react';
+import { defaultLocale, getLocaleFromPathname } from '@/lib/i18n/locale';
+import { localizedHref } from '@/lib/i18n/routes';
 
 export function MobileNav() {
   const pathname = usePathname();
+  const locale = getLocaleFromPathname(pathname) ?? defaultLocale;
+  const copy =
+    locale === 'es'
+      ? {
+          home: 'Inicio',
+          projects: 'Proyectos',
+          topics: 'Temas',
+          calendar: 'Calendario',
+          analytics: 'Analítica',
+          assistant: 'IA',
+        }
+      : {
+          home: 'Home',
+          projects: 'Projects',
+          topics: 'Topics',
+          calendar: 'Calendar',
+          analytics: 'Analytics',
+          assistant: 'AI',
+        };
 
   const navItems = [
-    { href: '/', icon: Home, label: 'Inicio' },
-    { href: '/proyectos', icon: FolderKanban, label: 'Proyectos' },
-    { href: '/temas', icon: LibraryBig, label: 'Temas' },
-    { href: '/calendario', icon: Calendar, label: 'Calendario' },
-    { href: '/analitica', icon: BarChart2, label: 'Analítica' },
-    { href: '/ia', icon: Sparkles, label: 'IA' },
+    { href: localizedHref(locale, 'app'), icon: Home, label: copy.home },
+    { href: localizedHref(locale, 'projects'), icon: FolderKanban, label: copy.projects },
+    { href: localizedHref(locale, 'topics'), icon: LibraryBig, label: copy.topics },
+    { href: localizedHref(locale, 'calendar'), icon: Calendar, label: copy.calendar },
+    { href: localizedHref(locale, 'analytics'), icon: BarChart2, label: copy.analytics },
+    { href: localizedHref(locale, 'assistant'), icon: Sparkles, label: copy.assistant },
   ];
 
   return (
@@ -24,7 +45,7 @@ export function MobileNav() {
     >
       {navItems.map((item) => {
         const Icon = item.icon;
-        const isActive = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
+        const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
 
         return (
           <Link

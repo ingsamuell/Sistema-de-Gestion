@@ -3,13 +3,19 @@ import { ChiguiGreeting } from '@/components/mascot/ChiguiGreeting';
 import { ShieldCheck, KeyRound, Sparkles } from 'lucide-react';
 import Image from 'next/image';
 import { Metadata } from 'next';
+import { headers } from 'next/headers';
+import { AuthLanguageSwitch } from '@/components/i18n/AuthLanguageSwitch';
+import { defaultLocale, isLocale } from '@/lib/i18n/locale';
 
 export const metadata: Metadata = {
   title: 'Restablecer Contraseña | Komorebi Study Studio',
   description: 'Crea una nueva contraseña segura para tu cuenta en Komorebi Study Studio.',
 };
 
-export default function ResetPasswordPage() {
+export default async function ResetPasswordPage() {
+  const headersList = await headers();
+  const headerLocale = headersList.get('x-komorebi-locale');
+  const locale = isLocale(headerLocale) ? headerLocale : defaultLocale;
   return (
     <div className="flex min-h-screen w-full bg-surface">
       {/* Lado Izquierdo: Marca, Mascota y Seguridad */}
@@ -90,8 +96,9 @@ export default function ResetPasswordPage() {
 
       {/* Lado Derecho: Formulario de Restablecer Contraseña */}
       <div className="relative flex w-full items-center justify-center p-6 lg:w-1/2 xl:w-[55%] animate-in fade-in slide-in-from-right-8 duration-700">
+        <AuthLanguageSwitch route="resetPassword" />
         <div className="w-full max-w-md">
-          <ResetPasswordForm />
+          <ResetPasswordForm locale={locale} />
         </div>
       </div>
     </div>

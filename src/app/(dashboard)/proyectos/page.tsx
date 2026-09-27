@@ -11,8 +11,36 @@ import {
   ProjectRecord,
 } from '@/features/proyectos/actions/proyectoActions';
 import { useProjectsTour } from '@/hooks/useProjectsTour';
+import { usePathname } from 'next/navigation';
+import { defaultLocale, getLocaleFromPathname } from '@/lib/i18n/locale';
+import { localizedHref } from '@/lib/i18n/routes';
 
 export default function ProyectosPage() {
+  const pathname = usePathname();
+  const locale = getLocaleFromPathname(pathname) ?? defaultLocale;
+  const copy =
+    locale === 'es'
+      ? {
+          start: '¡Empieza tu nuevo proyecto!',
+          empty:
+            'Crea tu primer espacio de estudio o trabajo y organiza todas tus tareas de forma sencilla.',
+          createFirst: 'Crear mi primer proyecto',
+          newProject: 'Nuevo proyecto',
+          deleteTitle: '¿Eliminar proyecto?',
+          deleteDescription:
+            'Esta acción eliminará de forma permanente el proyecto y todas sus tareas asociadas. Esta acción no se puede deshacer.',
+          delete: 'Eliminar proyecto',
+        }
+      : {
+          start: 'Start your new project!',
+          empty: 'Create your first study or work space and organize all your tasks with ease.',
+          createFirst: 'Create my first project',
+          newProject: 'New project',
+          deleteTitle: 'Delete project?',
+          deleteDescription:
+            'This will permanently delete the project and all of its associated tasks. This action cannot be undone.',
+          delete: 'Delete project',
+        };
   const [proyectos, setProyectos] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
@@ -132,18 +160,15 @@ export default function ProyectosPage() {
               className="h-full w-full object-cover"
             />
           </div>
-          <h1 className="mb-3 text-3xl font-bold text-on-surface">¡Empieza tu nuevo proyecto!</h1>
-          <p className="max-w-md text-on-surface-variant">
-            Crea tu primer espacio de estudio o trabajo y organiza todas tus tareas de forma
-            sencilla.
-          </p>
+          <h1 className="mb-3 text-3xl font-bold text-on-surface">{copy.start}</h1>
+          <p className="max-w-md text-on-surface-variant">{copy.empty}</p>
           <Link
-            href="/proyectos/nuevo"
+            href={localizedHref(locale, 'newProject')}
             id="tour-empty-create"
             className="mt-8 flex items-center justify-center gap-2 rounded-full bg-[#f5e5d9] px-6 py-3 text-[15px] font-bold text-[#845326] shadow-sm transition-all hover:-translate-y-[2px] hover:bg-[#E8DCD1] hover:shadow-md active:scale-[0.98]"
           >
             <Plus className="size-5" />
-            Crear mi primer proyecto
+            {copy.createFirst}
           </Link>
         </div>
       ) : (
@@ -154,13 +179,18 @@ export default function ProyectosPage() {
           {/* Tarjetas de Proyectos Creados */}
           {proyectos.map((proyecto, index) => (
             <div key={proyecto.id} id={index === 0 ? 'tour-project-card' : undefined}>
-              <ProjectCard project={proyecto} index={index} onDelete={handleDeleteClick} />
+              <ProjectCard
+                project={proyecto}
+                index={index}
+                onDelete={handleDeleteClick}
+                locale={locale}
+              />
             </div>
           ))}
 
           {/* Tarjeta de Agregar Proyecto Rápido */}
           <Link
-            href="/proyectos/nuevo"
+            href={localizedHref(locale, 'newProject')}
             id="tour-project-create"
             className="group flex flex-col items-center justify-center bg-transparent rounded-[20px] border-2 border-dashed border-[#d2c4bb] hover:border-[#845326] hover:bg-[#FDFBF9] transition-all min-h-[250px] cursor-pointer"
           >
@@ -168,7 +198,7 @@ export default function ProyectosPage() {
               <Plus className="size-6" />
             </div>
             <span className="font-bold text-[#845326] group-hover:text-[#433022] transition-colors">
-              Nuevo Proyecto
+              {copy.newProject}
             </span>
           </Link>
         </div>
@@ -179,10 +209,10 @@ export default function ProyectosPage() {
         isOpen={Boolean(projectToDelete)}
         onClose={() => setProjectToDelete(null)}
         onConfirm={confirmDeleteProject}
-        title="¿Eliminar proyecto?"
-        description="Esta acción eliminará de forma permanente el proyecto y todas sus tareas asociadas. Esta acción no se puede deshacer."
+        title={copy.deleteTitle}
+        description={copy.deleteDescription}
         itemName={projectToDelete?.name}
-        confirmText="Eliminar Proyecto"
+        confirmText={copy.delete}
         isDeleting={isDeleting}
       />
     </div>

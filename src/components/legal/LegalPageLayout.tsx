@@ -1,7 +1,10 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { headers } from 'next/headers';
 import { ArrowLeft, ExternalLink, GraduationCap, ShieldCheck, FileText } from 'lucide-react';
+import { defaultLocale, isLocale } from '@/lib/i18n/locale';
+import { localizedHref } from '@/lib/i18n/routes';
 
 export interface LegalHighlightItem {
   icon: React.ReactNode;
@@ -28,7 +31,7 @@ export interface LegalPageLayoutProps {
   children: React.ReactNode;
 }
 
-export function LegalPageLayout({
+export async function LegalPageLayout({
   currentPage,
   badgeText,
   badgeIcon,
@@ -40,6 +43,9 @@ export function LegalPageLayout({
   sections,
   children,
 }: LegalPageLayoutProps) {
+  const requestHeaders = await headers();
+  const requestedLocale = requestHeaders.get('x-komorebi-locale');
+  const locale = requestedLocale && isLocale(requestedLocale) ? requestedLocale : defaultLocale;
   return (
     <div className="min-h-screen bg-surface text-on-surface flex flex-col selection:bg-accent-amber/20 selection:text-primary">
       {/* Barra de Navegación Superior */}
@@ -76,7 +82,7 @@ export function LegalPageLayout({
             className="hidden sm:flex items-center gap-1 rounded-full border border-outline-variant/40 bg-surface-container-low p-1"
           >
             <Link
-              href="/privacy"
+              href={localizedHref(locale, 'privacy')}
               className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
                 currentPage === 'privacy'
                   ? 'bg-primary text-on-primary shadow-xs'
@@ -87,7 +93,7 @@ export function LegalPageLayout({
               <span>Privacidad</span>
             </Link>
             <Link
-              href="/terms"
+              href={localizedHref(locale, 'terms')}
               className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
                 currentPage === 'terms'
                   ? 'bg-primary text-on-primary shadow-xs'
@@ -102,7 +108,7 @@ export function LegalPageLayout({
           {/* Acciones Rápidas */}
           <div className="flex items-center gap-3">
             <Link
-              href="/login"
+              href={localizedHref(locale, 'login')}
               className="inline-flex items-center gap-2 rounded-xl border border-outline-variant/50 bg-surface-container-lowest px-3.5 py-1.5 text-xs font-bold text-primary shadow-xs transition-all hover:bg-surface-container-low hover:border-outline-variant"
             >
               <span>Volver al acceso</span>
@@ -114,7 +120,7 @@ export function LegalPageLayout({
         {/* Barra Móvil de Pestañas */}
         <div className="sm:hidden border-t border-outline-variant/20 bg-surface-container-low/50 px-4 py-2 flex items-center justify-center gap-2">
           <Link
-            href="/privacy"
+            href={localizedHref(locale, 'privacy')}
             className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-semibold transition-colors ${
               currentPage === 'privacy'
                 ? 'bg-primary text-on-primary'
@@ -125,7 +131,7 @@ export function LegalPageLayout({
             <span>Privacidad</span>
           </Link>
           <Link
-            href="/terms"
+            href={localizedHref(locale, 'terms')}
             className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-semibold transition-colors ${
               currentPage === 'terms'
                 ? 'bg-primary text-on-primary'
@@ -146,7 +152,7 @@ export function LegalPageLayout({
             <div className="flex flex-col items-start gap-4">
               {/* Botón de Retorno */}
               <Link
-                href="/login"
+                href={localizedHref(locale, 'login')}
                 className="group inline-flex items-center gap-2 text-xs font-semibold text-on-surface-variant hover:text-primary transition-colors"
               >
                 <ArrowLeft className="size-3.5 transition-transform group-hover:-translate-x-0.5" />
@@ -293,7 +299,7 @@ export function LegalPageLayout({
 
           <div className="flex items-center gap-4 text-xs font-semibold text-on-surface-variant">
             <Link
-              href="/privacy"
+              href={localizedHref(locale, 'privacy')}
               className={`hover:text-primary transition-colors ${
                 currentPage === 'privacy' ? 'text-primary underline font-bold' : ''
               }`}
@@ -302,7 +308,7 @@ export function LegalPageLayout({
             </Link>
             <span>•</span>
             <Link
-              href="/terms"
+              href={localizedHref(locale, 'terms')}
               className={`hover:text-primary transition-colors ${
                 currentPage === 'terms' ? 'text-primary underline font-bold' : ''
               }`}
@@ -310,11 +316,17 @@ export function LegalPageLayout({
               Términos de uso académico
             </Link>
             <span>•</span>
-            <Link href="/login" className="hover:text-primary transition-colors">
+            <Link
+              href={localizedHref(locale, 'login')}
+              className="hover:text-primary transition-colors"
+            >
               Iniciar Sesión
             </Link>
             <span>•</span>
-            <Link href="/register" className="hover:text-primary transition-colors">
+            <Link
+              href={localizedHref(locale, 'register')}
+              className="hover:text-primary transition-colors"
+            >
               Registrarse
             </Link>
           </div>

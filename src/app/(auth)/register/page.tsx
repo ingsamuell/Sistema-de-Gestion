@@ -5,6 +5,9 @@ import Image from 'next/image';
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { AuthLanguageSwitch } from '@/components/i18n/AuthLanguageSwitch';
+import { headers } from 'next/headers';
+import { defaultLocale, isLocale } from '@/lib/i18n/locale';
 
 export const metadata: Metadata = {
   title: 'Crear una cuenta | Komorebi Study Studio',
@@ -13,6 +16,34 @@ export const metadata: Metadata = {
 };
 
 export default async function RegisterPage() {
+  const requestLocale = (await headers()).get('x-komorebi-locale');
+  const locale = isLocale(requestLocale) ? requestLocale : defaultLocale;
+  const copy =
+    locale === 'en'
+      ? {
+          title: 'Build a study routine that works for you.',
+          description:
+            'Join Komorebi and bring your projects, study time, and progress together in one calmer space.',
+          productivity: 'Move forward with clarity',
+          productivityDescription: 'Tools made for everyday study goals',
+          time: 'Make time for focus',
+          timeDescription: 'Plan sessions you can realistically keep',
+          progress: 'See your progress',
+          progressDescription: 'Review your effort and celebrate each step',
+          rights: 'All rights reserved.',
+        }
+      : {
+          title: 'Construye una rutina de estudio para ti.',
+          description:
+            'Únete a Komorebi y reúne tus proyectos, tiempo de estudio y progreso en un mismo espacio más tranquilo.',
+          productivity: 'Avanza con claridad',
+          productivityDescription: 'Herramientas para tus metas de estudio diarias',
+          time: 'Haz espacio para enfocarte',
+          timeDescription: 'Planifica sesiones que realmente puedas mantener',
+          progress: 'Observa tu progreso',
+          progressDescription: 'Revisa tu esfuerzo y celebra cada paso',
+          rights: 'Todos los derechos reservados.',
+        };
   const supabase = await createClient();
   const {
     data: { user },
@@ -41,19 +72,16 @@ export default async function RegisterPage() {
             height={36}
             className="w-auto h-auto object-contain drop-shadow-sm"
           />
-          <span className="text-xl font-bold tracking-tight">Komorebi Studio</span>
+          <span className="text-xl font-bold tracking-tight">Komorebi</span>
         </div>
 
         {/* Contenido Central: Mascota y Features */}
         <div className="relative z-10 flex flex-col items-center text-center mt-8">
           <AuthMascotVideo className="mb-8 h-64 w-64" />
 
-          <h2 className="text-3xl font-bold mb-4 tracking-tight">
-            Transforma tu forma de estudiar.
-          </h2>
+          <h2 className="text-3xl font-bold mb-4 tracking-tight">{copy.title}</h2>
           <p className="text-primary-container-lowest/80 text-on-primary/80 max-w-sm mb-10 leading-relaxed font-medium">
-            Únete a Komorebi y descubre el sistema definitivo para organizar tu vida universitaria y
-            vencer la procrastinación.
+            {copy.description}
           </p>
 
           <div className="grid grid-cols-1 gap-6 w-full max-w-sm text-left">
@@ -62,10 +90,8 @@ export default async function RegisterPage() {
                 <Rocket className="size-5 text-accent-amber" />
               </div>
               <div>
-                <h3 className="font-bold text-sm">Aumenta tu productividad</h3>
-                <p className="text-xs text-white/60 font-medium">
-                  Herramientas creadas para universitarios
-                </p>
+                <h3 className="font-bold text-sm">{copy.productivity}</h3>
+                <p className="text-xs text-white/60 font-medium">{copy.productivityDescription}</p>
               </div>
             </div>
             <div className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-md">
@@ -73,10 +99,8 @@ export default async function RegisterPage() {
                 <Timer className="size-5 text-accent-umber" />
               </div>
               <div>
-                <h3 className="font-bold text-sm">Domina tu tiempo</h3>
-                <p className="text-xs text-white/60 font-medium">
-                  Temporizadores Pomodoro integrados
-                </p>
+                <h3 className="font-bold text-sm">{copy.time}</h3>
+                <p className="text-xs text-white/60 font-medium">{copy.timeDescription}</p>
               </div>
             </div>
             <div className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-md">
@@ -84,10 +108,8 @@ export default async function RegisterPage() {
                 <BarChart3 className="size-5 text-accent-amber" />
               </div>
               <div>
-                <h3 className="font-bold text-sm">Visualiza tus logros</h3>
-                <p className="text-xs text-white/60 font-medium">
-                  Mide tus horas y celebra tu progreso
-                </p>
+                <h3 className="font-bold text-sm">{copy.progress}</h3>
+                <p className="text-xs text-white/60 font-medium">{copy.progressDescription}</p>
               </div>
             </div>
           </div>
@@ -95,14 +117,15 @@ export default async function RegisterPage() {
 
         {/* Footer del panel izquierdo */}
         <div className="relative z-10 text-xs text-white/50 font-medium mt-8 text-center">
-          © {new Date().getFullYear()} Komorebi Study Studio. Todos los derechos reservados.
+          © {new Date().getFullYear()} Komorebi. {copy.rights}
         </div>
       </div>
 
       {/* Lado Derecho: Formulario de Registro */}
       <div className="relative flex w-full items-center justify-center p-6 py-12 lg:w-1/2 xl:w-[55%] animate-in fade-in slide-in-from-right-8 duration-700">
+        <AuthLanguageSwitch route="register" />
         <div className="w-full max-w-lg">
-          <RegisterForm />
+          <RegisterForm locale={locale} />
         </div>
       </div>
     </div>

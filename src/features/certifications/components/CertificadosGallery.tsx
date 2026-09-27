@@ -4,8 +4,10 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { Award, Calendar, Clock, CheckCircle, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { enUS, es } from 'date-fns/locale';
 import { CertificateModal } from '@/features/certifications/components/CertificateModal';
+import type { Locale } from '@/lib/i18n/locale';
+import { localizedProjectHref } from '@/lib/i18n/routes';
 
 export interface CertificadoViewItem {
   id: string;
@@ -20,10 +22,35 @@ export interface CertificadoViewItem {
 
 interface CertificadosGalleryProps {
   certificados: CertificadoViewItem[];
+  locale?: Locale;
 }
 
-export function CertificadosGallery({ certificados }: CertificadosGalleryProps) {
+export function CertificadosGallery({ certificados, locale = 'es' }: CertificadosGalleryProps) {
   const [selectedHash, setSelectedHash] = useState<string | null>(null);
+  const copy =
+    locale === 'es'
+      ? {
+          verified: 'Certificado Verificado',
+          hours: 'Horas Invertidas',
+          approved: 'Tareas Aprobadas',
+          topics: 'temas',
+          date: 'Fecha de Emisión',
+          certificateNumber: 'Nº de Certificado:',
+          view: 'Ver Certificado',
+          project: 'Proyecto',
+          projectTitle: 'Ir al proyecto asociado',
+        }
+      : {
+          verified: 'Verified certificate',
+          hours: 'Hours invested',
+          approved: 'Approved tasks',
+          topics: 'topics',
+          date: 'Issue date',
+          certificateNumber: 'Certificate no.:',
+          view: 'View certificate',
+          project: 'Project',
+          projectTitle: 'Go to related project',
+        };
 
   return (
     <>
@@ -37,7 +64,7 @@ export function CertificadosGallery({ certificados }: CertificadosGalleryProps) 
             <div className="h-[120px] bg-[linear-gradient(135deg,#D8C4E0_0%,#E8B4B8_100%)] p-6 relative flex flex-col justify-end">
               <div className="absolute top-4 right-4 bg-white/40 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-[#845326] flex items-center gap-1.5 shadow-xs">
                 <CheckCircle className="size-3.5 text-emerald-700" />
-                <span>Certificado Verificado</span>
+                <span>{copy.verified}</span>
               </div>
               <h3 className="text-2xl font-black text-[#2C1F14] leading-tight line-clamp-1 drop-shadow-sm">
                 {cert.tituloProyecto}
@@ -50,33 +77,37 @@ export function CertificadosGallery({ certificados }: CertificadosGalleryProps) 
                 <div className="grid grid-cols-2 gap-4 mb-6">
                   <div className="flex flex-col gap-1">
                     <span className="text-[11px] font-bold text-outline uppercase tracking-wider flex items-center gap-1">
-                      <Clock className="size-3" /> Horas Invertidas
+                      <Clock className="size-3" /> {copy.hours}
                     </span>
                     <span className="text-lg font-bold text-on-surface">
-                      {cert.horas_invertidas} horas
+                      {cert.horas_invertidas} {locale === 'es' ? 'horas' : 'hours'}
                     </span>
                   </div>
                   <div className="flex flex-col gap-1">
                     <span className="text-[11px] font-bold text-outline uppercase tracking-wider flex items-center gap-1">
-                      <CheckCircle className="size-3" /> Tareas Aprobadas
+                      <CheckCircle className="size-3" /> {copy.approved}
                     </span>
                     <span className="text-lg font-bold text-on-surface">
-                      {cert.temas_aprobados} temas
+                      {cert.temas_aprobados} {copy.topics}
                     </span>
                   </div>
                   <div className="col-span-2 flex flex-col gap-1 mt-2">
                     <span className="text-[11px] font-bold text-outline uppercase tracking-wider flex items-center gap-1">
-                      <Calendar className="size-3" /> Fecha de Emisión
+                      <Calendar className="size-3" /> {copy.date}
                     </span>
                     <span className="text-sm font-semibold text-on-surface-variant">
-                      {format(new Date(cert.fecha_emision), "d 'de' MMMM, yyyy", { locale: es })}
+                      {format(
+                        new Date(cert.fecha_emision),
+                        locale === 'es' ? "d 'de' MMMM, yyyy" : 'MMMM d, yyyy',
+                        { locale: locale === 'es' ? es : enUS },
+                      )}
                     </span>
                   </div>
                 </div>
 
                 <div className="bg-surface-container-lowest rounded-xl p-3 mb-6 border border-outline-variant/50 flex flex-col gap-1">
                   <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-[#845326] font-bold">Nº de Certificado:</span>
+                    <span className="text-[#845326] font-bold">{copy.certificateNumber}</span>
                     <span className="font-mono font-black text-[#2C1F14]">
                       {cert.numero_certificado ||
                         `KMB-${cert.hash_sha256.substring(0, 8).toUpperCase()}`}
@@ -96,14 +127,14 @@ export function CertificadosGallery({ certificados }: CertificadosGalleryProps) 
                   className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-[#845326] text-white font-bold rounded-xl hover:bg-[#433022] transition-colors text-xs sm:text-sm cursor-pointer shadow-sm hover:shadow"
                 >
                   <Award className="size-4" />
-                  Ver Certificado
+                  {copy.view}
                 </button>
                 <Link
-                  href={`/proyectos/${cert.project_id}`}
+                  href={localizedProjectHref(locale, cert.project_id)}
                   className="flex items-center justify-center gap-1.5 py-2.5 px-4 bg-surface-container hover:bg-surface-container-high text-on-surface font-semibold rounded-xl transition-colors text-xs sm:text-sm"
-                  title="Ir al proyecto asociado"
+                  title={copy.projectTitle}
                 >
-                  <span>Proyecto</span>
+                  <span>{copy.project}</span>
                   <ExternalLink className="size-3.5 opacity-70" />
                 </Link>
               </div>

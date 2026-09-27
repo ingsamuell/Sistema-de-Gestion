@@ -5,21 +5,55 @@ import { Download, FileText, Image as ImageIcon, FileSpreadsheet, Loader2 } from
 import { cn } from '@/lib/utils';
 import type { AnalyticsDashboardData, AnalyticsMetricId } from '../data/types';
 import { exportAsImage, exportAsPDF, exportAsExcel } from '../utils/exportUtils';
+import type { Locale } from '@/lib/i18n/locale';
 
 interface ExportMenuProps {
   data: AnalyticsDashboardData;
   activeMetric: AnalyticsMetricId;
+  locale: Locale;
 }
 
-export function ExportMenu({ data, activeMetric }: ExportMenuProps) {
+export function ExportMenu({ data, activeMetric, locale }: ExportMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
+  const copy =
+    locale === 'es'
+      ? {
+          workload: 'Carga planificada',
+          progress: 'Progreso de proyectos',
+          priorities: 'Prioridades',
+          deadlines: 'Próximas entregas',
+          aiError: 'Error obteniendo el reporte de IA',
+          unavailable: 'Análisis no disponible en este momento.',
+          error: 'Error al generar el reporte',
+          exportError: 'Hubo un error al exportar el reporte:',
+          analyzing: 'Analizando con IA...',
+          export: 'Exportar reporte',
+          smartPdf: 'PDF inteligente',
+          excel: 'Reporte en Excel',
+          image: 'Imagen + resumen (PNG)',
+        }
+      : {
+          workload: 'Planned workload',
+          progress: 'Project progress',
+          priorities: 'Priorities',
+          deadlines: 'Upcoming deadlines',
+          aiError: 'Error getting the AI report',
+          unavailable: 'Analysis is unavailable right now.',
+          error: 'Error generating the report',
+          exportError: 'There was an error exporting the report:',
+          analyzing: 'Analyzing with AI...',
+          export: 'Export report',
+          smartPdf: 'Smart PDF',
+          excel: 'Excel report',
+          image: 'Image + summary (PNG)',
+        };
   const metricTitles = {
-    workload: 'Carga Planificada',
-    progress: 'Progreso de Proyectos',
-    priorities: 'Prioridades',
-    deadlines: 'Próximas Entregas',
+    workload: copy.workload,
+    progress: copy.progress,
+    priorities: copy.priorities,
+    deadlines: copy.deadlines,
   };
 
   const handleExport = async (format: 'png' | 'pdf' | 'excel') => {
@@ -43,11 +77,11 @@ export function ExportMenu({ data, activeMetric }: ExportMenuProps) {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error || 'Error obteniendo el reporte de la IA');
+        throw new Error(errorData?.error || copy.aiError);
       }
 
       const result = await response.json();
-      const aiText = result.text || 'Análisis no disponible en este momento.';
+      const aiText = result.text || copy.unavailable;
 
       if (format === 'png') {
         await exportAsImage('exportable-chart-area', aiText, metricTitle);
@@ -63,8 +97,8 @@ export function ExportMenu({ data, activeMetric }: ExportMenuProps) {
       }
     } catch (error) {
       console.error('Error durante la exportación:', error);
-      const msg = error instanceof Error ? error.message : 'Error al generar el reporte';
-      alert(`Hubo un error al exportar el reporte: ${msg}`);
+      const msg = error instanceof Error ? error.message : copy.error;
+      alert(`${copy.exportError} ${msg}`);
     } finally {
       setIsExporting(false);
     }
@@ -85,7 +119,7 @@ export function ExportMenu({ data, activeMetric }: ExportMenuProps) {
         ) : (
           <Download className="size-4" />
         )}
-        {isExporting ? 'Analizando con IA...' : 'Exportar Reporte'}
+        {isExporting ? copy.analyzing : copy.export}
       </button>
 
       {isOpen && (
@@ -97,21 +131,21 @@ export function ExportMenu({ data, activeMetric }: ExportMenuProps) {
               className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-on-surface hover:bg-surface-container"
             >
               <FileText className="size-4 text-primary" />
-              PDF Inteligente
+              {copy.smartPdf}
             </button>
             <button
               onClick={() => handleExport('excel')}
               className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-on-surface hover:bg-surface-container"
             >
               <FileSpreadsheet className="size-4 text-status-success" />
-              Reporte en Excel
+              {copy.excel}
             </button>
             <button
               onClick={() => handleExport('png')}
               className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-on-surface hover:bg-surface-container"
             >
               <ImageIcon className="size-4 text-secondary" />
-              Imagen + Resumen (PNG)
+              {copy.image}
             </button>
           </div>
         </>

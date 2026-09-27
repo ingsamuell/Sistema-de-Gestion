@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useTransition, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
 import {
   X,
   Loader2,
@@ -19,6 +20,7 @@ import {
   markTaskQuizPassedAction,
 } from '@/features/certifications/actions/generateQuizAction';
 import { cn } from '@/lib/utils';
+import { defaultLocale, getLocaleFromPathname } from '@/lib/i18n/locale';
 
 export interface QuizModalProps {
   taskId: string | null;
@@ -38,6 +40,75 @@ export function QuizModal({
   onClose,
   onSuccess,
 }: QuizModalProps) {
+  const pathname = usePathname();
+  const locale = getLocaleFromPathname(pathname) ?? defaultLocale;
+  const copy =
+    locale === 'es'
+      ? {
+          close: 'Cerrar cuestionario',
+          label: 'Quiz de Conocimiento',
+          task: 'Evaluación de la tarea',
+          subtitle:
+            '4 preguntas de selección simple para validar tu aprendizaje y acreditar esta tarea.',
+          generating: 'Generando preguntas con IA...',
+          generatingDescription:
+            'Estructurando 4 preguntas personalizadas sobre el contenido de tu tarea.',
+          fastGeneration: 'Priorizando generación rápida (Gemini Flash y n8n)',
+          evaluating: 'Evaluando tus respuestas...',
+          evaluatingDescription:
+            'Validando el resultado para registrar tu acreditación en el sistema.',
+          unavailable: 'No se pudo generar el quiz',
+          unavailableDescription:
+            'Los servicios de IA están experimentando alta demanda momentánea. Puedes reintentar o utilizar el cuestionario de contingencia académica.',
+          retry: 'Reintentar',
+          quickQuiz: 'Cuestionario rápido',
+          passed: '¡Quiz aprobado!',
+          success: '¡Excelente dominio del tema!',
+          score: (score: number, total: number) =>
+            `Has obtenido ${score} de ${total} respuestas correctas. Esta tarea ha quedado acreditada para tu certificación.`,
+          continue: 'Continuar',
+          almost: 'Casi lo logras',
+          failed:
+            'Necesitas al menos 3 de 4 respuestas correctas (75%) para aprobar la tarea. Revisa los recursos del tema e inténtalo de nuevo.',
+          study: 'Estudiar más',
+          question: 'Pregunta',
+          previous: 'Anterior',
+          finish: 'Finalizar y evaluar',
+          next: 'Siguiente pregunta',
+          generationError: 'No se pudo generar el cuestionario con IA.',
+          saveError: 'Aprobaste, pero hubo un error al guardar tu progreso.',
+        }
+      : {
+          close: 'Close quiz',
+          label: 'Knowledge quiz',
+          task: 'Task assessment',
+          subtitle: 'Four single-choice questions to validate your learning and certify this task.',
+          generating: 'Generating questions with AI...',
+          generatingDescription: 'Creating four personalized questions about your task content.',
+          fastGeneration: 'Prioritizing fast generation (Gemini Flash and n8n)',
+          evaluating: 'Evaluating your answers...',
+          evaluatingDescription: 'Validating the result to record your achievement.',
+          unavailable: 'Could not generate the quiz',
+          unavailableDescription:
+            'AI services are experiencing high demand. Try again or use the academic fallback quiz.',
+          retry: 'Try again',
+          quickQuiz: 'Quick quiz',
+          passed: 'Quiz passed!',
+          success: 'Excellent command of the topic!',
+          score: (score: number, total: number) =>
+            `You got ${score} out of ${total} correct answers. This task is now accredited toward your certification.`,
+          continue: 'Continue',
+          almost: 'Almost there',
+          failed:
+            'You need at least 3 out of 4 correct answers (75%) to pass. Review the topic resources and try again.',
+          study: 'Study more',
+          question: 'Question',
+          previous: 'Previous',
+          finish: 'Finish and evaluate',
+          next: 'Next question',
+          generationError: 'Could not generate the AI quiz.',
+          saveError: 'You passed, but there was an error saving your progress.',
+        };
   const [isPending, startTransition] = useTransition();
   const [step, setStep] = useState<'loading' | 'quiz' | 'evaluating' | 'result' | 'error'>(
     'loading',
@@ -124,12 +195,12 @@ export function QuizModal({
           setProvider(res.provider || (res.isFallback ? 'fallback' : 'gemini'));
           setStep('quiz');
         } else {
-          setError(res.error || 'No se pudo generar el cuestionario con IA.');
+          setError(res.error || copy.generationError);
           setStep('error');
         }
       });
     },
-    [taskId, taskTitle, taskDescription],
+    [taskId, taskTitle, taskDescription, copy.generationError],
   );
 
   // Cargar preguntas automáticamente al abrir
@@ -176,7 +247,7 @@ export function QuizModal({
           onSuccess(taskId);
           setStep('result');
         } else {
-          setError(res.error || 'Aprobaste, pero hubo un error al guardar tu progreso.');
+          setError(res.error || copy.saveError);
           setStep('quiz');
         }
       } else {
@@ -206,7 +277,7 @@ export function QuizModal({
           onClick={handleSafeClose}
           disabled={step === 'evaluating'}
           className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors cursor-pointer disabled:opacity-50"
-          aria-label="Cerrar cuestionario"
+          aria-label={copy.close}
         >
           <X className="size-5" />
         </button>
@@ -215,7 +286,7 @@ export function QuizModal({
         <div className="mb-4 pr-8">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FAF3EC] border border-[#E8DCD1] text-xs font-semibold text-[#845326] mb-2.5">
             <Sparkles className="size-3.5 text-[#845326]" />
-            <span>Quiz de Conocimiento</span>
+            <span>{copy.label}</span>
             {step === 'quiz' && (
               <span className="text-[10px] opacity-80 font-normal ml-1">
                 •{' '}
@@ -232,11 +303,9 @@ export function QuizModal({
             id="quiz-modal-title"
             className="text-xl sm:text-2xl font-bold text-[#2C1F14] leading-tight"
           >
-            {taskTitle || 'Evaluación de la tarea'}
+            {taskTitle || copy.task}
           </h3>
-          <p className="text-xs sm:text-sm text-[#845326] mt-1 line-clamp-1">
-            4 preguntas de selección simple para validar tu aprendizaje y acreditar esta tarea.
-          </p>
+          <p className="text-xs sm:text-sm text-[#845326] mt-1 line-clamp-1">{copy.subtitle}</p>
         </div>
 
         {/* Mensaje de error general si existe */}
@@ -253,13 +322,13 @@ export function QuizModal({
             <div className="w-14 h-14 rounded-2xl bg-[#FAF3EC] border border-[#E8DCD1] flex items-center justify-center text-[#845326] mb-4 shadow-xs">
               <Sparkles className="size-7 text-[#845326] animate-pulse" />
             </div>
-            <h4 className="text-lg font-bold text-[#2C1F14]">Generando preguntas con IA...</h4>
+            <h4 className="text-lg font-bold text-[#2C1F14]">{copy.generating}</h4>
             <p className="text-xs sm:text-sm text-[#845326] mt-1.5 max-w-sm leading-relaxed">
-              Estructurando 4 preguntas personalizadas sobre el contenido de tu tarea.
+              {copy.generatingDescription}
             </p>
             <div className="mt-5 flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FAF7F4] border border-[#E8DCD1] text-xs font-medium text-[#845326]">
               <Loader2 className="size-3.5 animate-spin text-[#845326]" />
-              <span>Priorizando generación rápida (Gemini Flash & n8n)</span>
+              <span>{copy.fastGeneration}</span>
             </div>
           </div>
         )}
@@ -270,9 +339,9 @@ export function QuizModal({
             <div className="w-14 h-14 rounded-2xl bg-[#FAF3EC] border border-[#E8DCD1] flex items-center justify-center text-[#845326] mb-4 shadow-xs">
               <Loader2 className="size-7 animate-spin text-[#845326]" />
             </div>
-            <h4 className="text-lg font-bold text-[#2C1F14]">Evaluando tus respuestas...</h4>
+            <h4 className="text-lg font-bold text-[#2C1F14]">{copy.evaluating}</h4>
             <p className="text-xs sm:text-sm text-[#845326] mt-1 max-w-xs leading-relaxed">
-              Validando el resultado para registrar tu acreditación en el sistema.
+              {copy.evaluatingDescription}
             </p>
           </div>
         )}
@@ -283,10 +352,9 @@ export function QuizModal({
             <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700 mb-4">
               <Brain className="size-7" />
             </div>
-            <h4 className="text-lg font-bold text-[#2C1F14] mb-1.5">No se pudo generar el quiz</h4>
+            <h4 className="text-lg font-bold text-[#2C1F14] mb-1.5">{copy.unavailable}</h4>
             <p className="text-xs sm:text-sm text-[#845326] max-w-sm mb-6 leading-relaxed">
-              Los servicios de IA están experimentando alta demanda momentánea. Puedes reintentar o
-              utilizar el cuestionario de contingencia académica.
+              {copy.unavailableDescription}
             </p>
             <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
               <button
@@ -295,7 +363,7 @@ export function QuizModal({
                 disabled={isPending}
                 className="flex-1 py-3 px-4 rounded-2xl border border-[#E8DCD1] bg-white hover:bg-[#FAF7F4] text-[#2C1F14] font-semibold text-xs sm:text-sm transition-colors cursor-pointer"
               >
-                Reintentar
+                {copy.retry}
               </button>
               <button
                 type="button"
@@ -303,7 +371,7 @@ export function QuizModal({
                 disabled={isPending}
                 className="flex-1 py-3 px-4 rounded-2xl bg-[#2C1F14] hover:bg-[#433022] text-white font-semibold text-xs sm:text-sm transition-colors cursor-pointer shadow-xs"
               >
-                Cuestionario Rápido
+                {copy.quickQuiz}
               </button>
             </div>
           </div>
@@ -319,17 +387,13 @@ export function QuizModal({
                 </div>
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-bold mb-3 border border-emerald-200">
                   <CheckCircle2 className="size-3.5" />
-                  <span>¡Quiz Aprobado!</span>
+                  <span>{copy.passed}</span>
                 </div>
                 <h4 className="text-xl sm:text-2xl font-bold text-[#2C1F14] mb-2">
-                  ¡Excelente dominio del tema!
+                  {copy.success}
                 </h4>
                 <p className="text-xs sm:text-sm text-[#845326] max-w-sm mb-4 leading-relaxed">
-                  Has obtenido{' '}
-                  <strong className="text-[#2C1F14]">
-                    {quizScore.score} de {quizScore.total} respuestas correctas
-                  </strong>
-                  . Esta tarea ha quedado acreditada para tu certificación.
+                  {copy.score(quizScore.score, quizScore.total)}
                 </p>
                 <button
                   type="button"
@@ -339,7 +403,7 @@ export function QuizModal({
                   }}
                   className="w-full max-w-xs py-3.5 px-5 rounded-2xl bg-[#2C1F14] hover:bg-[#433022] text-white font-semibold text-sm transition-all shadow-sm active:scale-98 cursor-pointer flex items-center justify-center gap-2"
                 >
-                  <span>Continuar</span>
+                  <span>{copy.continue}</span>
                   <ArrowRight className="size-4" />
                 </button>
               </>
@@ -353,12 +417,9 @@ export function QuizModal({
                     Puntaje: {quizScore.score} de {quizScore.total}
                   </span>
                 </div>
-                <h4 className="text-xl sm:text-2xl font-bold text-[#2C1F14] mb-2">
-                  Casi lo logras
-                </h4>
+                <h4 className="text-xl sm:text-2xl font-bold text-[#2C1F14] mb-2">{copy.almost}</h4>
                 <p className="text-xs sm:text-sm text-[#845326] max-w-sm mb-6 leading-relaxed">
-                  Necesitas al menos 3 de 4 respuestas correctas (75%) para aprobar la tarea. Revisa
-                  los recursos del tema e inténtalo de nuevo.
+                  {copy.failed}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
                   <button
@@ -366,7 +427,7 @@ export function QuizModal({
                     onClick={onClose}
                     className="flex-1 py-3 px-4 rounded-2xl border border-[#E8DCD1] bg-white hover:bg-[#FAF7F4] text-[#2C1F14] font-semibold text-xs sm:text-sm transition-colors cursor-pointer"
                   >
-                    Estudiar más
+                    {copy.study}
                   </button>
                   <button
                     type="button"
@@ -375,7 +436,7 @@ export function QuizModal({
                     className="flex-1 py-3 px-4 rounded-2xl bg-[#2C1F14] hover:bg-[#433022] text-white font-semibold text-xs sm:text-sm transition-all shadow-sm active:scale-98 cursor-pointer flex items-center justify-center gap-1.5"
                   >
                     <RefreshCw className="size-3.5" />
-                    <span>Reintentar</span>
+                    <span>{copy.retry}</span>
                   </button>
                 </div>
               </>
@@ -390,7 +451,8 @@ export function QuizModal({
             <div className="mb-4">
               <div className="flex items-center justify-between text-xs font-bold text-[#845326] mb-2">
                 <span>
-                  Pregunta {currentQuestionIndex + 1} de {questions.length}
+                  {copy.question} {currentQuestionIndex + 1} {locale === 'es' ? 'de' : 'of'}{' '}
+                  {questions.length}
                 </span>
                 <span>{Math.round(((currentQuestionIndex + 1) / questions.length) * 100)}%</span>
               </div>
@@ -414,7 +476,7 @@ export function QuizModal({
             {/* Recuadro de la pregunta actual */}
             <div className="p-4 bg-[#FAF7F4] border border-[#EAE3DC] rounded-2xl mb-4 shrink-0">
               <span className="text-[11px] font-bold uppercase tracking-wider text-[#845326] block mb-1">
-                Pregunta {currentQuestionIndex + 1}
+                {copy.question} {currentQuestionIndex + 1}
               </span>
               <p className="text-sm sm:text-base font-bold text-[#2C1F14] leading-relaxed">
                 {questions[currentQuestionIndex].question}
@@ -463,7 +525,7 @@ export function QuizModal({
                   className="px-4 py-3 rounded-2xl border border-[#E8DCD1] text-[#433022] hover:bg-[#FAF7F4] font-semibold text-xs sm:text-sm transition-colors cursor-pointer flex items-center gap-1.5"
                 >
                   <ArrowLeft className="size-3.5" />
-                  <span>Anterior</span>
+                  <span>{copy.previous}</span>
                 </button>
               )}
               <button
@@ -476,12 +538,12 @@ export function QuizModal({
                   <Loader2 className="size-4 animate-spin" />
                 ) : currentQuestionIndex === questions.length - 1 ? (
                   <>
-                    <span>Finalizar y Evaluar</span>
+                    <span>{copy.finish}</span>
                     <CheckCircle2 className="size-4" />
                   </>
                 ) : (
                   <>
-                    <span>Siguiente Pregunta</span>
+                    <span>{copy.next}</span>
                     <ArrowRight className="size-4" />
                   </>
                 )}

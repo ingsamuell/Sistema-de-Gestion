@@ -19,7 +19,8 @@ import {
   startOfDay,
   addDays,
 } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { enUS, es } from 'date-fns/locale';
+import { usePathname } from 'next/navigation';
 import {
   Calendar,
   ChevronLeft,
@@ -49,6 +50,7 @@ import {
 } from '@/features/schedule/actions/calendarActions';
 import { createClient } from '@/lib/supabase/client';
 import { useCalendarTour } from '@/hooks/useCalendarTour';
+import { defaultLocale, getLocaleFromPathname } from '@/lib/i18n/locale';
 
 interface Availability {
   date: string;
@@ -234,6 +236,153 @@ function consolidateAvailabilitySlots(slots: Availability[]) {
 }
 
 export default function CalendarioPage() {
+  const pathname = usePathname();
+  const locale = getLocaleFromPathname(pathname) ?? defaultLocale;
+  const dateLocale = locale === 'es' ? es : enUS;
+  const copy =
+    locale === 'es'
+      ? {
+          back: 'Volver',
+          upload: 'Subir horario (IA)',
+          replicate: 'Replicar horario',
+          month: 'Replicar en todo el mes',
+          year: 'Replicar en todos los meses',
+          specific: 'Replicar en semanas específicas...',
+          weeks: 'Semanas específicas',
+          selectWeeks: 'Selecciona a qué semanas futuras quieres copiar tu disponibilidad actual:',
+          weekOf: 'Semana del',
+          noWeeks: 'No hay semanas futuras disponibles en este año.',
+          cancel: 'Cancelar',
+          apply: 'Aplicar horario',
+          googleConnect: 'Conectar Google Calendar',
+          googleConnected: 'Conectado a Google',
+          googleDisconnect: 'Desconectar',
+          googleSynced: 'Google Calendar sincronizado correctamente',
+          googleDisconnected: 'Google Calendar desconectado',
+          googleConnectionError: 'Error al conectar con Google Calendar',
+          uploadTitle: 'Cargar horario con Gemini AI',
+          uploadSubtitle: 'Extrae automáticamente tus materias o turnos',
+          uploadDescription:
+            'Sube una foto, captura de pantalla (.png, .jpg) o documento PDF de tu horario escolar, universitario o laboral. La IA extraerá los días y bloques horarios para que queden reflejados en tu calendario.',
+          scheduleType: '¿Qué tipo de horario deseas agregar?',
+          workSchedule: 'De trabajo',
+          studySchedule: 'De estudio',
+          workCategory: 'Categoría: Trabajo',
+          studyCategory: 'Categoría: Estudio',
+          dropFile: 'Haz clic o arrastra tu archivo aquí',
+          remove: 'Quitar',
+          processSchedule: 'Procesar y montar horario',
+          optimizing: 'Optimizando documento/imagen...',
+          analyzing: 'Analizando horario con IA Gemini...',
+          selectFile: 'Por favor selecciona una imagen o documento PDF con tu horario.',
+          processError: 'Error al procesar el horario',
+          uploadSuccess: (count: number) =>
+            `¡Se detectaron y agregaron ${count} bloques a tu calendario con éxito!`,
+          uploadAndRescheduleSuccess: (count: number, rescheduledCount: number) =>
+            `¡Se agregaron ${count} bloques a tu horario y la IA reagendó automáticamente ${rescheduledCount} tarea(s) para evitar colisiones!`,
+          noBlocksDetected:
+            'La IA no pudo detectar bloques de horario en el documento o imagen. Asegúrate de que las horas y días sean legibles.',
+          unexpectedExtractionError: 'Error inesperado extrayendo el horario',
+          taskUpdated: 'Tarea actualizada en la base de datos',
+          changesSaved: 'Cambios guardados en la base de datos',
+          deleted: 'Bloque y categoría eliminados del calendario',
+          noAvailability: 'No hay disponibilidad marcada en esta semana para replicar.',
+          replicated: '¡Horario replicado con éxito!',
+          editTask: 'Editar tarea',
+          editBlock: 'Editar bloque',
+          newBlock: 'Nuevo bloque',
+          taskName: 'Nombre de tarea...',
+          blockName: 'Nombre / Nota...',
+          save: 'Guardar',
+          tasks: 'Tareas',
+          studying: 'Estudiando',
+          work: 'Trabajo',
+          rest: 'Descanso',
+          otherActivity: 'Otra actividad',
+          availabilityIntro:
+            'Si nos dices cuál es tu horario disponible podemos personalizar los planes de tu proyecto.',
+          uploadHint: 'Subir imagen o PDF de tu horario para que la IA lo monte automáticamente',
+          replicateHint: 'Copiar esta semana a otras fechas',
+          cannotMoveToPast: 'No se pueden mover bloques a fechas pasadas.',
+          conflict: (title: string) =>
+            `⚠️ Conflicto: El horario coincide con "${title}". Por favor intenta utilizar otra hora o bloque disponible.`,
+          taskScheduleUpdated: (title: string, time: string, day: string) =>
+            `¡Horario de "${title}" actualizado a ${time}${day}!`,
+          blockMoved: (title: string, time: string, day: string) =>
+            `¡${title} movido a ${time}${day}!`,
+          saveScheduleError: 'Error al persistir el nuevo horario en el servidor',
+        }
+      : {
+          back: 'Back',
+          upload: 'Upload schedule (AI)',
+          replicate: 'Copy schedule',
+          month: 'Copy to every week this month',
+          year: 'Copy to every month',
+          specific: 'Copy to specific weeks...',
+          weeks: 'Specific weeks',
+          selectWeeks: 'Select the future weeks where you want to copy your current availability:',
+          weekOf: 'Week of',
+          noWeeks: 'There are no future weeks available this year.',
+          cancel: 'Cancel',
+          apply: 'Apply schedule',
+          googleConnect: 'Connect Google Calendar',
+          googleConnected: 'Connected to Google',
+          googleDisconnect: 'Disconnect',
+          googleSynced: 'Google Calendar synced successfully',
+          googleDisconnected: 'Google Calendar disconnected',
+          googleConnectionError: 'Could not connect to Google Calendar',
+          uploadTitle: 'Upload schedule with Gemini AI',
+          uploadSubtitle: 'Automatically extract your classes or shifts',
+          uploadDescription:
+            'Upload a photo, screenshot (.png, .jpg), or PDF of your school, university, or work schedule. AI will extract its days and time blocks so they appear in your calendar.',
+          scheduleType: 'What kind of schedule would you like to add?',
+          workSchedule: 'Work schedule',
+          studySchedule: 'Study schedule',
+          workCategory: 'Category: Work',
+          studyCategory: 'Category: Study',
+          dropFile: 'Click or drag your file here',
+          remove: 'Remove',
+          processSchedule: 'Process and add schedule',
+          optimizing: 'Optimizing document/image...',
+          analyzing: 'Analyzing schedule with Gemini AI...',
+          selectFile: 'Please select an image or PDF document with your schedule.',
+          processError: 'Could not process the schedule',
+          uploadSuccess: (count: number) =>
+            `${count} time blocks were detected and added to your calendar successfully!`,
+          uploadAndRescheduleSuccess: (count: number, rescheduledCount: number) =>
+            `${count} time blocks were added and AI automatically rescheduled ${rescheduledCount} task(s) to avoid conflicts!`,
+          noBlocksDetected:
+            'AI could not detect schedule blocks in the document or image. Make sure the days and times are readable.',
+          unexpectedExtractionError: 'Unexpected error while extracting the schedule',
+          taskUpdated: 'Task updated in the database',
+          changesSaved: 'Changes saved in the database',
+          deleted: 'Block and category removed from the calendar',
+          noAvailability: 'There is no availability marked this week to copy.',
+          replicated: 'Schedule copied successfully!',
+          editTask: 'Edit task',
+          editBlock: 'Edit block',
+          newBlock: 'New block',
+          taskName: 'Task name...',
+          blockName: 'Name / note...',
+          save: 'Save',
+          tasks: 'Tasks',
+          studying: 'Studying',
+          work: 'Work',
+          rest: 'Rest',
+          otherActivity: 'Other activity',
+          availabilityIntro:
+            'Tell us when you are available so we can personalize your project plans.',
+          uploadHint: 'Upload an image or PDF of your schedule so AI can add it automatically',
+          replicateHint: 'Copy this week to other dates',
+          cannotMoveToPast: 'Blocks cannot be moved to past dates.',
+          conflict: (title: string) =>
+            `⚠️ Conflict: This time overlaps with "${title}". Please choose another time or available block.`,
+          taskScheduleUpdated: (title: string, time: string, day: string) =>
+            `"${title}" was rescheduled to ${time}${day}.`,
+          blockMoved: (title: string, time: string, day: string) =>
+            `${title} was moved to ${time}${day}.`,
+          saveScheduleError: 'Could not save the new schedule to the server',
+        };
   const [view, setView] = useState<'month' | 'week'>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -309,7 +458,7 @@ export default function CalendarioPage() {
   const [scheduleCategory, setScheduleCategory] = useState<'estudio' | 'trabajo'>('estudio');
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadLoading, setUploadLoading] = useState(false);
-  const [uploadStatusText, setUploadStatusText] = useState<string>('Analizando con Gemini...');
+  const [uploadStatusText, setUploadStatusText] = useState<string>(copy.analyzing);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccessMsg, setUploadSuccessMsg] = useState<string | null>(null);
 
@@ -332,7 +481,7 @@ export default function CalendarioPage() {
             if (isNaN(startD.getTime()) || isNaN(endD.getTime())) return;
 
             const dateStr = format(startD, 'yyyy-MM-dd');
-            const dayOfWeekName = format(startD, 'EEEE', { locale: es });
+            const dayOfWeekName = format(startD, 'EEEE', { locale: dateLocale });
             const startSlot = format(startD, 'HH:mm');
             const endSlot = format(endD, 'HH:mm');
 
@@ -382,7 +531,7 @@ export default function CalendarioPage() {
             else if (b.type === 'descanso') normalizedType = 'descanso';
             else if (b.type === 'otra_actividad') normalizedType = 'otra_actividad';
 
-            const dayOfWeekName = format(parseISODate(b.date), 'EEEE', { locale: es });
+            const dayOfWeekName = format(parseISODate(b.date), 'EEEE', { locale: dateLocale });
             const blockId = `block_${b.date}_${startIdx}_${endIdx}`;
 
             for (let i = startIdx; i < endIdx; i++) {
@@ -393,7 +542,7 @@ export default function CalendarioPage() {
                   dayOfWeek: dayOfWeekName,
                   startTime: slot,
                   endTime: TIME_SLOTS[i + 1] || '24:00',
-                  label: b.label || (normalizedType === 'estudiando' ? 'Estudio' : 'Trabajo'),
+                  label: b.label || (normalizedType === 'estudiando' ? copy.studying : copy.work),
                   type: normalizedType,
                   source: 'supabase',
                   blockId,
@@ -419,7 +568,9 @@ export default function CalendarioPage() {
             else if (b.tipo === 'otra_actividad') normalizedType = 'otra_actividad';
             else if (b.tipo === 'ocupado') normalizedType = 'trabajo';
 
-            const dayOfWeekName = format(parseISODate(b.fecha_especifica), 'EEEE', { locale: es });
+            const dayOfWeekName = format(parseISODate(b.fecha_especifica), 'EEEE', {
+              locale: dateLocale,
+            });
             const blockId = `block_${b.fecha_especifica}_${startIdx}_${endIdx}`;
 
             for (let i = startIdx; i < endIdx; i++) {
@@ -431,7 +582,11 @@ export default function CalendarioPage() {
                   startTime: slot,
                   endTime: TIME_SLOTS[i + 1] || '24:00',
                   label:
-                    b.tipo === 'estudio' ? 'Estudio' : b.tipo === 'trabajo' ? 'Trabajo' : 'Ocupado',
+                    b.tipo === 'estudio'
+                      ? copy.studying
+                      : b.tipo === 'trabajo'
+                        ? copy.work
+                        : copy.otherActivity,
                   type: normalizedType,
                   source: 'supabase',
                   blockId,
@@ -449,7 +604,7 @@ export default function CalendarioPage() {
     } catch (err) {
       console.warn('Aviso cargando eventos de calendario:', err);
     }
-  }, []);
+  }, [copy.otherActivity, copy.studying, copy.work, dateLocale]);
 
   const loadGoogleCalendarEvents = React.useCallback(async () => {
     try {
@@ -467,7 +622,7 @@ export default function CalendarioPage() {
           if (isNaN(startD.getTime()) || isNaN(endD.getTime())) return;
 
           const dateStr = format(startD, 'yyyy-MM-dd');
-          const dayOfWeekName = format(startD, 'EEEE', { locale: es });
+          const dayOfWeekName = format(startD, 'EEEE', { locale: dateLocale });
           const startSlot = format(startD, 'HH:mm');
           const endSlot = format(endD, 'HH:mm');
 
@@ -509,7 +664,7 @@ export default function CalendarioPage() {
     } catch (err) {
       console.warn('Error al cargar eventos de Google Calendar:', err);
     }
-  }, []);
+  }, [dateLocale]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -546,7 +701,7 @@ export default function CalendarioPage() {
 
       if (success === 'true') {
         setIsGoogleConnected(true);
-        setToastMessage({ type: 'success', text: 'Google Calendar sincronizado correctamente' });
+        setToastMessage({ type: 'success', text: copy.googleSynced });
         window.history.replaceState({}, document.title, window.location.pathname);
 
         // Cargar eventos reales desde Google Calendar
@@ -556,7 +711,7 @@ export default function CalendarioPage() {
         const decodedDetail = errorDetail ? decodeURIComponent(errorDetail) : null;
         setToastMessage({
           type: 'error',
-          text: decodedDetail || 'Error al conectar con Google Calendar',
+          text: decodedDetail || copy.googleConnectionError,
         });
         window.history.replaceState({}, document.title, window.location.pathname);
       }
@@ -606,7 +761,12 @@ export default function CalendarioPage() {
         }
       };
     }
-  }, [loadCalendarEventsFromSupabase, loadGoogleCalendarEvents]);
+  }, [
+    copy.googleConnectionError,
+    copy.googleSynced,
+    loadCalendarEventsFromSupabase,
+    loadGoogleCalendarEvents,
+  ]);
 
   useEffect(() => {
     if (toastMessage) {
@@ -634,7 +794,7 @@ export default function CalendarioPage() {
   const handleDisconnectGoogle = async () => {
     setIsGoogleConnected(false);
     setAvailabilities((prev) => prev.filter((a) => a.source !== 'google'));
-    setToastMessage({ type: 'success', text: 'Google Calendar desconectado' });
+    setToastMessage({ type: 'success', text: copy.googleDisconnected });
     // Limpiar la cookie segura del servidor para invalidar la sesión
     try {
       await fetch('/api/auth/google', { method: 'DELETE' });
@@ -691,11 +851,12 @@ export default function CalendarioPage() {
           </div>
           <div className="relative z-10 flex-1">
             <h2 className="text-lg sm:text-xl font-bold text-[#845326] leading-tight">
-              Si nos dices cuál es tu horario disponible podemos personalizar los planes de tu
-              proyecto.
+              {copy.availabilityIntro}
             </h2>
             <p className="text-[#A57855] text-sm mt-1 font-semibold">
-              Selecciona un mes para configurar tus horas de estudio o trabajo.
+              {locale === 'es'
+                ? 'Selecciona un mes para configurar tus horas de estudio o trabajo.'
+                : 'Select a month to plan your study or work hours.'}
             </p>
           </div>
 
@@ -727,7 +888,7 @@ export default function CalendarioPage() {
                     d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                   />
                 </svg>
-                <span className="truncate">Conectar Google Calendar</span>
+                <span className="truncate">{copy.googleConnect}</span>
               </button>
             ) : (
               <button
@@ -735,10 +896,10 @@ export default function CalendarioPage() {
                 className="group flex items-center justify-center gap-2 px-4 py-2 bg-[#E6F4EA] text-[#137333] hover:bg-[#FCE8E6] hover:text-[#C5221F] border border-[#CEEAD6] hover:border-[#FAD2CF] rounded-xl font-semibold shadow-sm transition-all w-full sm:w-auto"
               >
                 <span className="group-hover:hidden flex items-center gap-2">
-                  <Check className="size-4" /> Conectado a Google
+                  <Check className="size-4" /> {copy.googleConnected}
                 </span>
                 <span className="hidden group-hover:flex items-center gap-2">
-                  <X className="size-4" /> Desconectar
+                  <X className="size-4" /> {copy.googleDisconnect}
                 </span>
               </button>
             )}
@@ -799,11 +960,11 @@ export default function CalendarioPage() {
                 `}
               >
                 <span className="text-sm sm:text-base font-bold capitalize">
-                  {format(month, 'MMMM', { locale: es })}
+                  {format(month, 'MMMM', { locale: dateLocale })}
                 </span>
                 {isCurrentMonth && (
                   <span className="text-[10px] font-bold uppercase tracking-widest mt-1 opacity-80">
-                    Actual
+                    {locale === 'es' ? 'Actual' : 'Current'}
                   </span>
                 )}
               </button>
@@ -891,18 +1052,18 @@ export default function CalendarioPage() {
 
   const handleProcessScheduleFile = async () => {
     if (!uploadFile) {
-      setUploadError('Por favor selecciona una imagen o documento PDF con tu horario.');
+      setUploadError(copy.selectFile);
       return;
     }
 
     setUploadLoading(true);
-    setUploadStatusText('Optimizando documento/imagen...');
+    setUploadStatusText(copy.optimizing);
     setUploadError(null);
     setUploadSuccessMsg(null);
 
     try {
       const { base64Data, mimeType } = await compressImageForUpload(uploadFile);
-      setUploadStatusText('Analizando horario con IA Gemini...');
+      setUploadStatusText(copy.analyzing);
 
       const res = await fetch('/api/calendar/extract-schedule', {
         method: 'POST',
@@ -918,7 +1079,7 @@ export default function CalendarioPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'Error al procesar el horario');
+        throw new Error(data.error || copy.processError);
       }
 
       if (data.bloques && data.bloques.length > 0) {
@@ -944,7 +1105,7 @@ export default function CalendarioPage() {
             if (!targetDay) return;
 
             const dateStr = format(targetDay, 'yyyy-MM-dd');
-            const dayOfWeekName = format(targetDay, 'EEEE', { locale: es });
+            const dayOfWeekName = format(targetDay, 'EEEE', { locale: dateLocale });
 
             // Normalizar horas al slot más cercano
             const startSlot =
@@ -959,7 +1120,7 @@ export default function CalendarioPage() {
 
             const mappedType: 'tareas' | 'descanso' | 'trabajo' | 'estudiando' | 'otra_actividad' =
               scheduleCategory === 'trabajo' ? 'trabajo' : 'estudiando';
-            const defaultLabel = scheduleCategory === 'trabajo' ? 'Trabajo' : 'Estudio';
+            const defaultLabel = scheduleCategory === 'trabajo' ? copy.work : copy.studying;
             const blockLabel = b.etiqueta && b.etiqueta.trim() !== '' ? b.etiqueta : defaultLabel;
 
             for (let i = fromIdx; i < toIdx; i++) {
@@ -1002,12 +1163,10 @@ export default function CalendarioPage() {
         const reagendadasCount = data.reagendamiento?.reagendadas || 0;
         if (reagendadasCount > 0) {
           setUploadSuccessMsg(
-            `¡Se agregaron ${data.bloques.length} bloques a tu horario y la IA reagendó automáticamente ${reagendadasCount} tarea(s) para evitar colisiones!`,
+            copy.uploadAndRescheduleSuccess(data.bloques.length, reagendadasCount),
           );
         } else {
-          setUploadSuccessMsg(
-            `¡Se detectaron y agregaron ${data.bloques.length} bloques a tu calendario con éxito!`,
-          );
+          setUploadSuccessMsg(copy.uploadSuccess(data.bloques.length));
         }
         setTimeout(() => {
           setShowUploadModal(false);
@@ -1016,12 +1175,10 @@ export default function CalendarioPage() {
           setView('week');
         }, 2200);
       } else {
-        setUploadError(
-          'La IA no pudo detectar bloques de horario en el documento o imagen. Asegúrate de que las horas y días sean legibles.',
-        );
+        setUploadError(copy.noBlocksDetected);
       }
     } catch (err) {
-      setUploadError(err instanceof Error ? err.message : 'Error inesperado extrayendo el horario');
+      setUploadError(err instanceof Error ? err.message : copy.unexpectedExtractionError);
     } finally {
       setUploadLoading(false);
     }
@@ -1284,7 +1441,7 @@ export default function CalendarioPage() {
     if (isPastDate) {
       setToastMessage({
         type: 'error',
-        text: 'No se pueden mover bloques a fechas pasadas.',
+        text: copy.cannotMoveToPast,
       });
       setDraggedTask(null);
       setDragOverCell(null);
@@ -1342,7 +1499,7 @@ export default function CalendarioPage() {
     if (collisionTitle) {
       setToastMessage({
         type: 'error',
-        text: `⚠️ Conflicto: El horario coincide con "${collisionTitle}". Por favor intenta utilizar otra hora o bloque disponible.`,
+        text: copy.conflict(collisionTitle),
       });
       setDraggedTask(null);
       setDragOverCell(null);
@@ -1351,7 +1508,7 @@ export default function CalendarioPage() {
 
     // Actualización optimista inmediata
     const newSlots: Availability[] = [];
-    const dayOfWeekName = format(parseISODate(dateStr), 'EEEE', { locale: es });
+    const dayOfWeekName = format(parseISODate(dateStr), 'EEEE', { locale: dateLocale });
     const newBlockId = draggedTask.blockId || `manual_${dateStr}_${targetTimeStr}`;
 
     for (let i = startSlotIdx; i < endSlotIdx; i++) {
@@ -1389,10 +1546,14 @@ export default function CalendarioPage() {
       const daySuffix =
         draggedTask.sourceDate === dateStr
           ? ''
-          : ` (${format(parseISODate(dateStr), "EEE d 'de' MMM", { locale: es })})`;
+          : ` (${format(parseISODate(dateStr), locale === 'es' ? "EEE d 'de' MMM" : 'EEE, MMM d', { locale: dateLocale })})`;
       setToastMessage({
         type: 'success',
-        text: `¡Horario de "${cleanTitle}" actualizado a ${format12h(targetTimeStr)} - ${format12h(newEndTimeStr)}${daySuffix}!`,
+        text: copy.taskScheduleUpdated(
+          cleanTitle,
+          `${format12h(targetTimeStr)} - ${format12h(newEndTimeStr)}`,
+          daySuffix,
+        ),
       });
 
       const savedDragged = { ...draggedTask };
@@ -1415,7 +1576,7 @@ export default function CalendarioPage() {
         if (!res.success) {
           setToastMessage({
             type: 'error',
-            text: res.error || 'Error al persistir el nuevo horario en el servidor',
+            text: res.error || copy.saveScheduleError,
           });
           await loadCalendarEventsFromSupabase();
         } else {
@@ -1453,10 +1614,14 @@ export default function CalendarioPage() {
       const daySuffix =
         draggedTask.sourceDate === dateStr
           ? ''
-          : ` (${format(parseISODate(dateStr), "EEE d 'de' MMM", { locale: es })})`;
+          : ` (${format(parseISODate(dateStr), locale === 'es' ? "EEE d 'de' MMM" : 'EEE, MMM d', { locale: dateLocale })})`;
       setToastMessage({
         type: 'success',
-        text: `¡${displayTitle} movido a ${format12h(targetTimeStr)} - ${format12h(newEndTimeStr)}${daySuffix}!`,
+        text: copy.blockMoved(
+          displayTitle,
+          `${format12h(targetTimeStr)} - ${format12h(newEndTimeStr)}`,
+          daySuffix,
+        ),
       });
 
       setDraggedTask(null);
@@ -1506,7 +1671,7 @@ export default function CalendarioPage() {
       );
     }
 
-    setToastMessage({ type: 'success', text: 'Bloque y categoría eliminados del calendario' });
+    setToastMessage({ type: 'success', text: copy.deleted });
   };
 
   const handleEditLabel = (
@@ -1519,7 +1684,9 @@ export default function CalendarioPage() {
     e.stopPropagation();
     setEditingCell({ date: dateStr, time: timeStr });
     const cleanLabel = currentLabel.replace(/^📌\s*/, '');
-    setEditLabel(cleanLabel === 'Tareas' || cleanLabel === 'Libre' ? '' : cleanLabel);
+    setEditLabel(
+      cleanLabel === 'Tareas' || cleanLabel === 'Libre' || cleanLabel === 'Tasks' ? '' : cleanLabel,
+    );
     let normalized: 'tareas' | 'descanso' | 'trabajo' | 'estudiando' | 'otra_actividad' = 'tareas';
     if (currentType === 'estudio' || currentType === 'estudiando') normalized = 'estudiando';
     else if (currentType === 'trabajo' || currentType === 'ocupado') normalized = 'trabajo';
@@ -1546,7 +1713,7 @@ export default function CalendarioPage() {
     const targetSet = new Set(targetSlots);
 
     const labelClean = editLabel.trim().substring(0, 15);
-    const displayLabel = labelClean || (editType === 'tareas' ? 'Tareas' : '');
+    const displayLabel = labelClean || (editType === 'tareas' ? copy.tasks : '');
     const newBlockId = `block_${editingCell.date}_${startIdx}_${endIdx}`;
 
     // Verificar si el slot seleccionado pertenece a una tarea o evento de calendario
@@ -1566,7 +1733,7 @@ export default function CalendarioPage() {
           a.eventId === matchingEvent.eventId ? { ...a, label: `📌 ${cleanTitle}` } : a,
         ),
       );
-      setToastMessage({ type: 'success', text: 'Tarea actualizada en la base de datos' });
+      setToastMessage({ type: 'success', text: copy.taskUpdated });
       setEditingCell(null);
       return;
     }
@@ -1586,7 +1753,7 @@ export default function CalendarioPage() {
       );
     } else {
       // Bloque nuevo desde celda en blanco
-      const dayOfWeekName = format(parseISODate(editingCell.date), 'EEEE', { locale: es });
+      const dayOfWeekName = format(parseISODate(editingCell.date), 'EEEE', { locale: dateLocale });
       const newItems: Availability[] = targetSlots.map((slot, idx) => {
         const nextSlot = TIME_SLOTS[startIdx + idx + 1] || '24:00';
         return {
@@ -1620,7 +1787,7 @@ export default function CalendarioPage() {
       blockId: newBlockId,
     });
 
-    setToastMessage({ type: 'success', text: 'Cambios guardados en la base de datos' });
+    setToastMessage({ type: 'success', text: copy.changesSaved });
     setEditingCell(null);
   };
 
@@ -1641,7 +1808,7 @@ export default function CalendarioPage() {
 
     while (nextWeekStart <= endOfActiveYear && nextWeekStart <= maxYearLimit) {
       const nextWeekEnd = addDays(nextWeekStart, 6);
-      const label = `${format(nextWeekStart, 'd MMM', { locale: es })} - ${format(nextWeekEnd, 'd MMM', { locale: es })}`;
+      const label = `${format(nextWeekStart, 'd MMM', { locale: dateLocale })} - ${format(nextWeekEnd, 'd MMM', { locale: dateLocale })}`;
       weeks.push({ start: nextWeekStart, end: nextWeekEnd, label });
       nextWeekStart = addDays(nextWeekStart, 7);
     }
@@ -1670,7 +1837,7 @@ export default function CalendarioPage() {
     const currentWeekAvails = availabilities.filter((a) => currentWeekDates.includes(a.date));
 
     if (currentWeekAvails.length === 0) {
-      alert('No hay disponibilidad marcada en esta semana para replicar.');
+      alert(copy.noAvailability);
       return;
     }
 
@@ -1701,7 +1868,7 @@ export default function CalendarioPage() {
     setShowReplicateMenu(false);
     setShowSpecificWeeksModal(false);
     setSelectedWeeks([]);
-    alert('¡Horario replicado con éxito!');
+    alert(copy.replicated);
   };
 
   const renderWeeklyGrid = () => {
@@ -1735,10 +1902,10 @@ export default function CalendarioPage() {
                   className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors text-sm font-bold text-on-surface-variant"
                 >
                   <ArrowLeft className="size-4" />
-                  Volver
+                  {copy.back}
                 </button>
                 <h2 className="text-xl sm:text-2xl font-bold capitalize text-on-surface hidden sm:block">
-                  {format(currentDate, 'MMMM yyyy', { locale: es })}
+                  {format(currentDate, 'MMMM yyyy', { locale: dateLocale })}
                 </h2>
               </div>
 
@@ -1752,10 +1919,10 @@ export default function CalendarioPage() {
                     setShowUploadModal(true);
                   }}
                   className="flex items-center gap-2 px-3.5 py-2 bg-[#845326] hover:bg-[#6c421f] text-white rounded-xl text-sm font-bold transition-all shadow-sm active:scale-[0.98] cursor-pointer"
-                  title="Subir imagen o PDF de tu horario para que la IA lo monte automáticamente"
+                  title={copy.uploadHint}
                 >
                   <Sparkles className="size-4 text-[#F7D6BF]" />
-                  <span>Subir Horario (IA)</span>
+                  <span>{copy.upload}</span>
                 </button>
 
                 <div id="tour-calendar-replicate" className="relative">
@@ -1765,10 +1932,10 @@ export default function CalendarioPage() {
                       setShowReplicateMenu(!showReplicateMenu);
                     }}
                     className="hidden md:flex items-center gap-2 px-3 py-2 bg-[#f5e5d9] hover:bg-[#E8DCD1] text-[#845326] rounded-xl text-sm font-bold transition-colors shadow-sm mr-2"
-                    title="Copiar esta semana a otras fechas"
+                    title={copy.replicateHint}
                   >
                     <Copy className="size-4" />
-                    Replicar Horario
+                    {copy.replicate}
                   </button>
 
                   {showReplicateMenu && (
@@ -1789,7 +1956,7 @@ export default function CalendarioPage() {
                           }}
                           className="w-full text-left px-4 py-3 text-sm text-[#845326] hover:bg-[#FDFBF9] border-b border-[#EAE3DC] font-semibold transition-colors"
                         >
-                          Replicar en todo el mes
+                          {copy.month}
                         </button>
                         <button
                           onClick={() => {
@@ -1802,7 +1969,7 @@ export default function CalendarioPage() {
                           }}
                           className="w-full text-left px-4 py-3 text-sm text-[#845326] hover:bg-[#FDFBF9] border-b border-[#EAE3DC] font-semibold transition-colors"
                         >
-                          Replicar en todos los meses
+                          {copy.year}
                         </button>
                         <button
                           onClick={() => {
@@ -1811,7 +1978,7 @@ export default function CalendarioPage() {
                           }}
                           className="w-full text-left px-4 py-3 text-sm text-[#845326] hover:bg-[#FDFBF9] font-semibold transition-colors"
                         >
-                          Replicar en semanas específicas...
+                          {copy.specific}
                         </button>
                       </div>
                     </>
@@ -1826,8 +1993,8 @@ export default function CalendarioPage() {
                     <ChevronLeft className="size-5" />
                   </button>
                   <span className="px-2 text-xs sm:text-sm font-bold text-on-surface-variant capitalize">
-                    {format(start, 'd MMM', { locale: es })} -{' '}
-                    {format(end, 'd MMM', { locale: es })}
+                    {format(start, 'd MMM', { locale: dateLocale })} -{' '}
+                    {format(end, 'd MMM', { locale: dateLocale })}
                   </span>
                   <button
                     onClick={goToNextWeek}
@@ -1854,7 +2021,7 @@ export default function CalendarioPage() {
                       className={`flex flex-col items-center justify-center py-2 border-r border-[#EAE3DC] last:border-r-0 ${isPast ? 'opacity-50' : ''}`}
                     >
                       <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1 truncate px-1">
-                        {format(day, 'EEE', { locale: es })}
+                        {format(day, 'EEE', { locale: dateLocale })}
                       </span>
                       <span
                         className={`text-base font-black ${isToday ? 'bg-[#845326] text-white size-7 flex items-center justify-center rounded-full' : 'text-on-surface'}`}
@@ -1873,7 +2040,7 @@ export default function CalendarioPage() {
             <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200 p-4">
               <div className="bg-white rounded-2xl shadow-xl w-full max-w-md flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
                 <div className="px-6 py-4 border-b border-[#EAE3DC] flex items-center justify-between bg-[#FDFBF9]">
-                  <h3 className="text-lg font-bold text-[#845326]">Semanas Específicas</h3>
+                  <h3 className="text-lg font-bold text-[#845326]">{copy.weeks}</h3>
                   <button
                     onClick={() => {
                       setShowSpecificWeeksModal(false);
@@ -1886,7 +2053,7 @@ export default function CalendarioPage() {
                 </div>
                 <div className="p-6 overflow-y-auto max-h-[50vh] custom-scrollbar">
                   <p className="text-sm text-on-surface-variant mb-4 font-medium">
-                    Selecciona a qué semanas futuras quieres copiar tu disponibilidad actual:
+                    {copy.selectWeeks}
                   </p>
                   <div className="flex flex-col gap-2">
                     {futureWeeksList.map((week) => (
@@ -1904,13 +2071,13 @@ export default function CalendarioPage() {
                           className="w-5 h-5 accent-[#845326] rounded border-[#845326] focus:ring-[#845326] cursor-pointer"
                         />
                         <span className="text-sm font-bold text-[#845326]">
-                          Semana del {week.label}
+                          {copy.weekOf} {week.label}
                         </span>
                       </label>
                     ))}
                     {futureWeeksList.length === 0 && (
                       <div className="text-center py-4 text-sm font-semibold text-on-surface-variant">
-                        No hay semanas futuras disponibles en este año.
+                        {copy.noWeeks}
                       </div>
                     )}
                   </div>
@@ -1923,7 +2090,7 @@ export default function CalendarioPage() {
                     }}
                     className="px-4 py-2 rounded-xl text-sm font-bold text-on-surface-variant hover:bg-[#EAE3DC] transition-colors"
                   >
-                    Cancelar
+                    {copy.cancel}
                   </button>
                   <button
                     disabled={selectedWeeks.length === 0}
@@ -1936,7 +2103,7 @@ export default function CalendarioPage() {
                     className="flex items-center gap-2 px-6 py-2 rounded-xl text-sm font-bold bg-[#845326] text-white hover:bg-[#6c421f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Check className="size-4" />
-                    Aplicar Horario
+                    {copy.apply}
                   </button>
                 </div>
               </div>
@@ -1954,10 +2121,10 @@ export default function CalendarioPage() {
                     </div>
                     <div>
                       <h3 className="text-base sm:text-lg font-bold text-[#845326]">
-                        Cargar Horario con Gemini AI
+                        {copy.uploadTitle}
                       </h3>
                       <p className="text-xs text-on-surface-variant font-medium">
-                        Extrae automáticamente tus materias o turnos
+                        {copy.uploadSubtitle}
                       </p>
                     </div>
                   </div>
@@ -1992,15 +2159,13 @@ export default function CalendarioPage() {
                   )}
 
                   <p className="text-xs text-on-surface-variant leading-relaxed">
-                    Sube una <strong>foto, captura de pantalla (.png, .jpg) o documento PDF</strong>{' '}
-                    de tu horario escolar, universitario o laboral. La IA extraerá los días y
-                    bloques horarios para que queden reflejados en tu calendario.
+                    {copy.uploadDescription}
                   </p>
 
                   {/* Selector de opciones: De trabajo vs De estudio */}
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-[#845326] block">
-                      ¿Qué tipo de horario deseas agregar?
+                      {copy.scheduleType}
                     </label>
                     <div className="grid grid-cols-2 gap-2.5">
                       <button
@@ -2022,9 +2187,9 @@ export default function CalendarioPage() {
                           <Briefcase className="size-4" />
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-[#2C1F14]">De trabajo</p>
+                          <p className="text-xs font-bold text-[#2C1F14]">{copy.workSchedule}</p>
                           <p className="text-[10px] text-on-surface-variant font-medium">
-                            Categoría: Trabajo
+                            {copy.workCategory}
                           </p>
                         </div>
                       </button>
@@ -2048,9 +2213,9 @@ export default function CalendarioPage() {
                           <GraduationCap className="size-4" />
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-[#2C1F14]">De estudio</p>
+                          <p className="text-xs font-bold text-[#2C1F14]">{copy.studySchedule}</p>
                           <p className="text-[10px] text-on-surface-variant font-medium">
-                            Categoría: Estudio
+                            {copy.studyCategory}
                           </p>
                         </div>
                       </button>
@@ -2073,7 +2238,7 @@ export default function CalendarioPage() {
                     />
                     <Upload className="size-8 text-[#845326] mb-2" />
                     <p className="text-sm font-bold text-[#2C1F14]">
-                      {uploadFile ? uploadFile.name : 'Haz clic o arrastra tu archivo aquí'}
+                      {uploadFile ? uploadFile.name : copy.dropFile}
                     </p>
                     <p className="text-xs text-[#845326] mt-1 font-medium">
                       PNG, JPG, WEBP o PDF (Hasta 20MB)
@@ -2097,7 +2262,7 @@ export default function CalendarioPage() {
                           onClick={() => setUploadFile(null)}
                           className="text-red-500 hover:text-red-700 p-1 text-xs font-semibold"
                         >
-                          Quitar
+                          {copy.remove}
                         </button>
                       )}
                     </div>
@@ -2115,7 +2280,7 @@ export default function CalendarioPage() {
                     }}
                     className="px-4 py-2 rounded-xl text-sm font-bold text-on-surface-variant hover:bg-[#EAE3DC] transition-colors disabled:opacity-40"
                   >
-                    Cancelar
+                    {copy.cancel}
                   </button>
                   <button
                     type="button"
@@ -2131,7 +2296,7 @@ export default function CalendarioPage() {
                     ) : (
                       <>
                         <Sparkles className="size-4 text-[#F7D6BF]" />
-                        <span>Procesar y Montar Horario</span>
+                        <span>{copy.processSchedule}</span>
                       </>
                     )}
                   </button>
@@ -2194,7 +2359,7 @@ export default function CalendarioPage() {
             <div className="flex-1 grid grid-cols-7 min-w-[500px]">
               {days.map((day) => {
                 const dateStr = format(day, 'yyyy-MM-dd');
-                const dayOfWeek = format(day, 'EEEE', { locale: es });
+                const dayOfWeek = format(day, 'EEEE', { locale: dateLocale });
                 const isPast = isBefore(day, startOfDay(new Date()));
 
                 return (
@@ -2278,7 +2443,7 @@ export default function CalendarioPage() {
                         : isGoogleEvent
                           ? 'Ocupado'
                           : effectiveAvail?.type === 'tareas'
-                            ? 'Tareas'
+                            ? copy.tasks
                             : '';
                       return (
                         <div
@@ -2358,7 +2523,11 @@ export default function CalendarioPage() {
                                       <button
                                         onClick={(e) => handleDeleteBlock(dateStr, timeStr, e)}
                                         className={`p-0.5 bg-white/80 rounded hover:bg-red-50 hover:text-red-600 ${colorTheme.text} transition-colors`}
-                                        title="Borrar bloque del calendario"
+                                        title={
+                                          locale === 'es'
+                                            ? 'Borrar bloque del calendario'
+                                            : 'Delete calendar block'
+                                        }
                                       >
                                         <Trash2 className="size-3" />
                                       </button>
@@ -2373,7 +2542,15 @@ export default function CalendarioPage() {
                                           )
                                         }
                                         className={`p-0.5 bg-white/70 rounded hover:bg-white ${colorTheme.text} transition-colors`}
-                                        title={isTask ? 'Editar nombre de tarea' : 'Editar'}
+                                        title={
+                                          isTask
+                                            ? locale === 'es'
+                                              ? 'Editar nombre de tarea'
+                                              : 'Edit task name'
+                                            : locale === 'es'
+                                              ? 'Editar'
+                                              : 'Edit'
+                                        }
                                       >
                                         <Edit2 className="size-3" />
                                       </button>
@@ -2402,9 +2579,9 @@ export default function CalendarioPage() {
                                   <span className="text-[11px] font-bold text-[#845326]">
                                     {effectiveAvail
                                       ? effectiveAvail.eventId
-                                        ? 'Editar tarea'
-                                        : 'Editar bloque'
-                                      : 'Nuevo bloque'}
+                                        ? copy.editTask
+                                        : copy.editBlock
+                                      : copy.newBlock}
                                   </span>
                                   <button
                                     type="button"
@@ -2432,9 +2609,7 @@ export default function CalendarioPage() {
                                   maxLength={15}
                                   className="w-full text-xs font-bold text-on-surface bg-[#FDFBF9] border border-[#EAE3DC] rounded-md p-1.5 focus:outline-none focus:border-[#845326]"
                                   placeholder={
-                                    effectiveAvail?.eventId
-                                      ? 'Nombre de tarea...'
-                                      : 'Nombre / Nota...'
+                                    effectiveAvail?.eventId ? copy.taskName : copy.blockName
                                   }
                                 />
                                 <div className="flex gap-2 justify-center flex-wrap px-1">
@@ -2442,31 +2617,31 @@ export default function CalendarioPage() {
                                     type="button"
                                     onClick={() => setEditType('tareas')}
                                     className={`w-6 h-6 rounded border ${editType === 'tareas' ? 'border-[#845326] ring-2 ring-[#C8D6AF]/50' : 'border-[#EAE3DC]'} bg-[#C8D6AF] transition-transform hover:scale-110`}
-                                    title="Tareas"
+                                    title={copy.tasks}
                                   ></button>
                                   <button
                                     type="button"
                                     onClick={() => setEditType('estudiando')}
                                     className={`w-6 h-6 rounded border ${editType === 'estudiando' ? 'border-[#845326] ring-2 ring-[#BBD0F4]/50' : 'border-[#EAE3DC]'} bg-[#BBD0F4] transition-transform hover:scale-110`}
-                                    title="Estudiando"
+                                    title={copy.studying}
                                   ></button>
                                   <button
                                     type="button"
                                     onClick={() => setEditType('trabajo')}
                                     className={`w-6 h-6 rounded border ${editType === 'trabajo' ? 'border-[#845326] ring-2 ring-[#F4C2BA]/50' : 'border-[#EAE3DC]'} bg-[#F4C2BA] transition-transform hover:scale-110`}
-                                    title="Trabajo"
+                                    title={copy.work}
                                   ></button>
                                   <button
                                     type="button"
                                     onClick={() => setEditType('descanso')}
                                     className={`w-6 h-6 rounded border ${editType === 'descanso' ? 'border-[#845326] ring-2 ring-[#F9EBB2]/50' : 'border-[#EAE3DC]'} bg-[#F9EBB2] transition-transform hover:scale-110`}
-                                    title="Descanso"
+                                    title={copy.rest}
                                   ></button>
                                   <button
                                     type="button"
                                     onClick={() => setEditType('otra_actividad')}
                                     className={`w-6 h-6 rounded border ${editType === 'otra_actividad' ? 'border-[#845326] ring-2 ring-[#E1C6F5]/50' : 'border-[#EAE3DC]'} bg-[#E1C6F5] transition-transform hover:scale-110`}
-                                    title="Otra actividad"
+                                    title={copy.otherActivity}
                                   ></button>
                                 </div>
                                 <div className="flex gap-2 pt-1">
@@ -2478,14 +2653,14 @@ export default function CalendarioPage() {
                                     }}
                                     className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold py-1.5 rounded-lg transition-colors cursor-pointer"
                                   >
-                                    Cancelar
+                                    {copy.cancel}
                                   </button>
                                   <button
                                     type="button"
                                     onClick={saveEditedLabel}
                                     className="flex-1 bg-[#845326] text-white text-xs font-bold py-1.5 rounded-lg hover:bg-[#6c421f] transition-colors cursor-pointer"
                                   >
-                                    Guardar
+                                    {copy.save}
                                   </button>
                                 </div>
                               </div>
@@ -2508,23 +2683,23 @@ export default function CalendarioPage() {
         >
           <div className="flex items-center gap-2 shrink-0">
             <div className="w-4 h-4 rounded bg-[#C8D6AF] border border-[#3A4A28]/20"></div>
-            <span className="text-xs font-bold text-[#845326]">Tareas</span>
+            <span className="text-xs font-bold text-[#845326]">{copy.tasks}</span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <div className="w-4 h-4 rounded bg-[#BBD0F4] border border-[#203D6B]/20"></div>
-            <span className="text-xs font-bold text-[#845326]">Estudiando</span>
+            <span className="text-xs font-bold text-[#845326]">{copy.studying}</span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <div className="w-4 h-4 rounded bg-[#F4C2BA] border border-[#6B3229]/20"></div>
-            <span className="text-xs font-bold text-[#845326]">Trabajo</span>
+            <span className="text-xs font-bold text-[#845326]">{copy.work}</span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <div className="w-4 h-4 rounded bg-[#F9EBB2] border border-[#5C4F1A]/20"></div>
-            <span className="text-xs font-bold text-[#845326]">Descanso</span>
+            <span className="text-xs font-bold text-[#845326]">{copy.rest}</span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <div className="w-4 h-4 rounded bg-[#E1C6F5] border border-[#4A2D69]/20"></div>
-            <span className="text-xs font-bold text-[#845326]">Otra actividad</span>
+            <span className="text-xs font-bold text-[#845326]">{copy.otherActivity}</span>
           </div>
         </div>
       </div>

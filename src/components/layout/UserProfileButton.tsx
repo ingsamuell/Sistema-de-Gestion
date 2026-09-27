@@ -2,11 +2,13 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { LogOut, Loader2 } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
 import { logoutUser } from '@/features/auth/actions/logoutAction';
+import { defaultLocale, getLocaleFromPathname } from '@/lib/i18n/locale';
+import { localizedHref } from '@/lib/i18n/routes';
 
 interface UserProfileButtonProps {
   initialUser?: User | null;
@@ -21,6 +23,8 @@ interface ProfileOverride {
 
 export function UserProfileButton({ initialUser, compact = false }: UserProfileButtonProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const locale = getLocaleFromPathname(pathname) ?? defaultLocale;
   const [user, setUser] = useState<User | null>(initialUser ?? null);
   const [prevInitialUser, setPrevInitialUser] = useState(initialUser);
   const [override, setOverride] = useState<ProfileOverride | null>(null);
@@ -152,7 +156,7 @@ export function UserProfileButton({ initialUser, compact = false }: UserProfileB
 
     setUser(null);
     setOverride(null);
-    router.push('/login');
+    router.push(localizedHref(locale, 'login'));
     router.refresh();
   };
 
@@ -160,7 +164,7 @@ export function UserProfileButton({ initialUser, compact = false }: UserProfileB
     return (
       <div className="flex items-center gap-2">
         <Link
-          href="/perfil"
+          href={localizedHref(locale, 'profile')}
           className="flex min-w-0 items-center gap-2 rounded-full border border-outline-variant/30 bg-surface-container py-1 pl-1.5 pr-3 transition-colors hover:bg-surface-container-high"
         >
           <div className="size-7 rounded-full bg-surface-tint/20 flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -199,7 +203,7 @@ export function UserProfileButton({ initialUser, compact = false }: UserProfileB
   return (
     <div className="bg-surface-container rounded-2xl p-3 flex items-center gap-3 hover:bg-surface-container-high transition-colors group">
       <Link
-        href="/perfil"
+        href={localizedHref(locale, 'profile')}
         className="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left transition-colors group-hover:text-primary"
       >
         <div className="size-10 rounded-full bg-surface-tint/20 flex-shrink-0 flex items-center justify-center overflow-hidden border border-outline-variant/20">

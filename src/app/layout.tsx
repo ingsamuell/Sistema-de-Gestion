@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 import type { ReactNode } from 'react';
 import { Plus_Jakarta_Sans, Caveat } from 'next/font/google';
+import { isLocale, defaultLocale } from '@/lib/i18n/locale';
 
 import './globals.css';
 
@@ -26,9 +28,13 @@ export const metadata: Metadata = {
     'Komorebi es un sistema de gestión de calendarios con Google OAuth y productividad académica para organizar sesiones de estudio y sincronizar eventos.',
 };
 
-export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+  const requestHeaders = await headers();
+  const requestLocale = requestHeaders.get('x-komorebi-locale');
+  const locale = isLocale(requestLocale) ? requestLocale : defaultLocale;
+
   return (
-    <html lang="es" className={`${plusJakartaSans.variable} ${caveat.variable}`}>
+    <html lang={locale} className={`${plusJakartaSans.variable} ${caveat.variable}`}>
       <body className="min-h-screen antialiased bg-background text-on-background font-sans selection:bg-accent-amber/20 selection:text-primary">
         <a
           href="#contenido"

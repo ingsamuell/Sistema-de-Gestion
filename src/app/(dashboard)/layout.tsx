@@ -12,8 +12,14 @@ import { FocusSessionProvider } from '@/contexts/FocusSessionContext';
 import { TourProvider } from '@/contexts/TourContext';
 import { GlobalFocusBar } from '@/components/study/GlobalFocusBar';
 import { GlobalHelpButton } from '@/components/layout/GlobalHelpButton';
+import { headers } from 'next/headers';
+import { defaultLocale, isLocale } from '@/lib/i18n/locale';
+import { localizedHref } from '@/lib/i18n/routes';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const headersList = await headers();
+  const headerLocale = headersList.get('x-komorebi-locale');
+  const locale = isLocale(headerLocale) ? headerLocale : defaultLocale;
   let user = null;
   let username = 'estudiante';
   try {
@@ -40,7 +46,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   if (!user) {
-    redirect('/login');
+    redirect(localizedHref(locale, 'login'));
   }
 
   return (

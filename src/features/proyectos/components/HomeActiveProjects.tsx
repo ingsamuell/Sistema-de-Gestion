@@ -2,10 +2,13 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { FolderKanban, ArrowRight, Plus, Calendar } from 'lucide-react';
+import { defaultLocale, getLocaleFromPathname } from '@/lib/i18n/locale';
+import { localizedHref, localizedProjectHref } from '@/lib/i18n/routes';
 
 export interface HomeProjectItem {
   id: string;
@@ -22,6 +25,8 @@ interface HomeActiveProjectsProps {
 }
 
 export function HomeActiveProjects({ projects }: HomeActiveProjectsProps) {
+  const pathname = usePathname();
+  const locale = getLocaleFromPathname(pathname) ?? defaultLocale;
   if (projects.length === 0) {
     return (
       <section className="space-y-4">
@@ -43,7 +48,7 @@ export function HomeActiveProjects({ projects }: HomeActiveProjectsProps) {
             </div>
           </div>
           <Link
-            href="/proyectos/nuevo"
+            href={localizedHref(locale, 'newProject')}
             className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-on-primary hover:bg-primary/90 transition-colors shadow-xs"
           >
             <Plus className="size-4" />
@@ -79,7 +84,7 @@ export function HomeActiveProjects({ projects }: HomeActiveProjectsProps) {
           </p>
         </div>
         <Link
-          href="/proyectos"
+          href={localizedHref(locale, 'projects')}
           className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline"
         >
           <span>Ver todos</span>
@@ -99,7 +104,11 @@ export function HomeActiveProjects({ projects }: HomeActiveProjectsProps) {
                 : 'default';
 
           return (
-            <Link key={project.id} href={`/proyectos/${project.id}`} className="block group">
+            <Link
+              key={project.id}
+              href={localizedProjectHref(locale, project.id)}
+              className="block group"
+            >
               <Card
                 hoverable
                 className="p-5 h-full flex flex-col justify-between group-hover:border-primary/40"

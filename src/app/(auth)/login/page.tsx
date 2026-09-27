@@ -5,7 +5,10 @@ import Image from 'next/image';
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
+import { headers } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
+import { AuthLanguageSwitch } from '@/components/i18n/AuthLanguageSwitch';
+import { defaultLocale, isLocale } from '@/lib/i18n/locale';
 
 export const metadata: Metadata = {
   title: 'Iniciar Sesión | Komorebi - Sistema de Gestión de Calendarios con Google OAuth',
@@ -14,6 +17,32 @@ export const metadata: Metadata = {
 };
 
 export default async function LoginPage() {
+  const requestLocale = (await headers()).get('x-komorebi-locale');
+  const locale = isLocale(requestLocale) ? requestLocale : defaultLocale;
+  const copy =
+    locale === 'en'
+      ? {
+          description:
+            'A study space to organise your sessions, keep your academic events in view, and move forward with intention.',
+          calendar: 'Calendar planning',
+          calendarDescription: 'Keep your study sessions in one clear view',
+          streak: 'Build your rhythm',
+          streakDescription: 'Every focused day supports your goals',
+          focus: 'Study with fewer distractions',
+          focusDescription: 'A space made for concentration',
+          rights: 'All rights reserved.',
+        }
+      : {
+          description:
+            'Un espacio de estudio para organizar tus sesiones, mantener visibles tus eventos académicos y avanzar con intención.',
+          calendar: 'Planificación de calendario',
+          calendarDescription: 'Mantén tus sesiones de estudio en una vista clara',
+          streak: 'Construye tu ritmo',
+          streakDescription: 'Cada día de enfoque apoya tus metas',
+          focus: 'Estudia con menos distracciones',
+          focusDescription: 'Un espacio pensado para concentrarte',
+          rights: 'Todos los derechos reservados.',
+        };
   const supabase = await createClient();
   const {
     data: { user },
@@ -50,8 +79,7 @@ export default async function LoginPage() {
 
           <h2 className="text-3xl font-bold mb-3 tracking-tight">Komorebi</h2>
           <p className="text-primary-container-lowest/80 text-on-primary/80 max-w-sm mb-8 leading-relaxed font-medium text-sm">
-            Sistema de gestión de calendarios con Google OAuth para organizar tus sesiones de
-            estudio, sincronizar eventos académicos en tiempo real y maximizar tu productividad.
+            {copy.description}
           </p>
 
           <div className="grid grid-cols-1 gap-4 w-full max-w-sm text-left">
@@ -60,10 +88,8 @@ export default async function LoginPage() {
                 <Calendar className="size-5 text-accent-amber" />
               </div>
               <div>
-                <h3 className="font-bold text-sm">Gestión de Calendarios</h3>
-                <p className="text-xs text-white/60 font-medium">
-                  Sincronización fluida con Google OAuth
-                </p>
+                <h3 className="font-bold text-sm">{copy.calendar}</h3>
+                <p className="text-xs text-white/60 font-medium">{copy.calendarDescription}</p>
               </div>
             </div>
             <div className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-md">
@@ -71,10 +97,8 @@ export default async function LoginPage() {
                 <Flame className="size-5 text-accent-umber" />
               </div>
               <div>
-                <h3 className="font-bold text-sm">Mantén tu racha</h3>
-                <p className="text-xs text-white/60 font-medium">
-                  Cada día de enfoque cuenta para tus metas
-                </p>
+                <h3 className="font-bold text-sm">{copy.streak}</h3>
+                <p className="text-xs text-white/60 font-medium">{copy.streakDescription}</p>
               </div>
             </div>
             <div className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-md">
@@ -82,10 +106,8 @@ export default async function LoginPage() {
                 <Leaf className="size-5 text-accent-amber" />
               </div>
               <div>
-                <h3 className="font-bold text-sm">Estudio sin distracciones</h3>
-                <p className="text-xs text-white/60 font-medium">
-                  Un entorno libre de notificaciones
-                </p>
+                <h3 className="font-bold text-sm">{copy.focus}</h3>
+                <p className="text-xs text-white/60 font-medium">{copy.focusDescription}</p>
               </div>
             </div>
           </div>
@@ -93,15 +115,16 @@ export default async function LoginPage() {
 
         {/* Footer del panel izquierdo */}
         <div className="relative z-10 text-xs text-white/50 font-medium mt-8 text-center">
-          © {new Date().getFullYear()} Komorebi Study Studio. Todos los derechos reservados.
+          © {new Date().getFullYear()} Komorebi. {copy.rights}
         </div>
       </div>
 
       {/* Lado Derecho: Formulario de Login */}
       <div className="relative flex w-full items-center justify-center p-6 lg:w-1/2 xl:w-[55%] animate-in fade-in slide-in-from-right-8 duration-700">
+        <AuthLanguageSwitch route="login" />
         <div className="w-full max-w-md">
           <Suspense fallback={null}>
-            <LoginForm />
+            <LoginForm locale={locale} />
           </Suspense>
         </div>
       </div>

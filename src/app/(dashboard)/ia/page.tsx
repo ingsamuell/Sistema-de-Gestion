@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { AssistantChat } from '@/components/ia/AssistantChat';
 import {
   GENERAL_ASSISTANT_CONTEXT,
@@ -29,15 +29,19 @@ import {
   detectMessageIntent,
   extractTopicFromText,
 } from '@/features/ai-assistant/utils/intentDetector';
+import { defaultLocale, getLocaleFromPathname } from '@/lib/i18n/locale';
+import { localizedHref } from '@/lib/i18n/routes';
 
 export default function IAPage() {
   const router = useRouter();
+  const pathname = usePathname();
+  const locale = getLocaleFromPathname(pathname) ?? defaultLocale;
   const searchParams = useSearchParams();
   const [isGeneralMode, setIsGeneralMode] = useState(false);
   const context = isGeneralMode
     ? GENERAL_ASSISTANT_CONTEXT
-    : (getAnalyticsContext(searchParams) ??
-      getQuizContext(searchParams) ??
+    : (getAnalyticsContext(searchParams, locale) ??
+      getQuizContext(searchParams, locale) ??
       GENERAL_ASSISTANT_CONTEXT);
 
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
@@ -109,7 +113,9 @@ export default function IAPage() {
   const handleCreateProject = async (_tasks?: GeneratedTaskItem[], title?: string) => {
     const params = new URLSearchParams();
     if (title) params.set('titulo', title);
-    router.push(`/proyectos/nuevo${params.toString() ? `?${params.toString()}` : ''}`);
+    router.push(
+      `${localizedHref(locale, 'newProject')}${params.toString() ? `?${params.toString()}` : ''}`,
+    );
   };
 
   // Agregar tareas generadas a un proyecto existente del usuario
@@ -280,7 +286,7 @@ export default function IAPage() {
 
     // 5a. Si el usuario pide crear proyecto: proporcionar enlace al formulario y NO crear sin preguntas
     if (intentResult.intent === 'create_project') {
-      projectLink = '/proyectos/nuevo';
+      projectLink = localizedHref(locale, 'newProject');
       // Limpiar posibles enlaces en texto para que SOLO quede el botón interactivo abajo
       cleanReply = cleanReply
         .replace(/(?:👉\s*)?\[[^\]]+\]\(\/proyectos\/nuevo[^\)]*\)/gi, '')
@@ -329,7 +335,7 @@ export default function IAPage() {
       suggestedTopicTitle = topicTitle;
       suggestedTopicObjective = topicObjective;
       skipQuestions = 2;
-      projectLink = `/proyectos/nuevo?step=2&titulo=${encodeURIComponent(topicTitle)}&objetivo=${encodeURIComponent(topicObjective)}`;
+      projectLink = `${localizedHref(locale, 'newProject')}?step=2&titulo=${encodeURIComponent(topicTitle)}&objetivo=${encodeURIComponent(topicObjective)}`;
 
       cleanReply =
         `¡Excelente elección! Vamos a configurar tu proyecto **"${topicTitle}"**.\n\n` +
@@ -407,6 +413,7 @@ export default function IAPage() {
   return (
     <AssistantChat
       context={context}
+      locale={locale}
       messages={messages}
       conversations={conversations}
       userProjects={userProjects}
@@ -422,7 +429,7 @@ export default function IAPage() {
         context.scope === 'analytics'
           ? () => {
               setIsGeneralMode(true);
-              router.replace('/ia');
+              router.replace(localizedHref(locale, 'assistant'));
             }
           : undefined
       }
@@ -431,16 +438,27 @@ export default function IAPage() {
   );
 }
 
-function getAnalyticsContext(params: URLSearchParams): AssistantContext | null {
+function getAnalyticsContext(
+  params: URLSearchParams,
+  locale: 'es' | 'en',
+): AssistantContext | null {
   const view = params.get('view') as AnalyticsMetricId | null;
   const period = params.get('period');
   const question = params.get('question');
-  const labels: Record<AnalyticsMetricId, string> = {
-    workload: 'Horas planificadas',
-    progress: 'Progreso de proyectos',
-    priorities: 'Prioridades',
-    deadlines: 'Entregas próximas',
-  };
+  const labels: Record<AnalyticsMetricId, string> =
+    locale === 'es'
+      ? {
+          workload: 'Horas planificadas',
+          progress: 'Progreso de proyectos',
+          priorities: 'Prioridades',
+          deadlines: 'Entregas próximas',
+        }
+      : {
+          workload: 'Planned hours',
+          progress: 'Project progress',
+          priorities: 'Priorities',
+          deadlines: 'Upcoming deadlines',
+        };
 
   if (params.get('source') !== 'analytics' || !view || !labels[view] || period !== 'week') {
     return null;
@@ -448,26 +466,31 @@ function getAnalyticsContext(params: URLSearchParams): AssistantContext | null {
 
   return {
     scope: 'analytics',
-    title: 'Consulta de analítica',
-    label: `${labels[view]} · Esta semana`,
-    description: 'Komo responderá usando el contexto de la vista que abriste desde Analítica.',
+    title: locale === 'es' ? 'Consulta de analítica' : 'Analytics question',
+    label: `${labels[view]} · ${locale === 'es' ? 'Esta semana' : 'This week'}`,
+    description:
+      locale === 'es'
+        ? 'Komo responderá usando el contexto de la vista que abriste desde Analítica.'
+        : 'Komo will answer using the context from the Analytics view you opened.',
     suggestions: question
-      ? [question.slice(0, 240), 'Explícame esta vista']
-      : ['Explícame esta vista'],
+      ? [question.slice(0, 240), locale === 'es' ? 'Explícame esta vista' : 'Explain this view']
+      : [locale === 'es' ? 'Explícame esta vista' : 'Explain this view'],
     analyticsContext: { view, period: 'week' },
   };
 }
 
-function getQuizContext(params: URLSearchParams): AssistantContext | null {
+function getQuizContext(params: URLSearchParams, locale: 'es' | 'en'): AssistantContext | null {
   const taskId = params.get('quizTaskId');
   if (!taskId) return null;
 
   return {
     scope: 'project',
-    title: 'Evaluación de Conocimiento',
-    label: 'Quiz de Certificación',
+    title: locale === 'es' ? 'Evaluación de Conocimiento' : 'Knowledge assessment',
+    label: locale === 'es' ? 'Quiz de Certificación' : 'Certification quiz',
     description:
-      'Komo actuará como tu evaluador para asegurar que dominas el tema de la tarea y te otorgará progreso en tu certificación.',
+      locale === 'es'
+        ? 'Komo actuará como tu evaluador para asegurar que dominas el tema de la tarea y te otorgará progreso en tu certificación.'
+        : 'Komo will assess your task knowledge and grant progress toward your certification.',
     quizContext: { taskId },
   };
 }

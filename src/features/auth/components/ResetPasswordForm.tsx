@@ -19,9 +19,69 @@ import { Button } from '@/components/ui/Button';
 import { ChiguiGreeting } from '@/components/mascot/ChiguiGreeting';
 import { updatePassword } from '@/features/auth/actions/updatePasswordAction';
 import { createClient } from '@/lib/supabase/client';
+import type { Locale } from '@/lib/i18n/locale';
+import { localizedHref } from '@/lib/i18n/routes';
 
-export function ResetPasswordForm() {
+const resetCopy = {
+  es: {
+    checking: 'Verificando enlace de recuperación...',
+    invalidTitle: 'Enlace inválido o expirado',
+    invalidDescription:
+      'El enlace de recuperación no es válido o ha expirado. Por motivos de seguridad, los enlaces tienen un tiempo limitado de uso.',
+    login: 'Volver al inicio de sesión',
+    title: 'Crea tu nueva contraseña',
+    description: 'Ingresa tu nueva contraseña para restaurar el acceso seguro a tu cuenta',
+    success: '¡Contraseña actualizada!',
+    successDescription:
+      'Tu contraseña ha sido modificada con éxito. Tu sesión se mantendrá abierta y te redirigiremos a tu perfil en unos instantes...',
+    profile: 'Continuar a mi perfil',
+    password: 'Nueva contraseña',
+    confirm: 'Confirmar nueva contraseña',
+    hide: 'Ocultar contraseña',
+    show: 'Ver contraseña',
+    mismatch: 'Las contraseñas no coinciden',
+    min: 'Mínimo 6 caracteres',
+    uppercase: 'Al menos 1 mayúscula',
+    number: 'Al menos 1 número',
+    special: '1 carácter especial',
+    saving: 'Guardando contraseña...',
+    submit: 'Guardar nueva contraseña',
+    back: 'Regresar al inicio de sesión',
+    unexpected: 'Ocurrió un error inesperado al actualizar la contraseña.',
+    updateError: 'No se pudo actualizar la contraseña.',
+  },
+  en: {
+    checking: 'Checking your recovery link...',
+    invalidTitle: 'Invalid or expired link',
+    invalidDescription:
+      'This recovery link is invalid or has expired. For security reasons, links can only be used for a limited time.',
+    login: 'Back to sign in',
+    title: 'Create your new password',
+    description: 'Enter a new password to restore secure access to your account',
+    success: 'Password updated!',
+    successDescription:
+      'Your password has been updated successfully. Your session will stay open and we will redirect you to your profile shortly...',
+    profile: 'Continue to my profile',
+    password: 'New password',
+    confirm: 'Confirm new password',
+    hide: 'Hide password',
+    show: 'Show password',
+    mismatch: 'Passwords do not match',
+    min: 'At least 6 characters',
+    uppercase: 'At least 1 uppercase letter',
+    number: 'At least 1 number',
+    special: '1 special character',
+    saving: 'Saving password...',
+    submit: 'Save new password',
+    back: 'Back to sign in',
+    unexpected: 'An unexpected error occurred while updating your password.',
+    updateError: 'We could not update your password.',
+  },
+} as const;
+
+export function ResetPasswordForm({ locale }: { locale: Locale }) {
   const router = useRouter();
+  const copy = resetCopy[locale];
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -121,9 +181,7 @@ export function ResetPasswordForm() {
         const { error: clientError } = await supabase.auth.updateUser({ password });
 
         if (clientError) {
-          setGeneralError(
-            clientError.message || response.error || 'No se pudo actualizar la contraseña.',
-          );
+          setGeneralError(clientError.message || response.error || copy.updateError);
           setIsSubmitting(false);
           return;
         }
@@ -135,10 +193,10 @@ export function ResetPasswordForm() {
 
       // Redirigir al perfil después de 2 segundos con confirmación
       setTimeout(() => {
-        router.push('/perfil');
+        router.push(localizedHref(locale, 'profile'));
       }, 2000);
     } catch {
-      setGeneralError('Ocurrió un error inesperado al actualizar la contraseña.');
+      setGeneralError(copy.unexpected);
       setIsSubmitting(false);
     }
   };
@@ -148,9 +206,7 @@ export function ResetPasswordForm() {
       <Card className="w-full p-8 sm:p-10 bg-surface-container-lowest border-outline-variant/30 shadow-[0_8px_30px_rgb(0,0,0,0.04)] text-center">
         <div className="flex flex-col items-center justify-center py-12">
           <Loader2 className="size-8 animate-spin text-primary mb-4" />
-          <p className="text-sm font-medium text-on-surface-variant">
-            Verificando enlace de recuperación...
-          </p>
+          <p className="text-sm font-medium text-on-surface-variant">{copy.checking}</p>
         </div>
       </Card>
     );
@@ -165,18 +221,17 @@ export function ResetPasswordForm() {
           </div>
 
           <h1 className="text-2xl font-bold text-primary mb-2 tracking-tight">
-            Enlace inválido o expirado
+            {copy.invalidTitle}
           </h1>
 
           <p className="text-sm text-on-surface-variant max-w-sm mb-6 leading-relaxed">
-            El enlace de recuperación no es válido o ha expirado. Por motivos de seguridad, los
-            enlaces tienen un tiempo limitado de uso.
+            {copy.invalidDescription}
           </p>
 
           <div className="w-full max-w-xs space-y-3">
-            <Link href="/login" className="w-full block">
+            <Link href={localizedHref(locale, 'login')} className="w-full block">
               <Button variant="primary" className="w-full h-11 rounded-xl font-semibold text-sm">
-                Volver al inicio de sesión
+                {copy.login}
               </Button>
             </Link>
           </div>
@@ -195,12 +250,8 @@ export function ResetPasswordForm() {
         <div className="hidden lg:flex size-12 items-center justify-center rounded-2xl bg-accent-amber/15 text-accent-amber mb-4">
           <ShieldCheck className="size-6" />
         </div>
-        <h1 className="text-2xl font-bold text-primary mb-1.5 tracking-tight">
-          Crea tu nueva contraseña
-        </h1>
-        <p className="text-sm text-on-surface-variant font-medium max-w-sm">
-          Ingresa tu nueva contraseña para restaurar el acceso seguro a tu cuenta
-        </p>
+        <h1 className="text-2xl font-bold text-primary mb-1.5 tracking-tight">{copy.title}</h1>
+        <p className="text-sm text-on-surface-variant font-medium max-w-sm">{copy.description}</p>
       </div>
 
       {isSuccess ? (
@@ -208,14 +259,11 @@ export function ResetPasswordForm() {
           <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-status-success-bg text-status-success shadow-inner">
             <CheckCircle2 className="size-8" />
           </div>
-          <h2 className="text-xl font-bold text-primary mb-2">¡Contraseña actualizada!</h2>
-          <p className="text-sm text-on-surface-variant mb-6 max-w-sm">
-            Tu contraseña ha sido modificada con éxito. Tu sesión se mantendrá abierta y te
-            redirigiremos a tu perfil en unos instantes...
-          </p>
-          <Link href="/perfil" className="w-full">
+          <h2 className="text-xl font-bold text-primary mb-2">{copy.success}</h2>
+          <p className="text-sm text-on-surface-variant mb-6 max-w-sm">{copy.successDescription}</p>
+          <Link href={localizedHref(locale, 'profile')} className="w-full">
             <Button variant="primary" className="w-full h-11 rounded-xl font-semibold text-sm">
-              Continuar a mi perfil
+              {copy.profile}
             </Button>
           </Link>
         </div>
@@ -232,7 +280,7 @@ export function ResetPasswordForm() {
             {/* Nueva contraseña */}
             <div className="space-y-1.5">
               <label className="text-sm font-semibold text-on-surface ml-1" htmlFor="new-password">
-                Nueva contraseña
+                {copy.password}
               </label>
               <div className="relative">
                 <input
@@ -253,7 +301,7 @@ export function ResetPasswordForm() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface transition-colors"
-                  aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                  aria-label={showPassword ? copy.hide : copy.show}
                 >
                   {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
@@ -266,7 +314,7 @@ export function ResetPasswordForm() {
                 className="text-sm font-semibold text-on-surface ml-1"
                 htmlFor="confirm-new-password"
               >
-                Confirmar nueva contraseña
+                {copy.confirm}
               </label>
               <div className="relative">
                 <input
@@ -291,13 +339,13 @@ export function ResetPasswordForm() {
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="absolute right-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface transition-colors"
-                  aria-label={showConfirmPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                  aria-label={showConfirmPassword ? copy.hide : copy.show}
                 >
                   {showConfirmPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
               </div>
               {confirmPassword && !passwordsMatch && (
-                <p className="text-xs text-error mt-1 ml-1">Las contraseñas no coinciden</p>
+                <p className="text-xs text-error mt-1 ml-1">{copy.mismatch}</p>
               )}
             </div>
 
@@ -322,7 +370,7 @@ export function ResetPasswordForm() {
                   >
                     {hasMinLength && <Check className="size-2.5 stroke-[3]" />}
                   </div>
-                  <span>Mínimo 6 caracteres</span>
+                  <span>{copy.min}</span>
                 </div>
 
                 <div
@@ -339,7 +387,7 @@ export function ResetPasswordForm() {
                   >
                     {hasUpperCase && <Check className="size-2.5 stroke-[3]" />}
                   </div>
-                  <span>Al menos 1 mayúscula</span>
+                  <span>{copy.uppercase}</span>
                 </div>
 
                 <div
@@ -356,7 +404,7 @@ export function ResetPasswordForm() {
                   >
                     {hasNumber && <Check className="size-2.5 stroke-[3]" />}
                   </div>
-                  <span>Al menos 1 número</span>
+                  <span>{copy.number}</span>
                 </div>
 
                 <div
@@ -373,7 +421,7 @@ export function ResetPasswordForm() {
                   >
                     {hasSpecialChar && <Check className="size-2.5 stroke-[3]" />}
                   </div>
-                  <span>1 carácter especial</span>
+                  <span>{copy.special}</span>
                 </div>
               </div>
             </div>
@@ -388,10 +436,10 @@ export function ResetPasswordForm() {
                 {isSubmitting ? (
                   <>
                     <Loader2 className="size-4 animate-spin" />
-                    <span>Guardando contraseña...</span>
+                    <span>{copy.saving}</span>
                   </>
                 ) : (
-                  'Guardar nueva contraseña'
+                  copy.submit
                 )}
               </Button>
             </div>
@@ -399,11 +447,11 @@ export function ResetPasswordForm() {
 
           <div className="relative z-10 mt-6 text-center">
             <Link
-              href="/login"
+              href={localizedHref(locale, 'login')}
               className="inline-flex items-center gap-1.5 text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-colors"
             >
               <ArrowLeft className="size-3.5" />
-              <span>Regresar al inicio de sesión</span>
+              <span>{copy.back}</span>
             </Link>
           </div>
         </>

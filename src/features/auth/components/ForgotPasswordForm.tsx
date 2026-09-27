@@ -7,8 +7,58 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { ChiguiGreeting } from '@/components/mascot/ChiguiGreeting';
 import { requestPasswordReset } from '@/features/auth/actions/requestPasswordResetAction';
+import type { Locale } from '@/lib/i18n/locale';
+import { localizedHref } from '@/lib/i18n/routes';
 
-export function ForgotPasswordForm() {
+const forgotCopy = {
+  es: {
+    title: 'Recuperar contraseña',
+    description:
+      'Ingresa el correo electrónico asociado a tu cuenta para recibir un enlace de restablecimiento.',
+    sent: '¡Correo enviado!',
+    sentDescription: 'Hemos enviado las instrucciones para restablecer tu contraseña a:',
+    missing: '¿No ves el correo?',
+    missingDescription:
+      'Revisa tu carpeta de spam o correo no deseado. Puede tardar un par de minutos en llegar.',
+    login: 'Volver al inicio de sesión',
+    resending: 'Reenviando...',
+    resendIn: 'Reenviar correo en',
+    resend: '¿No recibiste el enlace? Enviar de nuevo',
+    email: 'Correo electrónico',
+    placeholder: 'tu@correo.universidad.edu',
+    sending: 'Enviando enlace...',
+    submit: 'Enviar enlace de recuperación',
+    unexpected: 'Ocurrió un error inesperado al enviar el correo.',
+    sendError: 'No se pudo enviar el correo.',
+    resendError: 'No se pudo reenviar el correo.',
+    resendUnexpected: 'Error al reenviar el correo.',
+    back: 'Volver a iniciar sesión',
+  },
+  en: {
+    title: 'Reset your password',
+    description: 'Enter the email address associated with your account to receive a reset link.',
+    sent: 'Email sent!',
+    sentDescription: 'We sent password-reset instructions to:',
+    missing: 'Can’t find the email?',
+    missingDescription: 'Check your spam or junk folder. It can take a few minutes to arrive.',
+    login: 'Back to sign in',
+    resending: 'Resending...',
+    resendIn: 'Resend email in',
+    resend: 'Didn’t receive the link? Send it again',
+    email: 'Email address',
+    placeholder: 'you@university.edu',
+    sending: 'Sending link...',
+    submit: 'Send reset link',
+    unexpected: 'An unexpected error occurred while sending the email.',
+    sendError: 'We could not send the email.',
+    resendError: 'We could not resend the email.',
+    resendUnexpected: 'An error occurred while resending the email.',
+    back: 'Back to sign in',
+  },
+} as const;
+
+export function ForgotPasswordForm({ locale }: { locale: Locale }) {
+  const copy = forgotCopy[locale];
   const [email, setEmail] = useState('');
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [generalError, setGeneralError] = useState<string | null>(null);
@@ -32,13 +82,13 @@ export function ForgotPasswordForm() {
 
     try {
       const origin = typeof window !== 'undefined' ? window.location.origin : undefined;
-      const response = await requestPasswordReset({ email }, origin);
+      const response = await requestPasswordReset({ email }, origin, locale);
 
       if (!response.success) {
         if (response.fieldErrors?.email?.[0]) {
           setFieldError(response.fieldErrors.email[0]);
         }
-        setGeneralError(response.error || 'No se pudo enviar el correo.');
+        setGeneralError(response.error || copy.sendError);
         setIsLoading(false);
         return;
       }
@@ -47,7 +97,7 @@ export function ForgotPasswordForm() {
       setResendCooldown(60);
       setIsLoading(false);
     } catch {
-      setGeneralError('Ocurrió un error inesperado al enviar el correo.');
+      setGeneralError(copy.unexpected);
       setIsLoading(false);
     }
   };
@@ -59,10 +109,10 @@ export function ForgotPasswordForm() {
 
     try {
       const origin = typeof window !== 'undefined' ? window.location.origin : undefined;
-      const response = await requestPasswordReset({ email }, origin);
+      const response = await requestPasswordReset({ email }, origin, locale);
 
       if (!response.success) {
-        setGeneralError(response.error || 'No se pudo reenviar el correo.');
+        setGeneralError(response.error || copy.resendError);
         setIsLoading(false);
         return;
       }
@@ -70,7 +120,7 @@ export function ForgotPasswordForm() {
       setResendCooldown(60);
       setIsLoading(false);
     } catch {
-      setGeneralError('Error al reenviar el correo.');
+      setGeneralError(copy.resendUnexpected);
       setIsLoading(false);
     }
   };
@@ -85,13 +135,8 @@ export function ForgotPasswordForm() {
         <div className="hidden lg:flex size-12 items-center justify-center rounded-2xl bg-accent-amber/15 text-accent-amber mb-4">
           <Mail className="size-6" />
         </div>
-        <h1 className="text-2xl font-bold text-primary mb-1.5 tracking-tight">
-          Recuperar Contraseña
-        </h1>
-        <p className="text-sm text-on-surface-variant font-medium max-w-sm">
-          Ingresa el correo electrónico asociado a tu cuenta para recibir un enlace de
-          restablecimiento
-        </p>
+        <h1 className="text-2xl font-bold text-primary mb-1.5 tracking-tight">{copy.title}</h1>
+        <p className="text-sm text-on-surface-variant font-medium max-w-sm">{copy.description}</p>
       </div>
 
       {isSuccess ? (
@@ -100,9 +145,9 @@ export function ForgotPasswordForm() {
             <CheckCircle2 className="size-8" />
           </div>
 
-          <h2 className="text-xl font-bold text-primary mb-2">¡Correo enviado!</h2>
+          <h2 className="text-xl font-bold text-primary mb-2">{copy.sent}</h2>
           <p className="text-sm text-on-surface-variant leading-relaxed mb-4 max-w-sm">
-            Hemos enviado las instrucciones para restablecer tu contraseña a:
+            {copy.sentDescription}
           </p>
 
           <div className="w-full bg-surface rounded-xl p-3 border border-outline-variant/40 mb-5 font-semibold text-sm text-primary break-all">
@@ -110,20 +155,17 @@ export function ForgotPasswordForm() {
           </div>
 
           <div className="w-full bg-accent-amber/10 border border-accent-amber/20 rounded-xl p-3.5 mb-6 text-xs text-on-surface-variant text-left leading-relaxed">
-            <p className="font-semibold text-on-surface mb-1">¿No ves el correo?</p>
-            <p>
-              Revisa tu carpeta de spam o correo no deseado. Puede tardar un par de minutos en
-              llegar.
-            </p>
+            <p className="font-semibold text-on-surface mb-1">{copy.missing}</p>
+            <p>{copy.missingDescription}</p>
           </div>
 
           <div className="w-full space-y-3">
-            <Link href="/login" className="w-full block">
+            <Link href={localizedHref(locale, 'login')} className="w-full block">
               <Button
                 variant="primary"
                 className="w-full h-11 rounded-xl font-semibold text-sm shadow-md"
               >
-                Volver al inicio de sesión
+                {copy.login}
               </Button>
             </Link>
 
@@ -136,12 +178,14 @@ export function ForgotPasswordForm() {
               {isLoading ? (
                 <>
                   <Loader2 className="size-3.5 animate-spin" />
-                  <span>Reenviando...</span>
+                  <span>{copy.resending}</span>
                 </>
               ) : resendCooldown > 0 ? (
-                <span>Reenviar correo en {resendCooldown}s</span>
+                <span>
+                  {copy.resendIn} {resendCooldown}s
+                </span>
               ) : (
-                <span>¿No recibiste el enlace? Enviar de nuevo</span>
+                <span>{copy.resend}</span>
               )}
             </button>
           </div>
@@ -161,13 +205,13 @@ export function ForgotPasswordForm() {
                 className="text-sm font-semibold text-on-surface ml-1"
                 htmlFor="recovery-email"
               >
-                Correo electrónico
+                {copy.email}
               </label>
               <input
                 id="recovery-email"
                 type="email"
                 name="email"
-                placeholder="tu@correo.universidad.edu"
+                placeholder={copy.placeholder}
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
@@ -195,10 +239,10 @@ export function ForgotPasswordForm() {
                 {isLoading ? (
                   <>
                     <Loader2 className="size-4 animate-spin" />
-                    <span>Enviando enlace...</span>
+                    <span>{copy.sending}</span>
                   </>
                 ) : (
-                  'Enviar enlace de recuperación'
+                  copy.submit
                 )}
               </Button>
             </div>
@@ -206,11 +250,11 @@ export function ForgotPasswordForm() {
 
           <div className="relative z-10 mt-6 text-center">
             <Link
-              href="/login"
+              href={localizedHref(locale, 'login')}
               className="inline-flex items-center gap-1.5 text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-colors"
             >
               <ArrowLeft className="size-3.5" />
-              <span>Volver a iniciar sesión</span>
+              <span>{copy.back}</span>
             </Link>
           </div>
         </>
