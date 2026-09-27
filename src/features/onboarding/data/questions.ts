@@ -58,9 +58,10 @@ const questions: Record<'es' | 'en', OnboardingQuestion[]> = {
       chiwiSpeech:
         'Tu no te preocupes este chiwire te enseñara a cumplir tus metas con tecnicas reales de estudio, sino mirame a mi que soy tutor',
       options: [
-        'Técnica Pomodoro',
-        'Bloques de Tiempo',
-        'Técnica Feynman',
+        'Método Pomodoro',
+        'Regla 50/10',
+        'Ritmos Ultradianos',
+        'Pausas Activas',
         'No tengo experiencia previa con estas técnicas',
       ],
     },
@@ -128,9 +129,10 @@ const questions: Record<'es' | 'en', OnboardingQuestion[]> = {
       chiwiSpeech:
         'Do not worry: this chiwire will teach you real study techniques to reach your goals. Look at me, I am a tutor!',
       options: [
-        'Pomodoro technique',
-        'Time blocking',
-        'Feynman technique',
+        'Pomodoro method',
+        '50/10 Rule',
+        'Ultradian Rhythms',
+        'Active Breaks',
         'I have no previous experience with these techniques',
       ],
     },

@@ -5,6 +5,7 @@ import { UserProfileButton } from '@/components/layout/UserProfileButton';
 import { TelegramBotWidget } from '@/components/layout/TelegramBotWidget';
 import { FolderKanban } from 'lucide-react';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 
 import { ToastProvider } from '@/components/ui/Toast';
@@ -15,6 +16,7 @@ import { GlobalHelpButton } from '@/components/layout/GlobalHelpButton';
 import { headers } from 'next/headers';
 import { defaultLocale, isLocale } from '@/lib/i18n/locale';
 import { localizedHref } from '@/lib/i18n/routes';
+import InteractiveMascot from '@/components/InteractiveMascot';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const headersList = await headers();
@@ -94,6 +96,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
             {/* Asistente de Telegram disponible en todas las vistas */}
             <TelegramBotWidget username={username} />
+
+            {/* Mascota Interactiva del Dashboard */}
+            <InteractiveMascot />
           </div>
         </FocusSessionProvider>
       </ToastProvider>
