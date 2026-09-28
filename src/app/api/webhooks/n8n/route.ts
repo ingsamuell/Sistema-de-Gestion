@@ -6,6 +6,7 @@ import { getUserAiContext } from '@/services/ai/contextBuilderService';
 const requestSchema = z.object({
   mensaje: z.string().trim().min(1).max(20000),
   tipo_evento: z.literal('chat'),
+  locale: z.enum(['es', 'en']).default('es'),
   archivo: z
     .object({
       nombre: z.string(),
@@ -120,6 +121,11 @@ export async function POST(request: Request) {
     `   - Explica que para ahorrarle tiempo se han obviado las 2 primeras preguntas (nombre y objetivo) en el formulario.\n` +
     `   - Proporciona el enlace al formulario con los datos acordados en la URL: [Completar configuración en el formulario](/proyectos/nuevo?step=2&titulo=TITULO_AQUI&objetivo=OBJETIVO_AQUI)\n\n`;
 
+  const languageInstruction =
+    parsed.data.locale === 'en'
+      ? 'Respond in clear international English. Keep internal command tags and URL paths unchanged.\n\n'
+      : 'Responde en español claro. Conserva las etiquetas internas y las rutas URL sin cambios.\n\n';
+
   let quizRules = '';
   if (parsed.data.contexto?.origen === 'quiz') {
     quizRules =
@@ -129,7 +135,7 @@ export async function POST(request: Request) {
       `¡NUNCA olvides escribir esa etiqueta si el usuario aprueba, ya que es el comando interno del sistema para actualizar la base de datos y otorgarle el certificado!\n\n`;
   }
 
-  const promptConContexto = `${systemRulesText}${quizRules}${proyectosContextText}${
+  const promptConContexto = `${languageInstruction}${systemRulesText}${quizRules}${proyectosContextText}${
     userAiContextText ? `${userAiContextText}\n\n` : ''
   }Instrucción o consulta del usuario:\n${parsed.data.mensaje}`;
 
@@ -146,6 +152,7 @@ export async function POST(request: Request) {
         mensaje: promptConContexto,
         input: promptConContexto,
         tipo_evento: 'chat',
+        locale: parsed.data.locale,
         proyectos: userProjects,
         perfil_usuario: perfilUsuarioData,
         temas_y_fuentes: temasContextData,

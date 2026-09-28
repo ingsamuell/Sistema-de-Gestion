@@ -42,7 +42,7 @@ export default function TermsPage() {
       badgeIcon={<FileText className="h-4 w-4" />}
       title="Términos de uso académico"
       subtitle="Reglas claras y realistas para explorar este prototipo estudiantil."
-      lastUpdated="23 de septiembre de 2026"
+      lastUpdated="27 de septiembre de 2026"
       readingTime="3 minutos de lectura"
       sections={sections}
       highlights={highlights}

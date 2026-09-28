@@ -7,6 +7,10 @@ import { MailCheck, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { ChiguiGreeting } from '@/components/mascot/ChiguiGreeting';
 import { VerifyEmailCard } from '@/features/auth/components/VerifyEmailCard';
 import { createClient } from '@/lib/supabase/server';
+import { headers } from 'next/headers';
+import { AuthLanguageSwitch } from '@/components/i18n/AuthLanguageSwitch';
+import { defaultLocale, isLocale } from '@/lib/i18n/locale';
+import { localizedHref } from '@/lib/i18n/routes';
 
 export const metadata: Metadata = {
   title: 'Verificar Correo | Komorebi Study Studio',
@@ -15,6 +19,9 @@ export const metadata: Metadata = {
 };
 
 export default async function VerifyEmailPage() {
+  const headersList = await headers();
+  const headerLocale = headersList.get('x-komorebi-locale');
+  const locale = isLocale(headerLocale) ? headerLocale : defaultLocale;
   const cookieStore = await cookies();
   const justRegisteredEmail = cookieStore.get('just_registered_email')?.value;
 
@@ -28,15 +35,15 @@ export default async function VerifyEmailPage() {
   const isPendingVerification = Boolean(justRegisteredEmail) || (user && !user.email_confirmed_at);
 
   if (!isPendingVerification) {
-    redirect('/register');
+    redirect(localizedHref(locale, 'register'));
   }
 
   // Si el usuario ya está autenticado y tiene su correo verificado (y no es un registro recién realizado):
   if (user && user.email_confirmed_at && !justRegisteredEmail) {
     if (user.user_metadata?.onboarding_completed) {
-      redirect('/');
+      redirect(localizedHref(locale, 'app'));
     } else {
-      redirect('/onboarding');
+      redirect(localizedHref(locale, 'onboarding'));
     }
   }
 
@@ -124,9 +131,10 @@ export default async function VerifyEmailPage() {
 
       {/* Lado Derecho: Tarjeta de Verificación */}
       <div className="relative flex w-full items-center justify-center p-6 py-12 lg:w-1/2 xl:w-[55%] animate-in fade-in slide-in-from-right-8 duration-700">
+        <AuthLanguageSwitch route="verifyEmail" />
         <div className="w-full max-w-lg">
           <Suspense fallback={null}>
-            <VerifyEmailCard initialEmail={initialEmail} />
+            <VerifyEmailCard initialEmail={initialEmail} locale={locale} />
           </Suspense>
         </div>
       </div>

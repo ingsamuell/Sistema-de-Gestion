@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { BarChart3, Check, ChevronRight, Info, MessageCircle, Sparkles } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { cn } from '@/lib/utils';
@@ -13,6 +14,8 @@ import { PrioritiesChart } from './charts/PrioritiesChart';
 import { DeadlinesTimeline } from './charts/DeadlinesTimeline';
 import { ExportMenu } from './ExportMenu';
 import { useAnalyticsTour } from '@/hooks/useAnalyticsTour';
+import { defaultLocale, getLocaleFromPathname, type Locale } from '@/lib/i18n/locale';
+import { localizedHref } from '@/lib/i18n/routes';
 
 type Metric = {
   label: string;
@@ -21,44 +24,107 @@ type Metric = {
   question: string;
 };
 
-const metrics: Record<AnalyticsMetricId, Metric> = {
-  workload: {
-    label: 'Horas planificadas',
-    title: 'Tu carga planificada',
-    description: 'Minutos estimados agrupados por el día de inicio de cada tarea.',
-    question: '¿Cómo puedo equilibrar mi semana?',
-  },
-  progress: {
-    label: 'Progreso',
-    title: 'Avance actual por proyecto',
-    description: 'Derivado de tus tareas completadas, sin usar porcentajes ilustrativos.',
-    question: '¿Qué proyecto debería priorizar hoy?',
-  },
-  priorities: {
-    label: 'Prioridades',
-    title: 'Distribución de tu atención',
-    description: 'Cantidad de proyectos por la prioridad que les asignaste.',
-    question: '¿Mis prioridades están equilibradas?',
-  },
-  deadlines: {
-    label: 'Entregas próximas',
-    title: 'Ritmo de tus fechas límite',
-    description: 'Proyectos ordenados según la cercanía de su fecha límite.',
-    question: '¿Qué entrega necesita atención primero?',
-  },
-};
-
-const metricIds = Object.keys(metrics) as AnalyticsMetricId[];
+function getMetrics(locale: Locale): Record<AnalyticsMetricId, Metric> {
+  if (locale === 'en')
+    return {
+      workload: {
+        label: 'Planned hours',
+        title: 'Your planned workload',
+        description: 'Estimated minutes grouped by each task’s start date.',
+        question: 'How can I balance my week?',
+      },
+      progress: {
+        label: 'Progress',
+        title: 'Current progress by project',
+        description: 'Calculated from your completed tasks, without illustrative percentages.',
+        question: 'Which project should I prioritize today?',
+      },
+      priorities: {
+        label: 'Priorities',
+        title: 'How your attention is distributed',
+        description: 'Number of projects for each priority you assigned.',
+        question: 'Are my priorities balanced?',
+      },
+      deadlines: {
+        label: 'Upcoming deadlines',
+        title: 'Your deadline rhythm',
+        description: 'Projects ordered by how close their deadlines are.',
+        question: 'Which deadline needs attention first?',
+      },
+    };
+  return {
+    workload: {
+      label: 'Horas planificadas',
+      title: 'Tu carga planificada',
+      description: 'Minutos estimados agrupados por el día de inicio de cada tarea.',
+      question: '¿Cómo puedo equilibrar mi semana?',
+    },
+    progress: {
+      label: 'Progreso',
+      title: 'Avance actual por proyecto',
+      description: 'Derivado de tus tareas completadas, sin usar porcentajes ilustrativos.',
+      question: '¿Qué proyecto debería priorizar hoy?',
+    },
+    priorities: {
+      label: 'Prioridades',
+      title: 'Distribución de tu atención',
+      description: 'Cantidad de proyectos por la prioridad que les asignaste.',
+      question: '¿Mis prioridades están equilibradas?',
+    },
+    deadlines: {
+      label: 'Entregas próximas',
+      title: 'Ritmo de tus fechas límite',
+      description: 'Proyectos ordenados según la cercanía de su fecha límite.',
+      question: '¿Qué entrega necesita atención primero?',
+    },
+  };
+}
 
 export function AnalyticsDashboard({ data }: { data: AnalyticsDashboardData }) {
+  const pathname = usePathname();
+  const locale = getLocaleFromPathname(pathname) ?? defaultLocale;
+  const metrics = getMetrics(locale);
+  const metricIds = Object.keys(metrics) as AnalyticsMetricId[];
+  const copy =
+    locale === 'es'
+      ? {
+          planning: 'Tu planificación',
+          title: 'Analítica',
+          description:
+            'Una lectura privada de tus proyectos y tareas para ayudarte a decidir qué hacer después.',
+          accountData: 'Datos de tu cuenta',
+          observe: '¿Qué quieres observar?',
+          choose: 'Elige una medida por vez para no mezclar unidades ni conclusiones.',
+          measures: 'Medidas disponibles',
+          soon: 'Más medidas, próximamente',
+          summary: 'Resumen accesible:',
+          meaning: 'Qué significa esta vista',
+          ask: 'Consultar esta vista con Komo',
+          noData: 'Aún no hay datos para esta métrica',
+        }
+      : {
+          planning: 'Your planning',
+          title: 'Analytics',
+          description:
+            'A private view of your projects and tasks to help you decide what to do next.',
+          accountData: 'Your account data',
+          observe: 'What would you like to explore?',
+          choose: 'Choose one metric at a time to avoid mixing units or conclusions.',
+          measures: 'Available metrics',
+          soon: 'More metrics coming soon',
+          summary: 'Accessible summary:',
+          meaning: 'What this view means',
+          ask: 'Ask Komo about this view',
+          noData: 'There is no data for this metric yet',
+        };
   const [activeMetric, setActiveMetric] = useState<AnalyticsMetricId>('workload');
 
   useAnalyticsTour();
 
   const active = metrics[activeMetric];
   const availability = data.availability[activeMetric];
-  const presentation = getMetricPresentation(activeMetric, data);
-  const assistantHref = `/ia?source=analytics&view=${activeMetric}&period=week&question=${encodeURIComponent(active.question)}`;
+  const presentation = getMetricPresentation(activeMetric, data, locale);
+  const assistantHref = `${localizedHref(locale, 'assistant')}?source=analytics&view=${activeMetric}&period=week&question=${encodeURIComponent(active.question)}`;
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -67,20 +133,18 @@ export function AnalyticsDashboard({ data }: { data: AnalyticsDashboardData }) {
             <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-on-primary">
               <BarChart3 className="size-4" />
             </span>
-            Tu planificación
+            {copy.planning}
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-on-surface md:text-4xl">
-            Analítica
+            {copy.title}
           </h1>
-          <p className="mt-2 max-w-2xl text-on-surface-variant">
-            Una lectura privada de tus proyectos y tareas para ayudarte a decidir qué hacer después.
-          </p>
+          <p className="mt-2 max-w-2xl text-on-surface-variant">{copy.description}</p>
         </div>
         <div id="tour-analytics-actions" className="flex items-center gap-3">
-          <ExportMenu data={data} activeMetric={activeMetric} />
+          <ExportMenu data={data} activeMetric={activeMetric} locale={locale} />
           <span className="hidden sm:flex w-fit items-center gap-2 rounded-xl border border-status-success/25 bg-status-success-bg px-3 py-2 text-xs font-semibold text-status-success">
             <Info className="size-4" />
-            Datos de tu cuenta
+            {copy.accountData}
           </span>
         </div>
       </header>
@@ -92,17 +156,17 @@ export function AnalyticsDashboard({ data }: { data: AnalyticsDashboardData }) {
               <p className="text-xs font-bold uppercase tracking-[0.15em] text-accent-amber">
                 {data.requestedPeriod.label}
               </p>
-              <h2 className="mt-1 text-xl font-bold text-on-surface">¿Qué quieres observar?</h2>
+              <h2 className="mt-1 text-xl font-bold text-on-surface">{copy.observe}</h2>
             </div>
             <p className="text-xs leading-relaxed text-on-surface-variant sm:max-w-56 sm:text-right">
-              Elige una medida por vez para no mezclar unidades ni conclusiones.
+              {copy.choose}
             </p>
           </div>
           <div
             id="tour-analytics-tabs"
             className="mt-5 -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0"
             role="tablist"
-            aria-label="Medidas disponibles"
+            aria-label={copy.measures}
           >
             {metricIds.map((metricId) => {
               const isActive = metricId === activeMetric;
@@ -135,7 +199,7 @@ export function AnalyticsDashboard({ data }: { data: AnalyticsDashboardData }) {
               );
             })}
             <span className="flex min-h-11 shrink-0 items-center rounded-xl border border-dashed border-outline-variant px-3 text-sm font-medium text-outline">
-              Más medidas, próximamente
+              {copy.soon}
             </span>
           </div>
         </div>
@@ -166,7 +230,9 @@ export function AnalyticsDashboard({ data }: { data: AnalyticsDashboardData }) {
           </p>
           {availability.available ? (
             <>
-              <p className="sr-only">Resumen accesible: {presentation.accessibleSummary}</p>
+              <p className="sr-only">
+                {copy.summary} {presentation.accessibleSummary}
+              </p>
               <div
                 id="exportable-chart-area"
                 className="overflow-x-auto bg-surface-container-lowest p-2 rounded-xl"
@@ -176,7 +242,7 @@ export function AnalyticsDashboard({ data }: { data: AnalyticsDashboardData }) {
             </>
           ) : (
             <div id="exportable-chart-area">
-              <EmptyMetric message={availability.message} />
+              <EmptyMetric message={availability.message} title={copy.noData} />
             </div>
           )}
           {data.messages.length > 0 && (
@@ -199,7 +265,7 @@ export function AnalyticsDashboard({ data }: { data: AnalyticsDashboardData }) {
               <Sparkles className="size-5" />
             </span>
             <div>
-              <p className="text-sm font-bold text-primary">Qué significa esta vista</p>
+              <p className="text-sm font-bold text-primary">{copy.meaning}</p>
               <p className="mt-1 text-sm leading-relaxed text-on-surface-variant">
                 {availability.message}
               </p>
@@ -210,20 +276,26 @@ export function AnalyticsDashboard({ data }: { data: AnalyticsDashboardData }) {
           href={assistantHref}
           className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-center text-sm font-bold text-on-primary transition-colors hover:bg-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 lg:w-auto"
         >
-          <MessageCircle className="size-4" /> Consultar esta vista con Komo{' '}
-          <ChevronRight className="size-4" />
+          <MessageCircle className="size-4" /> {copy.ask} <ChevronRight className="size-4" />
         </Link>
       </section>
     </div>
   );
 }
 
-function getMetricPresentation(metric: AnalyticsMetricId, data: AnalyticsDashboardData) {
+function getMetricPresentation(
+  metric: AnalyticsMetricId,
+  data: AnalyticsDashboardData,
+  locale: Locale,
+) {
+  const isSpanish = locale === 'es';
   if (metric === 'workload')
     return {
       value: formatMinutes(data.summary.plannedMinutes),
-      label: 'planificados esta semana',
-      accessibleSummary: `${formatMinutes(data.summary.plannedMinutes)} planificados entre ${data.requestedPeriod.startsOn} y ${data.requestedPeriod.endsOn}.`,
+      label: isSpanish ? 'planificados esta semana' : 'planned this week',
+      accessibleSummary: isSpanish
+        ? `${formatMinutes(data.summary.plannedMinutes)} planificados entre ${data.requestedPeriod.startsOn} y ${data.requestedPeriod.endsOn}.`
+        : `${formatMinutes(data.summary.plannedMinutes)} planned between ${data.requestedPeriod.startsOn} and ${data.requestedPeriod.endsOn}.`,
     };
   if (metric === 'progress') {
     const value =
@@ -232,20 +304,28 @@ function getMetricPresentation(metric: AnalyticsMetricId, data: AnalyticsDashboa
         : `${Math.round((data.summary.completedTasks / data.summary.totalTasks) * 100)}%`;
     return {
       value,
-      label: `${data.summary.completedTasks} de ${data.summary.totalTasks} tareas completadas`,
-      accessibleSummary: `${data.summary.completedTasks} de ${data.summary.totalTasks} tareas completadas en ${data.series.progress.length} proyectos.`,
+      label: isSpanish
+        ? `${data.summary.completedTasks} de ${data.summary.totalTasks} tareas completadas`
+        : `${data.summary.completedTasks} of ${data.summary.totalTasks} tasks completed`,
+      accessibleSummary: isSpanish
+        ? `${data.summary.completedTasks} de ${data.summary.totalTasks} tareas completadas en ${data.series.progress.length} proyectos.`
+        : `${data.summary.completedTasks} of ${data.summary.totalTasks} tasks completed across ${data.series.progress.length} projects.`,
     };
   }
   if (metric === 'priorities')
     return {
       value: String(data.summary.highPriorityProjects),
-      label: 'proyectos prioritarios',
-      accessibleSummary: `${data.summary.highPriorityProjects} proyectos prioritarios de ${data.summary.activeProjects} activos.`,
+      label: isSpanish ? 'proyectos prioritarios' : 'priority projects',
+      accessibleSummary: isSpanish
+        ? `${data.summary.highPriorityProjects} proyectos prioritarios de ${data.summary.activeProjects} activos.`
+        : `${data.summary.highPriorityProjects} priority projects out of ${data.summary.activeProjects} active projects.`,
     };
   return {
     value: String(data.summary.upcomingDeadlines),
-    label: 'entregas requieren atención',
-    accessibleSummary: `${data.summary.upcomingDeadlines} fechas límite vencidas, hoy o dentro de siete días.`,
+    label: isSpanish ? 'entregas requieren atención' : 'deadlines need attention',
+    accessibleSummary: isSpanish
+      ? `${data.summary.upcomingDeadlines} fechas límite vencidas, hoy o dentro de siete días.`
+      : `${data.summary.upcomingDeadlines} deadlines overdue, due today, or due within seven days.`,
   };
 }
 
@@ -268,10 +348,10 @@ function MetricChart({
   return <DeadlinesTimeline data={data.series.deadlines} />;
 }
 
-function EmptyMetric({ message }: { message: string }) {
+function EmptyMetric({ message, title }: { message: string; title: string }) {
   return (
     <div className="rounded-2xl border border-dashed border-outline-variant bg-surface-container-low/50 px-5 py-8 text-center">
-      <p className="font-semibold text-on-surface">Aún no hay datos para esta métrica</p>
+      <p className="font-semibold text-on-surface">{title}</p>
       <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-on-surface-variant">
         {message}
       </p>

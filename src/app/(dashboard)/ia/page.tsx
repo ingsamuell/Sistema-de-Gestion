@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { AssistantChat } from '@/components/ia/AssistantChat';
 import {
-  GENERAL_ASSISTANT_CONTEXT,
+  getGeneralAssistantContext,
   type AssistantMessage,
   type AssistantContext,
   type ConversationItem,
@@ -29,16 +29,22 @@ import {
   detectMessageIntent,
   extractTopicFromText,
 } from '@/features/ai-assistant/utils/intentDetector';
+import { defaultLocale, getLocaleFromPathname } from '@/lib/i18n/locale';
+import { localizedHref } from '@/lib/i18n/routes';
 
 export default function IAPage() {
   const router = useRouter();
+  const pathname = usePathname();
+  const locale = getLocaleFromPathname(pathname) ?? defaultLocale;
+  const generalAssistantContext = getGeneralAssistantContext(locale);
+  const copy = getIAPageCopy(locale);
   const searchParams = useSearchParams();
   const [isGeneralMode, setIsGeneralMode] = useState(false);
   const context = isGeneralMode
-    ? GENERAL_ASSISTANT_CONTEXT
-    : (getAnalyticsContext(searchParams) ??
-      getQuizContext(searchParams) ??
-      GENERAL_ASSISTANT_CONTEXT);
+    ? generalAssistantContext
+    : (getAnalyticsContext(searchParams, locale) ??
+      getQuizContext(searchParams, locale) ??
+      generalAssistantContext);
 
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [userProjects, setUserProjects] = useState<UserProjectItem[]>([]);
@@ -109,7 +115,9 @@ export default function IAPage() {
   const handleCreateProject = async (_tasks?: GeneratedTaskItem[], title?: string) => {
     const params = new URLSearchParams();
     if (title) params.set('titulo', title);
-    router.push(`/proyectos/nuevo${params.toString() ? `?${params.toString()}` : ''}`);
+    router.push(
+      `${localizedHref(locale, 'newProject')}${params.toString() ? `?${params.toString()}` : ''}`,
+    );
   };
 
   // Agregar tareas generadas a un proyecto existente del usuario
@@ -125,7 +133,7 @@ export default function IAPage() {
     });
 
     if (!res.success) {
-      throw new Error(res.error || 'No se pudo actualizar el proyecto');
+      throw new Error(res.error || copy.updateProjectError);
     }
 
     // Refrescar proyectos del usuario
@@ -134,7 +142,7 @@ export default function IAPage() {
       setUserProjects(projRes.data);
     }
 
-    return res.projectTitle || 'Proyecto';
+    return res.projectTitle || copy.project;
   };
 
   // Enviar mensaje al asistente y guardar en Supabase
@@ -187,11 +195,11 @@ export default function IAPage() {
       const initialTitle = (
         params.content ||
         params.fileAttachment?.name ||
-        'Nueva conversación'
+        copy.newConversation
       ).slice(0, 45);
       const convRes = await createConversationAction(initialTitle);
       if (!convRes.success || !convRes.data) {
-        throw new Error(convRes.error || 'No se pudo iniciar la conversación');
+        throw new Error(convRes.error || copy.startConversationError);
       }
       convId = convRes.data.id;
       setActiveConversationId(convId);
@@ -209,10 +217,11 @@ export default function IAPage() {
     // 3. Preparar mensaje para n8n con el texto completo del documento si fue extraído
     let mensajeToSend = params.content;
     if (params.fileAttachment?.content) {
-      mensajeToSend =
-        `El usuario ha adjuntado el documento "${params.fileAttachment.name}" para su análisis:\n` +
-        `--- INICIO DEL DOCUMENTO ---\n${params.fileAttachment.content}\n--- FIN DEL DOCUMENTO ---\n\n` +
-        `Instrucción del usuario:\n${params.content || 'Por favor analiza este documento en detalle.'}`;
+      mensajeToSend = copy.documentContext(
+        params.fileAttachment.name,
+        params.fileAttachment.content,
+        params.content || copy.analyzeDocument,
+      );
     }
 
     // 4. Llamar al webhook de n8n
@@ -222,6 +231,7 @@ export default function IAPage() {
       body: JSON.stringify({
         mensaje: mensajeToSend,
         tipo_evento: 'chat',
+        locale,
         archivo: params.fileAttachment
           ? {
               nombre: params.fileAttachment.name,
@@ -238,7 +248,7 @@ export default function IAPage() {
     });
 
     if (!response.ok) {
-      throw new Error('Error de conexión con el asistente');
+      throw new Error(copy.connectionError);
     }
 
     const json = await response.json();
@@ -280,14 +290,13 @@ export default function IAPage() {
 
     // 5a. Si el usuario pide crear proyecto: proporcionar enlace al formulario y NO crear sin preguntas
     if (intentResult.intent === 'create_project') {
-      projectLink = '/proyectos/nuevo';
+      projectLink = localizedHref(locale, 'newProject');
       // Limpiar posibles enlaces en texto para que SOLO quede el botón interactivo abajo
       cleanReply = cleanReply
         .replace(/(?:👉\s*)?\[[^\]]+\]\(\/proyectos\/nuevo[^\)]*\)/gi, '')
         .replace(/https?:\/\/[^\s]+\/proyectos\/nuevo[^\s]*/gi, '')
         .trim();
-      cleanReply +=
-        '\n\nPara personalizar la fecha límite, tu tiempo de estudio diario y tus materiales, configura tu proyecto en el formulario interactivo pulsando el botón a continuación:';
+      cleanReply += `\n\n${copy.createProjectNextStep}`;
     }
 
     // 5b. Si el usuario pide recomendaciones de temas: dar recomendación y preguntar si está de acuerdo
@@ -304,8 +313,7 @@ export default function IAPage() {
         cleanReply.toLowerCase().includes('opcion');
 
       if (!mentionsAgreement) {
-        cleanReply +=
-          '\n\n¿Estás de acuerdo con este tema para tu proyecto o prefieres explorar otra opción?';
+        cleanReply += `\n\n${copy.agreementQuestion}`;
       }
     }
 
@@ -317,24 +325,21 @@ export default function IAPage() {
         (lastAssistantMsg?.contextData?.suggestedTopicTitle as string | undefined) ||
         lastRecommendationMsg?.suggestedTopicTitle ||
         (lastRecommendationMsg?.contextData?.suggestedTopicTitle as string | undefined) ||
-        'Proyecto de Estudio';
+        copy.studyProject;
       const topicObjective =
         intentResult.suggestedTopic?.objetivo ||
         lastAssistantMsg?.suggestedTopicObjective ||
         (lastAssistantMsg?.contextData?.suggestedTopicObjective as string | undefined) ||
         lastRecommendationMsg?.suggestedTopicObjective ||
         (lastRecommendationMsg?.contextData?.suggestedTopicObjective as string | undefined) ||
-        'Plan de estudio propuesto por Komo IA';
+        copy.studyPlanByKomo;
 
       suggestedTopicTitle = topicTitle;
       suggestedTopicObjective = topicObjective;
       skipQuestions = 2;
-      projectLink = `/proyectos/nuevo?step=2&titulo=${encodeURIComponent(topicTitle)}&objetivo=${encodeURIComponent(topicObjective)}`;
+      projectLink = `${localizedHref(locale, 'newProject')}?step=2&titulo=${encodeURIComponent(topicTitle)}&objetivo=${encodeURIComponent(topicObjective)}`;
 
-      cleanReply =
-        `¡Excelente elección! Vamos a configurar tu proyecto **"${topicTitle}"**.\n\n` +
-        `Para que ahorres tiempo, **hemos omitido las 2 primeras preguntas** del formulario (el nombre y el objetivo ya quedaron prellenados).\n\n` +
-        `Pasa directamente a definir tu fecha límite, prioridad, materiales y horario en el formulario interactivo pulsando el botón a continuación:`;
+      cleanReply = copy.confirmedRecommendation(topicTitle);
     }
 
     // 6. Si la IA proporcionó un título para la conversación, actualizar la tabla conversations
@@ -407,6 +412,7 @@ export default function IAPage() {
   return (
     <AssistantChat
       context={context}
+      locale={locale}
       messages={messages}
       conversations={conversations}
       userProjects={userProjects}
@@ -422,7 +428,7 @@ export default function IAPage() {
         context.scope === 'analytics'
           ? () => {
               setIsGeneralMode(true);
-              router.replace('/ia');
+              router.replace(localizedHref(locale, 'assistant'));
             }
           : undefined
       }
@@ -431,16 +437,27 @@ export default function IAPage() {
   );
 }
 
-function getAnalyticsContext(params: URLSearchParams): AssistantContext | null {
+function getAnalyticsContext(
+  params: URLSearchParams,
+  locale: 'es' | 'en',
+): AssistantContext | null {
   const view = params.get('view') as AnalyticsMetricId | null;
   const period = params.get('period');
   const question = params.get('question');
-  const labels: Record<AnalyticsMetricId, string> = {
-    workload: 'Horas planificadas',
-    progress: 'Progreso de proyectos',
-    priorities: 'Prioridades',
-    deadlines: 'Entregas próximas',
-  };
+  const labels: Record<AnalyticsMetricId, string> =
+    locale === 'es'
+      ? {
+          workload: 'Horas planificadas',
+          progress: 'Progreso de proyectos',
+          priorities: 'Prioridades',
+          deadlines: 'Entregas próximas',
+        }
+      : {
+          workload: 'Planned hours',
+          progress: 'Project progress',
+          priorities: 'Priorities',
+          deadlines: 'Upcoming deadlines',
+        };
 
   if (params.get('source') !== 'analytics' || !view || !labels[view] || period !== 'week') {
     return null;
@@ -448,26 +465,71 @@ function getAnalyticsContext(params: URLSearchParams): AssistantContext | null {
 
   return {
     scope: 'analytics',
-    title: 'Consulta de analítica',
-    label: `${labels[view]} · Esta semana`,
-    description: 'Komo responderá usando el contexto de la vista que abriste desde Analítica.',
+    title: locale === 'es' ? 'Consulta de analítica' : 'Analytics question',
+    label: `${labels[view]} · ${locale === 'es' ? 'Esta semana' : 'This week'}`,
+    description:
+      locale === 'es'
+        ? 'Komo responderá usando el contexto de la vista que abriste desde Analítica.'
+        : 'Komo will answer using the context from the Analytics view you opened.',
     suggestions: question
-      ? [question.slice(0, 240), 'Explícame esta vista']
-      : ['Explícame esta vista'],
+      ? [question.slice(0, 240), locale === 'es' ? 'Explícame esta vista' : 'Explain this view']
+      : [locale === 'es' ? 'Explícame esta vista' : 'Explain this view'],
     analyticsContext: { view, period: 'week' },
   };
 }
 
-function getQuizContext(params: URLSearchParams): AssistantContext | null {
+function getQuizContext(params: URLSearchParams, locale: 'es' | 'en'): AssistantContext | null {
   const taskId = params.get('quizTaskId');
   if (!taskId) return null;
 
   return {
     scope: 'project',
-    title: 'Evaluación de Conocimiento',
-    label: 'Quiz de Certificación',
+    title: locale === 'es' ? 'Evaluación de Conocimiento' : 'Knowledge assessment',
+    label: locale === 'es' ? 'Quiz de Certificación' : 'Certification quiz',
     description:
-      'Komo actuará como tu evaluador para asegurar que dominas el tema de la tarea y te otorgará progreso en tu certificación.',
+      locale === 'es'
+        ? 'Komo actuará como tu evaluador para asegurar que dominas el tema de la tarea y te otorgará progreso en tu certificación.'
+        : 'Komo will assess your task knowledge and grant progress toward your certification.',
     quizContext: { taskId },
   };
+}
+
+function getIAPageCopy(locale: 'es' | 'en') {
+  return locale === 'es'
+    ? {
+        newConversation: 'Nueva conversación',
+        updateProjectError: 'No se pudo actualizar el proyecto',
+        project: 'Proyecto',
+        startConversationError: 'No se pudo iniciar la conversación',
+        analyzeDocument: 'Por favor analiza este documento en detalle.',
+        documentContext: (name: string, content: string, instruction: string) =>
+          `El usuario ha adjuntado el documento "${name}" para su análisis:\n--- INICIO DEL DOCUMENTO ---\n${content}\n--- FIN DEL DOCUMENTO ---\n\nInstrucción del usuario:\n${instruction}`,
+        connectionError: 'Error de conexión con el asistente',
+        createProjectNextStep:
+          'Para personalizar la fecha límite, tu tiempo de estudio diario y tus materiales, configura tu proyecto en el formulario interactivo pulsando el botón a continuación:',
+        agreementQuestion:
+          '¿Estás de acuerdo con este tema para tu proyecto o prefieres explorar otra opción?',
+        studyProject: 'Proyecto de Estudio',
+        studyPlanByKomo: 'Plan de estudio propuesto por Komo IA',
+        confirmedRecommendation: (title: string) =>
+          `¡Excelente elección! Vamos a configurar tu proyecto **"${title}"**.\n\nPara que ahorres tiempo, **hemos omitido las 2 primeras preguntas** del formulario (el nombre y el objetivo ya quedaron prellenados).\n\nPasa directamente a definir tu fecha límite, prioridad, materiales y horario en el formulario interactivo pulsando el botón a continuación:`,
+      }
+    : {
+        newConversation: 'New conversation',
+        updateProjectError: 'Could not update the project',
+        project: 'Project',
+        startConversationError: 'Could not start the conversation',
+        analyzeDocument: 'Please analyze this document in detail.',
+        documentContext: (name: string, content: string, instruction: string) =>
+          `The user attached the document "${name}" for analysis:\n--- START OF DOCUMENT ---\n${content}\n--- END OF DOCUMENT ---\n\nUser instruction:\n${instruction}`,
+        connectionError: 'Assistant connection error',
+        createProjectNextStep:
+          'To personalize your deadline, daily study time, and materials, set up your project in the interactive form using the button below:',
+        agreementQuestion:
+          'Do you agree with this topic for your project, or would you prefer to explore another option?',
+        studyProject: 'Study project',
+        studyPlanByKomo: 'Study plan proposed by Komo AI',
+        confirmedRecommendation: (title: string) =>
+          `Excellent choice! Let’s set up your **"${title}"** project.\n\nTo save you time, **we skipped the first two questions** in the form (the name and goal are already prefilled).\n\nGo straight to setting your deadline, priority, materials, and schedule in the interactive form using the button below:`,
+      };
 }

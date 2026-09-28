@@ -1,6 +1,7 @@
 'use client';
 
 import React, { ChangeEvent, useEffect, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import {
   ArrowUpRight,
   BookOpen,
@@ -46,6 +47,7 @@ import { NoteModal } from './NoteModal';
 import { LinkProjectModal } from './LinkProjectModal';
 import { useTopicsTour } from '@/hooks/useTopicsTour';
 import { hasObsceneContent } from '@/lib/moderation/clientModeration';
+import { defaultLocale, getLocaleFromPathname } from '@/lib/i18n/locale';
 
 const statusCopy: Record<SourceStatus, { label: string; className: string }> = {
   ready: { label: 'Lista para IA', className: 'bg-status-success-bg text-status-success' },
@@ -54,6 +56,110 @@ const statusCopy: Record<SourceStatus, { label: string; className: string }> = {
 };
 
 export function TopicsWorkspace() {
+  const pathname = usePathname();
+  const locale = getLocaleFromPathname(pathname) ?? defaultLocale;
+  const copy =
+    locale === 'es'
+      ? {
+          title: 'Temas de estudio',
+          intro:
+            'Reúne notas y fuentes que luego podrás activar como contexto para la IA o vincular a un proyecto.',
+          newTopic: 'Nuevo tema',
+          emptyTitle: 'Tu biblioteca está vacía',
+          emptyDescription:
+            'Crea tu primer tema de estudio para organizar tus notas, archivos y fuentes con contexto inteligente.',
+          createFirst: 'Crear mi primer tema',
+          search: 'Buscar temas',
+          selected: 'Tema seleccionado',
+          sources: 'Fuentes',
+          inContext: 'En contexto',
+          updated: 'Actualizado',
+          active: 'activas',
+          mainNote: 'Nota principal',
+          noteHint: 'Resume lo que quieres conservar de este tema.',
+          notePlaceholder: 'Escribe una nota para este tema...',
+          savedInLibrary: 'Los cambios se guardan directamente en tu biblioteca en Supabase.',
+          saving: 'Guardando...',
+          prepareChanges: 'Preparar cambios',
+          aiContext: 'Contexto para IA',
+          aiContextHint: 'La IA solo utilizará las fuentes que actives aquí.',
+          contextualChat: 'Chat contextual',
+          sourceReady: (count: number) =>
+            `${count} fuentes listas para alimentar tus consultas de estudio.`,
+          activateSource: 'Activa al menos una fuente para usarla con el asistente.',
+          connected: 'Conectado a fuentes',
+          pending: 'Pendiente de conexión',
+          sourcesDescription: 'Notas, archivos y enlaces que pertenecen a este tema.',
+          writeNote: 'Escribir nota',
+          uploading: 'Subiendo...',
+          uploadFile: 'Subir archivo',
+          noSources: 'Aún no hay fuentes',
+          noSourcesHint: 'Escribe una nota o sube un archivo para comenzar.',
+          add: 'Añadir',
+          addLink: 'Añadir enlace',
+          cancel: 'Cancelar',
+          linkedProjects: 'Proyectos vinculados',
+          linkedProjectsHint:
+            'Los proyectos conectados podrán usar este tema como fuente de contexto.',
+          linkProject: 'Vincular proyecto',
+          notLinked: 'Este tema aún no está vinculado',
+          notLinkedHint:
+            'Vincúlalo a un proyecto para reutilizar sus fuentes y medir el progreso real.',
+          editTopic: 'Editar nombre y descripción',
+          deleteTopic: 'Eliminar tema',
+          created: 'Tema creado con éxito',
+          deleteConfirm:
+            '¿Estás seguro de que deseas eliminar este tema y todas sus fuentes asociadas?',
+        }
+      : {
+          title: 'Study topics',
+          intro:
+            'Bring together notes and sources you can later enable as AI context or link to a project.',
+          newTopic: 'New topic',
+          emptyTitle: 'Your library is empty',
+          emptyDescription:
+            'Create your first study topic to organize notes, files, and sources with intelligent context.',
+          createFirst: 'Create my first topic',
+          search: 'Search topics',
+          selected: 'Selected topic',
+          sources: 'Sources',
+          inContext: 'In context',
+          updated: 'Updated',
+          active: 'active',
+          mainNote: 'Main note',
+          noteHint: 'Summarize what you want to keep about this topic.',
+          notePlaceholder: 'Write a note for this topic...',
+          savedInLibrary: 'Changes are saved directly to your Supabase library.',
+          saving: 'Saving...',
+          prepareChanges: 'Prepare changes',
+          aiContext: 'AI context',
+          aiContextHint: 'AI will only use the sources you enable here.',
+          contextualChat: 'Contextual chat',
+          sourceReady: (count: number) =>
+            `${count} sources are ready to support your study questions.`,
+          activateSource: 'Enable at least one source to use it with the assistant.',
+          connected: 'Connected to sources',
+          pending: 'Connection pending',
+          sourcesDescription: 'Notes, files, and links belonging to this topic.',
+          writeNote: 'Write note',
+          uploading: 'Uploading...',
+          uploadFile: 'Upload file',
+          noSources: 'There are no sources yet',
+          noSourcesHint: 'Write a note or upload a file to get started.',
+          add: 'Add',
+          addLink: 'Add link',
+          cancel: 'Cancel',
+          linkedProjects: 'Linked projects',
+          linkedProjectsHint: 'Linked projects can use this topic as a context source.',
+          linkProject: 'Link project',
+          notLinked: 'This topic is not linked yet',
+          notLinkedHint: 'Link it to a project to reuse its sources and measure real progress.',
+          editTopic: 'Edit name and description',
+          deleteTopic: 'Delete topic',
+          created: 'Topic created successfully',
+          deleteConfirm:
+            'Are you sure you want to delete this topic and all of its associated sources?',
+        };
   const toast = useToast();
   const [topics, setTopics] = useState<Topic[]>([]);
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
@@ -134,7 +240,7 @@ export function TopicsWorkspace() {
       setSelectedTopicId(created.id);
       setNote(created.mainNote);
       setNoteError(null);
-      toast.success('Tema creado con éxito');
+      toast.success(copy.created);
     } else {
       throw new Error(res.error || 'No se pudo crear el tema');
     }
@@ -165,7 +271,7 @@ export function TopicsWorkspace() {
   }
 
   async function handleDeleteTopic(topicId: string) {
-    if (!confirm('¿Estás seguro de que deseas eliminar este tema y todas sus fuentes asociadas?')) {
+    if (!confirm(copy.deleteConfirm)) {
       return;
     }
     const res = await deleteTopicAction(topicId);
@@ -467,10 +573,7 @@ export function TopicsWorkspace() {
             Biblioteca personal
           </div>
           <h1 className="text-3xl font-bold tracking-tight md:text-4xl">Temas</h1>
-          <p className="mt-2 max-w-2xl text-on-surface-variant">
-            Reúne notas y fuentes que luego podrás activar como contexto para la IA o vincular a un
-            proyecto.
-          </p>
+          <p className="mt-2 max-w-2xl text-on-surface-variant">{copy.intro}</p>
         </div>
         <Button
           type="button"
@@ -481,7 +584,7 @@ export function TopicsWorkspace() {
           }}
         >
           <Plus className="size-4" />
-          Nuevo tema
+          {copy.newTopic}
         </Button>
       </header>
 
@@ -491,10 +594,9 @@ export function TopicsWorkspace() {
           className="rounded-3xl border border-dashed border-outline-variant bg-surface-container-low/40 p-12 text-center"
         >
           <BookOpen className="mx-auto size-12 text-outline mb-4" />
-          <h2 className="text-xl font-bold text-on-surface">Tu biblioteca está vacía</h2>
+          <h2 className="text-xl font-bold text-on-surface">{copy.emptyTitle}</h2>
           <p className="mt-2 text-sm text-on-surface-variant max-w-md mx-auto">
-            Crea tu primer tema de estudio para organizar tus notas, archivos y fuentes con contexto
-            inteligente.
+            {copy.emptyDescription}
           </p>
           <Button
             size="md"
@@ -505,7 +607,7 @@ export function TopicsWorkspace() {
             }}
           >
             <Plus className="size-4" />
-            Crear mi primer tema
+            {copy.createFirst}
           </Button>
         </div>
       ) : (
@@ -517,7 +619,7 @@ export function TopicsWorkspace() {
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Buscar temas"
+                placeholder={copy.search}
                 className="w-full rounded-xl border border-outline-variant/50 bg-surface px-9 py-2.5 text-sm outline-none transition-colors placeholder:text-outline focus:border-primary focus:ring-2 focus:ring-primary/10"
               />
             </div>
@@ -565,7 +667,7 @@ export function TopicsWorkspace() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-xs font-semibold uppercase tracking-wider text-accent-amber">
-                          Tema seleccionado
+                          {copy.selected}
                         </p>
                         <div className="flex items-center gap-1">
                           <button
@@ -575,7 +677,7 @@ export function TopicsWorkspace() {
                               setIsTopicModalOpen(true);
                             }}
                             className="p-1.5 rounded-lg text-outline hover:text-primary hover:bg-surface-container-low transition-colors"
-                            title="Editar nombre y descripción"
+                            title={copy.editTopic}
                           >
                             <Edit2 className="size-3.5" />
                           </button>
@@ -583,7 +685,7 @@ export function TopicsWorkspace() {
                             type="button"
                             onClick={() => handleDeleteTopic(selectedTopic.id)}
                             className="p-1.5 rounded-lg text-outline hover:text-error hover:bg-error/10 transition-colors"
-                            title="Eliminar tema"
+                            title={copy.deleteTopic}
                           >
                             <Trash2 className="size-3.5" />
                           </button>
@@ -598,18 +700,18 @@ export function TopicsWorkspace() {
                         </p>
                       )}
                       <div className="mt-4 grid grid-cols-3 divide-x divide-outline-variant/60 overflow-hidden rounded-xl border border-outline-variant/60 bg-surface-container-lowest shadow-sm">
-                        <TopicMetric value={selectedTopic.sources.length} label="Fuentes" />
-                        <TopicMetric value={activeSourceCount} label="En contexto" />
+                        <TopicMetric value={selectedTopic.sources.length} label={copy.sources} />
+                        <TopicMetric value={activeSourceCount} label={copy.inContext} />
                         <TopicMetric
                           value={selectedTopic.lastEdited.replace('Editado ', '')}
-                          label="Actualizado"
+                          label={copy.updated}
                           compact
                         />
                       </div>
                     </div>
                     <span className="inline-flex w-fit shrink-0 items-center gap-2 rounded-full bg-status-success-bg px-3 py-1.5 text-xs font-semibold text-status-success self-start">
                       <CheckCircle2 className="size-3.5" />
-                      {activeSourceCount} activas
+                      {activeSourceCount} {copy.active}
                     </span>
                   </div>
                 </div>
@@ -622,10 +724,8 @@ export function TopicsWorkspace() {
                   <div className="p-5">
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <div>
-                        <h3 className="font-bold">Nota principal</h3>
-                        <p className="mt-1 text-xs text-on-surface-variant">
-                          Resume lo que quieres conservar de este tema.
-                        </p>
+                        <h3 className="font-bold">{copy.mainNote}</h3>
+                        <p className="mt-1 text-xs text-on-surface-variant">{copy.noteHint}</p>
                       </div>
                       <FileText className="size-5 text-outline" />
                     </div>
@@ -646,7 +746,7 @@ export function TopicsWorkspace() {
                         setNote(event.target.value);
                         if (noteError) setNoteError(null);
                       }}
-                      placeholder="Escribe una nota para este tema..."
+                      placeholder={copy.notePlaceholder}
                       rows={7}
                       className={`block w-full max-w-full resize-y rounded-xl border bg-surface p-4 text-sm leading-relaxed shadow-inner outline-none transition-colors placeholder:text-outline ${
                         noteError
@@ -655,9 +755,7 @@ export function TopicsWorkspace() {
                       }`}
                     />
                     <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <span className="text-xs text-outline">
-                        Los cambios se guardan directamente en tu biblioteca en Supabase.
-                      </span>
+                      <span className="text-xs text-outline">{copy.savedInLibrary}</span>
                       <Button
                         type="button"
                         size="sm"
@@ -666,7 +764,7 @@ export function TopicsWorkspace() {
                         onClick={saveNote}
                       >
                         {savingNote && <Loader2 className="size-3.5 animate-spin" />}
-                        {savingNote ? 'Guardando...' : 'Preparar cambios'}
+                        {savingNote ? copy.saving : copy.prepareChanges}
                       </Button>
                     </div>
                   </div>
@@ -674,17 +772,17 @@ export function TopicsWorkspace() {
                   <div className="border-t border-outline-variant/30 bg-surface-container-low p-4 lg:border-l lg:border-t-0">
                     <div className="flex items-center gap-2 text-sm font-bold text-primary">
                       <Sparkles className="size-4" />
-                      Contexto para IA
+                      {copy.aiContext}
                     </div>
                     <p className="mt-2 text-xs leading-relaxed text-on-surface-variant">
-                      La IA solo utilizará las fuentes que actives aquí.
+                      {copy.aiContextHint}
                     </p>
                     <div className="mt-5 rounded-xl border border-primary/10 bg-surface p-3">
-                      <p className="text-xs font-semibold">Chat contextual</p>
+                      <p className="text-xs font-semibold">{copy.contextualChat}</p>
                       <p className="mt-1 text-[11px] leading-relaxed text-on-surface-variant">
                         {activeSourceCount > 0
-                          ? `${activeSourceCount} fuentes listas para alimentar tus consultas de estudio.`
-                          : 'Activa al menos una fuente para usarla con el asistente.'}
+                          ? copy.sourceReady(activeSourceCount)
+                          : copy.activateSource}
                       </p>
                       <button
                         type="button"
@@ -692,7 +790,7 @@ export function TopicsWorkspace() {
                         className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-outline"
                       >
                         <ArrowUpRight className="size-3.5" />
-                        {activeSourceCount > 0 ? 'Conectado a fuentes' : 'Pendiente de conexión'}
+                        {activeSourceCount > 0 ? copy.connected : copy.pending}
                       </button>
                     </div>
                   </div>
@@ -706,9 +804,9 @@ export function TopicsWorkspace() {
               >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <h3 className="text-lg font-bold">Fuentes</h3>
+                    <h3 className="text-lg font-bold">{copy.sources}</h3>
                     <p className="mt-1 text-sm text-on-surface-variant">
-                      Notas, archivos y enlaces que pertenecen a este tema.
+                      {copy.sourcesDescription}
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -720,7 +818,7 @@ export function TopicsWorkspace() {
                       onClick={() => setIsNoteModalOpen(true)}
                     >
                       <FileText className="size-3.5" />
-                      Escribir nota
+                      {copy.writeNote}
                     </Button>
                     <Button
                       type="button"
@@ -735,7 +833,7 @@ export function TopicsWorkspace() {
                       ) : (
                         <Upload className="size-3.5" />
                       )}
-                      {uploadingFile ? 'Subiendo...' : 'Subir archivo'}
+                      {uploadingFile ? copy.uploading : copy.uploadFile}
                     </Button>
                   </div>
                 </div>
@@ -753,10 +851,8 @@ export function TopicsWorkspace() {
                   {selectedTopic.sources.length === 0 ? (
                     <div className="rounded-2xl border border-dashed border-outline-variant bg-surface-container-low/40 px-5 py-10 text-center">
                       <FolderOpen className="mx-auto size-7 text-outline" />
-                      <p className="mt-3 text-sm font-semibold">Aún no hay fuentes</p>
-                      <p className="mt-1 text-xs text-on-surface-variant">
-                        Escribe una nota o sube un archivo para comenzar.
-                      </p>
+                      <p className="mt-3 text-sm font-semibold">{copy.noSources}</p>
+                      <p className="mt-1 text-xs text-on-surface-variant">{copy.noSourcesHint}</p>
                     </div>
                   ) : (
                     selectedTopic.sources.map((source) => (
@@ -793,13 +889,13 @@ export function TopicsWorkspace() {
                       onClick={handleAddLink}
                       className="min-h-10 px-2 text-xs font-bold text-primary hover:text-primary-container"
                     >
-                      Añadir
+                      {copy.add}
                     </button>
                     <button
                       type="button"
                       onClick={() => setIsAddingLink(false)}
                       className="flex size-10 items-center justify-center text-outline"
-                      aria-label="Cancelar"
+                      aria-label={copy.cancel}
                     >
                       <X className="size-4" />
                     </button>
@@ -811,7 +907,7 @@ export function TopicsWorkspace() {
                     className="mt-4 inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-primary hover:text-primary-container"
                   >
                     <Link2 className="size-4" />
-                    Añadir enlace
+                    {copy.addLink}
                   </button>
                 )}
               </Card>
@@ -823,9 +919,9 @@ export function TopicsWorkspace() {
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <h3 className="text-lg font-bold">Proyectos vinculados</h3>
+                    <h3 className="text-lg font-bold">{copy.linkedProjects}</h3>
                     <p className="mt-1 text-sm text-on-surface-variant">
-                      Los proyectos conectados podrán usar este tema como fuente de contexto.
+                      {copy.linkedProjectsHint}
                     </p>
                   </div>
                   <Button
@@ -836,7 +932,7 @@ export function TopicsWorkspace() {
                     onClick={() => setIsLinkModalOpen(true)}
                   >
                     <Plus className="size-3.5" />
-                    Vincular proyecto
+                    {copy.linkProject}
                   </Button>
                 </div>
 
@@ -850,10 +946,8 @@ export function TopicsWorkspace() {
                 ) : (
                   <div className="mt-4 rounded-2xl border border-dashed border-outline-variant bg-surface-container-low/40 px-4 py-6 text-center">
                     <FolderKanban className="mx-auto size-6 text-outline" />
-                    <p className="mt-2 text-sm font-semibold">Este tema aún no está vinculado</p>
-                    <p className="mt-1 text-xs text-on-surface-variant">
-                      Vincúlalo a un proyecto para reutilizar sus fuentes y medir el progreso real.
-                    </p>
+                    <p className="mt-2 text-sm font-semibold">{copy.notLinked}</p>
+                    <p className="mt-1 text-xs text-on-surface-variant">{copy.notLinkedHint}</p>
                   </div>
                 )}
               </Card>
@@ -870,6 +964,7 @@ export function TopicsWorkspace() {
         initialTitle={isEditingTopic ? selectedTopic?.name : ''}
         initialDescription={isEditingTopic ? selectedTopic?.description : ''}
         isEditing={isEditingTopic}
+        locale={locale}
       />
 
       <NoteModal

@@ -1,4 +1,25 @@
 import { saveAs } from 'file-saver';
+import type { Locale } from '@/lib/i18n/locale';
+
+function getExportCopy(locale: Locale) {
+  return locale === 'es'
+    ? {
+        report: 'Reporte analítico',
+        analysis: 'Análisis inteligente (Komo IA)',
+        unavailable: 'No hay análisis disponible.',
+        detailedData: 'Datos detallados:',
+        filename: 'Reporte',
+        worksheet: 'Reporte analítico',
+      }
+    : {
+        report: 'Analytics report',
+        analysis: 'Smart analysis (Komo AI)',
+        unavailable: 'No analysis is available.',
+        detailedData: 'Detailed data:',
+        filename: 'Analytics_Report',
+        worksheet: 'Analytics report',
+      };
+}
 
 // Importaciones dinámicas en tiempo de ejecución para evitar fallos durante SSR
 export async function captureChartImage(elementId: string): Promise<string | null> {
@@ -23,7 +44,13 @@ export async function captureChartImage(elementId: string): Promise<string | nul
   }
 }
 
-export async function exportAsImage(elementId: string, aiText: string, title: string) {
+export async function exportAsImage(
+  elementId: string,
+  aiText: string,
+  title: string,
+  locale: Locale,
+) {
+  const copy = getExportCopy(locale);
   const chartImage = await captureChartImage(elementId);
   const html2canvas = (await import('html2canvas-pro')).default;
 
@@ -40,7 +67,7 @@ export async function exportAsImage(elementId: string, aiText: string, title: st
 
   // Header
   const header = document.createElement('h1');
-  header.innerText = `Reporte Analítico: ${title}`;
+  header.innerText = `${copy.report}: ${title}`;
   header.style.fontSize = '24px';
   header.style.marginBottom = '20px';
   header.style.fontWeight = 'bold';
@@ -60,7 +87,7 @@ export async function exportAsImage(elementId: string, aiText: string, title: st
 
   // Add AI Text
   const textHeader = document.createElement('h2');
-  textHeader.innerText = 'Análisis Inteligente (Komo IA)';
+  textHeader.innerText = copy.analysis;
   textHeader.style.fontSize = '18px';
   textHeader.style.marginBottom = '12px';
   textHeader.style.fontWeight = 'bold';
@@ -72,7 +99,7 @@ export async function exportAsImage(elementId: string, aiText: string, title: st
   textSection.style.lineHeight = '1.6';
   textSection.style.color = '#4f453e';
 
-  const cleanText = aiText || 'No hay análisis disponible.';
+  const cleanText = aiText || copy.unavailable;
   cleanText.split('\n\n').forEach((paragraph) => {
     const trimmed = paragraph.trim();
     if (trimmed) {
@@ -95,7 +122,7 @@ export async function exportAsImage(elementId: string, aiText: string, title: st
     const finalImage = finalCanvas.toDataURL('image/png');
 
     const link = document.createElement('a');
-    link.download = `Reporte_${title.replace(/\s+/g, '_')}.png`;
+    link.download = `${copy.filename}_${title.replace(/\s+/g, '_')}.png`;
     link.href = finalImage;
     link.click();
   } finally {
@@ -103,7 +130,13 @@ export async function exportAsImage(elementId: string, aiText: string, title: st
   }
 }
 
-export async function exportAsPDF(elementId: string, aiText: string, title: string) {
+export async function exportAsPDF(
+  elementId: string,
+  aiText: string,
+  title: string,
+  locale: Locale,
+) {
+  const copy = getExportCopy(locale);
   const chartImage = await captureChartImage(elementId);
   const { jsPDF } = await import('jspdf');
 
@@ -116,7 +149,7 @@ export async function exportAsPDF(elementId: string, aiText: string, title: stri
   // Title
   pdf.setFontSize(20);
   pdf.setTextColor(34, 26, 19);
-  pdf.text(`Reporte Analítico: ${title}`, margin, yPosition);
+  pdf.text(`${copy.report}: ${title}`, margin, yPosition);
   yPosition += 35;
 
   // Add Chart Image if available
@@ -139,14 +172,14 @@ export async function exportAsPDF(elementId: string, aiText: string, title: stri
   // Subtitle
   pdf.setFontSize(15);
   pdf.setTextColor(50, 32, 17);
-  pdf.text('Análisis Inteligente (Komo IA)', margin, yPosition);
+  pdf.text(copy.analysis, margin, yPosition);
   yPosition += 25;
 
   // Body text with pagination
   pdf.setFontSize(11);
   pdf.setTextColor(79, 69, 62);
 
-  const cleanText = aiText || 'No hay análisis disponible.';
+  const cleanText = aiText || copy.unavailable;
   const textLines = pdf.splitTextToSize(cleanText, contentWidth);
   const lineHeight = 16;
 
@@ -159,7 +192,7 @@ export async function exportAsPDF(elementId: string, aiText: string, title: stri
     yPosition += lineHeight;
   }
 
-  pdf.save(`Reporte_${title.replace(/\s+/g, '_')}.pdf`);
+  pdf.save(`${copy.filename}_${title.replace(/\s+/g, '_')}.pdf`);
 }
 
 export async function exportAsExcel(
@@ -167,26 +200,28 @@ export async function exportAsExcel(
   aiText: string,
   title: string,
   rawData: Record<string, unknown>[],
+  locale: Locale,
 ) {
+  const copy = getExportCopy(locale);
   const chartImage = await captureChartImage(elementId);
 
   const ExcelJS = await import('exceljs');
   const workbook = new ExcelJS.Workbook();
-  const sheet = workbook.addWorksheet('Reporte Analítico');
+  const sheet = workbook.addWorksheet(copy.worksheet);
 
   sheet.views = [{ showGridLines: false }];
 
   // Add Title
   sheet.mergeCells('B2:H3');
   const titleCell = sheet.getCell('B2');
-  titleCell.value = `Reporte Analítico: ${title}`;
+  titleCell.value = `${copy.report}: ${title}`;
   titleCell.font = { size: 18, bold: true, color: { argb: 'FF221A13' } };
   titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
 
   // Add AI Text
   sheet.mergeCells('B5:H12');
   const textCell = sheet.getCell('B5');
-  textCell.value = `Análisis Inteligente (Komo IA):\n\n${aiText || 'No disponible'}`;
+  textCell.value = `${copy.analysis}:\n\n${aiText || copy.unavailable}`;
   textCell.alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
   textCell.font = { size: 11, color: { argb: 'FF4F453E' } };
 
@@ -217,7 +252,7 @@ export async function exportAsExcel(
 
     sheet.mergeCells(`B${currentStartRow}:D${currentStartRow}`);
     const tableTitle = sheet.getCell(`B${currentStartRow}`);
-    tableTitle.value = 'Datos Detallados:';
+    tableTitle.value = copy.detailedData;
     tableTitle.font = { bold: true, size: 14 };
     currentStartRow += 1;
 
@@ -259,5 +294,5 @@ export async function exportAsExcel(
   const blob = new Blob([buffer as BlobPart], {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   });
-  saveAs(blob, `Reporte_${title.replace(/\s+/g, '_')}.xlsx`);
+  saveAs(blob, `${copy.filename}_${title.replace(/\s+/g, '_')}.xlsx`);
 }

@@ -4,6 +4,7 @@ import type { User } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
 import { SidebarNav } from '@/components/layout/SidebarNav';
 import { UserProfileButton } from '@/components/layout/UserProfileButton';
+import { DashboardLanguageSwitch } from '@/components/i18n/DashboardLanguageSwitch';
 
 interface SidebarProps {
   initialUser?: User | null;
@@ -45,6 +46,7 @@ export async function Sidebar({ initialUser }: SidebarProps) {
             </p>
           </div>
         </div>
+        <DashboardLanguageSwitch compact />
       </div>
 
       <SidebarNav />

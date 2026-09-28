@@ -18,13 +18,64 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { resendVerificationEmail } from '@/features/auth/actions/resendVerificationAction';
 import { createClient } from '@/lib/supabase/client';
+import type { Locale } from '@/lib/i18n/locale';
+import { localizedHref } from '@/lib/i18n/routes';
 
 interface VerifyEmailCardProps {
   initialEmail?: string;
+  locale: Locale;
 }
 
-export function VerifyEmailCard({ initialEmail }: VerifyEmailCardProps = {}) {
+const verifyCopy = {
+  es: {
+    missingEmail: 'No se encontró un correo para reenviar el enlace.',
+    resendSuccess: '¡Correo reenviado con éxito! Revisa tu bandeja de entrada o spam.',
+    resendError: 'No se pudo reenviar el correo en este momento.',
+    unexpected: 'Ocurrió un error inesperado al intentar reenviar el correo.',
+    notConfirmed:
+      'Aún no registramos la confirmación. Por favor haz clic en el enlace que enviamos a tu correo.',
+    checkError: 'No se pudo verificar el estado en este momento. Intenta de nuevo.',
+    title: '¡Verifica tu correo electrónico!',
+    description: 'Hemos enviado un enlace de confirmación a:',
+    stepOne: 'Abre tu bandeja de entrada y busca el correo de Komorebi.',
+    stepTwo: 'Haz clic en el botón o enlace de verificación.',
+    note: 'Hasta que confirmes tu correo no podrás acceder al onboarding ni a tus herramientas de estudio. Revisa también tu carpeta de Spam o Promociones.',
+    checking: 'Verificando...',
+    checked: 'Ya verifiqué mi correo',
+    resending: 'Reenviando correo...',
+    resendIn: 'Reenviar en',
+    resend: 'Reenviar correo de confirmación',
+    wrongEmail: '¿Ingresaste un correo equivocado?',
+    register: 'Regístrate de nuevo',
+    back: 'Volver a iniciar sesión',
+  },
+  en: {
+    missingEmail: 'We could not find an email address to resend the link.',
+    resendSuccess: 'Email resent successfully! Check your inbox or spam folder.',
+    resendError: 'We could not resend the email right now.',
+    unexpected: 'An unexpected error occurred while resending the email.',
+    notConfirmed:
+      'We have not registered the confirmation yet. Please click the link we sent to your email.',
+    checkError: 'We could not check the status right now. Please try again.',
+    title: 'Verify your email address!',
+    description: 'We sent a confirmation link to:',
+    stepOne: 'Open your inbox and find the email from Komorebi.',
+    stepTwo: 'Click the verification button or link.',
+    note: 'Until you confirm your email, you will not be able to access onboarding or your study tools. Also check your Spam or Promotions folder.',
+    checking: 'Checking...',
+    checked: 'I verified my email',
+    resending: 'Resending email...',
+    resendIn: 'Resend in',
+    resend: 'Resend confirmation email',
+    wrongEmail: 'Did you enter the wrong email?',
+    register: 'Register again',
+    back: 'Back to sign in',
+  },
+} as const;
+
+export function VerifyEmailCard({ initialEmail, locale }: VerifyEmailCardProps) {
   const router = useRouter();
+  const copy = verifyCopy[locale];
   const searchParams = useSearchParams();
   const emailParam = searchParams.get('email') || initialEmail || '';
 
@@ -76,7 +127,7 @@ export function VerifyEmailCard({ initialEmail }: VerifyEmailCardProps = {}) {
     if (!email) {
       setResendStatus({
         type: 'error',
-        message: 'No se encontró un correo para reenviar el enlace.',
+        message: copy.missingEmail,
       });
       return;
     }
@@ -87,24 +138,24 @@ export function VerifyEmailCard({ initialEmail }: VerifyEmailCardProps = {}) {
     setResendStatus({ type: null, message: null });
 
     try {
-      const response = await resendVerificationEmail(email);
+      const response = await resendVerificationEmail(email, locale);
 
       if (response.success) {
         setResendStatus({
           type: 'success',
-          message: '¡Correo reenviado con éxito! Revisa tu bandeja de entrada o spam.',
+          message: copy.resendSuccess,
         });
         setCooldown(60);
       } else {
         setResendStatus({
           type: 'error',
-          message: response.error || 'No se pudo reenviar el correo en este momento.',
+          message: response.error || copy.resendError,
         });
       }
     } catch {
       setResendStatus({
         type: 'error',
-        message: 'Ocurrió un error inesperado al intentar reenviar el correo.',
+        message: copy.unexpected,
       });
     } finally {
       setIsResending(false);
@@ -126,20 +177,19 @@ export function VerifyEmailCard({ initialEmail }: VerifyEmailCardProps = {}) {
         document.cookie =
           'just_registered_email=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax';
         // Correo confirmado -> proceder a onboarding
-        router.push('/onboarding');
+        router.push(localizedHref(locale, 'onboarding'));
         router.refresh();
       } else {
         setResendStatus({
           type: 'error',
-          message:
-            'Aún no registramos la confirmación. Por favor haz clic en el enlace que enviamos a tu correo.',
+          message: copy.notConfirmed,
         });
         setIsChecking(false);
       }
     } catch {
       setResendStatus({
         type: 'error',
-        message: 'No se pudo verificar el estado en este momento. Intenta de nuevo.',
+        message: copy.checkError,
       });
       setIsChecking(false);
     }
@@ -166,11 +216,9 @@ export function VerifyEmailCard({ initialEmail }: VerifyEmailCardProps = {}) {
           />
         </div>
 
-        <h1 className="text-2xl font-bold text-primary mb-2 tracking-tight">
-          ¡Verifica tu correo electrónico!
-        </h1>
+        <h1 className="text-2xl font-bold text-primary mb-2 tracking-tight">{copy.title}</h1>
         <p className="text-sm text-on-surface-variant font-medium max-w-sm leading-relaxed">
-          Hemos enviado un enlace de confirmación a:
+          {copy.description}
         </p>
 
         {/* Chip con el correo del usuario */}
@@ -206,18 +254,16 @@ export function VerifyEmailCard({ initialEmail }: VerifyEmailCardProps = {}) {
           <span className="flex size-5 rounded-full bg-primary/10 text-primary items-center justify-center text-xs font-bold">
             1
           </span>
-          Abre tu bandeja de entrada y busca el correo de Komorebi.
+          {copy.stepOne}
         </p>
         <p className="font-semibold text-on-surface flex items-center gap-2">
           <span className="flex size-5 rounded-full bg-primary/10 text-primary items-center justify-center text-xs font-bold">
             2
           </span>
-          Haz clic en el botón o enlace de verificación.
+          {copy.stepTwo}
         </p>
         <p className="text-xs text-outline pt-1">
-          💡 <strong>Nota:</strong> Hasta que confirmes tu correo no podrás acceder al onboarding ni
-          a tus herramientas de estudio. Revisa también tu carpeta de <em>Spam</em> o{' '}
-          <em>Promociones</em>.
+          💡 <strong>{locale === 'es' ? 'Nota:' : 'Note:'}</strong> {copy.note}
         </p>
       </div>
 
@@ -234,11 +280,11 @@ export function VerifyEmailCard({ initialEmail }: VerifyEmailCardProps = {}) {
           {isChecking ? (
             <>
               <Loader2 className="size-4 animate-spin" />
-              <span>Verificando...</span>
+              <span>{copy.checking}</span>
             </>
           ) : (
             <>
-              <span>Ya verifiqué mi correo</span>
+              <span>{copy.checked}</span>
               <ArrowRight className="size-4" />
             </>
           )}
@@ -255,17 +301,19 @@ export function VerifyEmailCard({ initialEmail }: VerifyEmailCardProps = {}) {
           {isResending ? (
             <>
               <Loader2 className="size-4 animate-spin" />
-              <span>Reenviando correo...</span>
+              <span>{copy.resending}</span>
             </>
           ) : cooldown > 0 ? (
             <>
               <RefreshCw className="size-4 opacity-50" />
-              <span>Reenviar en {cooldown}s</span>
+              <span>
+                {copy.resendIn} {cooldown}s
+              </span>
             </>
           ) : (
             <>
               <RefreshCw className="size-4" />
-              <span>Reenviar correo de confirmación</span>
+              <span>{copy.resend}</span>
             </>
           )}
         </Button>
@@ -274,17 +322,20 @@ export function VerifyEmailCard({ initialEmail }: VerifyEmailCardProps = {}) {
       {/* Enlaces inferiores */}
       <div className="mt-8 text-center text-xs sm:text-sm text-on-surface-variant font-medium space-y-2">
         <div>
-          ¿Ingresaste un correo equivocado?{' '}
+          {copy.wrongEmail}{' '}
           <Link
-            href="/register"
+            href={localizedHref(locale, 'register')}
             className="text-primary font-bold hover:text-primary/80 transition-colors"
           >
-            Regístrate de nuevo
+            {copy.register}
           </Link>
         </div>
         <div>
-          <Link href="/login" className="text-outline hover:text-on-surface transition-colors">
-            ← Volver a Iniciar Sesión
+          <Link
+            href={localizedHref(locale, 'login')}
+            className="text-outline hover:text-on-surface transition-colors"
+          >
+            ← {copy.back}
           </Link>
         </div>
       </div>

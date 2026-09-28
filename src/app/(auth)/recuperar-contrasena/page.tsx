@@ -5,6 +5,10 @@ import Image from 'next/image';
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { headers } from 'next/headers';
+import { AuthLanguageSwitch } from '@/components/i18n/AuthLanguageSwitch';
+import { defaultLocale, isLocale } from '@/lib/i18n/locale';
+import { localizedHref } from '@/lib/i18n/routes';
 
 export const metadata: Metadata = {
   title: 'Recuperar Contraseña | Komorebi Study Studio',
@@ -13,13 +17,16 @@ export const metadata: Metadata = {
 };
 
 export default async function ForgotPasswordPage() {
+  const headersList = await headers();
+  const headerLocale = headersList.get('x-komorebi-locale');
+  const locale = isLocale(headerLocale) ? headerLocale : defaultLocale;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (user) {
-    redirect('/');
+    redirect(localizedHref(locale, 'app'));
   }
 
   return (
@@ -104,8 +111,9 @@ export default async function ForgotPasswordPage() {
 
       {/* Lado Derecho: Formulario */}
       <div className="relative flex w-full items-center justify-center p-6 lg:w-1/2 xl:w-[55%] animate-in fade-in slide-in-from-right-8 duration-700">
+        <AuthLanguageSwitch route="forgotPassword" />
         <div className="w-full max-w-md">
-          <ForgotPasswordForm />
+          <ForgotPasswordForm locale={locale} />
         </div>
       </div>
     </div>

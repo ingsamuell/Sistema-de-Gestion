@@ -2,13 +2,18 @@
 
 import { headers } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
+import type { Locale } from '@/lib/i18n/locale';
+import { localizedHref } from '@/lib/i18n/routes';
 
 export interface ResendVerificationResponse {
   success: boolean;
   error?: string;
 }
 
-export async function resendVerificationEmail(email: string): Promise<ResendVerificationResponse> {
+export async function resendVerificationEmail(
+  email: string,
+  locale: Locale = 'es',
+): Promise<ResendVerificationResponse> {
   const trimmedEmail = email?.trim().toLowerCase();
 
   if (!trimmedEmail || !trimmedEmail.includes('@')) {
@@ -54,7 +59,7 @@ export async function resendVerificationEmail(email: string): Promise<ResendVeri
       type: 'signup',
       email: trimmedEmail,
       options: {
-        emailRedirectTo: `${siteUrl}/auth/callback?next=/onboarding`,
+        emailRedirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent(localizedHref(locale, 'onboarding'))}`,
       },
     });
 

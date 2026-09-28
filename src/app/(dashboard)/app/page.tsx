@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { evaluateAndSyncUserStreak } from '@/features/gamification/services/streakService';
-import { HomeDashboardClient } from './HomeDashboardClient';
+import { HomeDashboardClient } from '../HomeDashboardClient';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -47,7 +47,7 @@ export default async function HomePage() {
     Boolean(user.created_at) &&
     new Date().getTime() - new Date(user.created_at as string).getTime() < 24 * 60 * 60 * 1000;
 
-  let upcomingTasks: import('./HomeDashboardClient').UpcomingTask[] = [];
+  let upcomingTasks: import('../HomeDashboardClient').UpcomingTask[] = [];
   let totalPendingTasks = 0;
 
   // Métricas por defecto

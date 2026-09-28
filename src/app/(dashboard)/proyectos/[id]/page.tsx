@@ -19,7 +19,7 @@ import {
   Award,
 } from 'lucide-react';
 import { extractTextFromFile } from '@/features/ai-assistant/utils/fileTextExtractor';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Task, TaskItemCard } from '@/features/proyectos/components/TaskItemCard';
 import { DeleteConfirmModal } from '@/features/proyectos/components/DeleteConfirmModal';
 import { EditProjectModal } from '@/features/proyectos/components/EditProjectModal';
@@ -44,6 +44,8 @@ import {
 } from '@/features/proyectos/actions/proyectoActions';
 import { useProjectDetailTour } from '@/hooks/useProjectDetailTour';
 import { hasObsceneContent } from '@/lib/moderation/clientModeration';
+import { defaultLocale, getLocaleFromPathname } from '@/lib/i18n/locale';
+import { localizedHref } from '@/lib/i18n/routes';
 
 interface ProjectDetailState {
   id: string;
@@ -288,6 +290,8 @@ export default function ProjectDetailPage({
   params: Promise<{ id: string }> | { id: string };
 }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const locale = getLocaleFromPathname(pathname) ?? defaultLocale;
   const searchParams = useSearchParams();
   const [project, setProject] = useState<ProjectDetailState | null>(null);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEventItem[]>([]);
@@ -1194,7 +1198,7 @@ export default function ProjectDetailPage({
           No se pudo encontrar el proyecto especificado.
         </p>
         <Link
-          href="/proyectos"
+          href={localizedHref(locale, 'projects')}
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#f5e5d9] text-[#845326] font-bold text-sm hover:bg-[#E8DCD1] transition-colors"
         >
           <ArrowLeft className="size-4" />
@@ -1251,7 +1255,7 @@ export default function ProjectDetailPage({
       {/* Botón superior izquierdo: Volver a Proyectos */}
       <div className="mb-4 flex items-center justify-between">
         <Link
-          href="/proyectos"
+          href={localizedHref(locale, 'projects')}
           className="inline-flex items-center gap-2 text-sm font-bold text-[#845326] hover:text-[#433022] bg-[#f5e5d9]/60 hover:bg-[#f5e5d9] px-3.5 py-1.5 rounded-full transition-all"
         >
           <ArrowLeft className="size-4" />

@@ -39,6 +39,7 @@ import { cn } from '@/lib/utils';
 import { useIATour } from '@/hooks/useIATour';
 import { useToast } from '@/components/ui/Toast';
 import { hasObsceneContent } from '@/lib/moderation/clientModeration';
+import type { Locale } from '@/lib/i18n/locale';
 
 type AssistantChatProps = {
   context?: AssistantContext;
@@ -59,6 +60,7 @@ type AssistantChatProps = {
   onSend?: SendAssistantMessage;
   onClearContext?: () => void;
   initialDraft?: string;
+  locale?: Locale;
 };
 
 export function AssistantChat({
@@ -76,8 +78,10 @@ export function AssistantChat({
   onSend,
   onClearContext,
   initialDraft = '',
+  locale = 'es',
 }: AssistantChatProps) {
   const toast = useToast();
+  const copy = getChatCopy(locale);
   const [conversation, setConversation] = useState(messages);
   const [draft, setDraft] = useState(initialDraft);
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
@@ -253,7 +257,7 @@ export function AssistantChat({
             <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-on-primary">
               <Sparkles className="size-4" />
             </span>
-            Asistente IA
+            {copy.assistant}
           </div>
           <h1 className="text-3xl font-bold tracking-tight md:text-4xl">{context.title}</h1>
           <p className="mt-2 max-w-2xl text-on-surface-variant">{context.description}</p>
@@ -268,7 +272,7 @@ export function AssistantChat({
               className="lg:hidden gap-1.5 text-xs"
             >
               <History className="size-3.5" />
-              Historial ({conversations.length})
+              {copy.history} ({conversations.length})
             </Button>
           )}
           <span
@@ -285,7 +289,7 @@ export function AssistantChat({
                 isConnected ? 'bg-status-success' : 'bg-status-attention',
               )}
             />
-            {isConnected ? 'Listo para conversar' : 'Conexión pendiente'}
+            {isConnected ? copy.ready : copy.pending}
           </span>
         </div>
       </header>
@@ -293,16 +297,16 @@ export function AssistantChat({
       {context.scope === 'analytics' && context.analyticsContext && (
         <div className="mb-5 flex flex-wrap items-center gap-2 rounded-xl border border-primary/15 bg-primary/[0.04] px-3 py-2 text-xs text-on-surface-variant">
           <span className="rounded-full bg-primary px-2.5 py-1 font-bold text-on-primary">
-            Contexto: Analítica · {context.label}
+            {copy.context}: {copy.analytics} · {context.label}
           </span>
-          <span>Se enviará solo la vista y el período, no tus títulos ni notas.</span>
+          <span>{copy.analyticsPrivacy}</span>
           {onClearContext && (
             <button
               type="button"
               onClick={onClearContext}
               className="ml-auto rounded-lg px-2 py-1 font-semibold text-primary hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
-              Modo general
+              {copy.generalMode}
             </button>
           )}
         </div>
@@ -320,6 +324,7 @@ export function AssistantChat({
               onSelectConversation?.(id);
             }}
             onDelete={onDeleteConversation}
+            locale={locale}
           />
         </div>
       )}
@@ -342,18 +347,18 @@ export function AssistantChat({
               type="button"
               onClick={handleStartNewChat}
               className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
-              aria-label="Nueva conversación"
-              title="Nueva conversación"
+              aria-label={copy.newConversation}
+              title={copy.newConversation}
             >
               <MessageSquarePlus className="size-4" />
-              <span className="hidden sm:inline">Nuevo chat</span>
+              <span className="hidden sm:inline">{copy.newChat}</span>
             </button>
           </div>
 
           {/* Lista de mensajes con scroll interno independiente */}
           <div className="flex-1 min-h-0 space-y-4 overflow-y-auto bg-surface-container-low/35 px-4 py-5 sm:px-6">
             {conversation.length === 0 && status !== 'loading' ? (
-              <EmptyConversation context={context} isConnected={isConnected} />
+              <EmptyConversation context={context} isConnected={isConnected} locale={locale} />
             ) : (
               conversation.map((message) => (
                 <ChatMessage
@@ -362,20 +367,17 @@ export function AssistantChat({
                   userProjects={userProjects}
                   onCreateProject={onCreateProject}
                   onUpdateProject={onUpdateProject}
+                  locale={locale}
                 />
               ))
             )}
-            {status === 'loading' && <TypingIndicator />}
+            {status === 'loading' && <TypingIndicator locale={locale} />}
             {status === 'error' && (
               <div className="flex items-start gap-3 rounded-2xl border border-error/20 bg-error-container/50 p-4 text-sm">
                 <AlertCircle className="mt-0.5 size-5 shrink-0 text-error" />
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-on-error-container">
-                    No se pudo obtener una respuesta
-                  </p>
-                  <p className="mt-1 text-on-surface-variant">
-                    Tu mensaje se conserva para que puedas intentarlo de nuevo.
-                  </p>
+                  <p className="font-semibold text-on-error-container">{copy.responseError}</p>
+                  <p className="mt-1 text-on-surface-variant">{copy.responseRetryHint}</p>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -383,7 +385,7 @@ export function AssistantChat({
                     onClick={() => void sendMessage(pendingContent, true)}
                   >
                     <RefreshCw className="size-3.5" />
-                    Reintentar
+                    {copy.retry}
                   </Button>
                 </div>
               </div>
@@ -419,11 +421,11 @@ export function AssistantChat({
 
                 {fileExtractionStatus && fileExtractionStatus.isSupported ? (
                   <span className="hidden sm:inline shrink-0 rounded-full bg-status-success-bg px-2 py-0.5 text-[10px] font-semibold text-status-success">
-                    ✓ {fileExtractionStatus.wordCount} palabras extraídas
+                    ✓ {fileExtractionStatus.wordCount} {copy.wordsExtracted}
                   </span>
                 ) : (
                   <span className="hidden sm:inline shrink-0 rounded-full bg-status-attention-bg px-2 py-0.5 text-[10px] font-semibold text-status-attention">
-                    ⚠️ Sin texto legible (adjuntando nombre)
+                    ⚠️ {copy.noReadableText}
                   </span>
                 )}
 
@@ -431,8 +433,8 @@ export function AssistantChat({
                   type="button"
                   onClick={handleRemoveFile}
                   className="ml-auto flex size-5 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-error/15 hover:text-error"
-                  aria-label="Remover archivo"
-                  title="Remover archivo"
+                  aria-label={copy.removeFile}
+                  title={copy.removeFile}
                 >
                   <X className="size-3" />
                 </button>
@@ -450,14 +452,14 @@ export function AssistantChat({
                     ? 'bg-primary text-on-primary'
                     : 'text-outline hover:bg-surface-container hover:text-primary',
                 )}
-                aria-label="Adjuntar archivo"
-                title="Adjuntar archivo"
+                aria-label={copy.attachFile}
+                title={copy.attachFile}
               >
                 <Paperclip className="size-4" />
               </button>
 
               <label className="sr-only" htmlFor="assistant-message">
-                Escribe tu mensaje
+                {copy.writeMessage}
               </label>
 
               {/* Textarea con contención estricta y límite de caracteres */}
@@ -480,9 +482,9 @@ export function AssistantChat({
                   placeholder={
                     isConnected
                       ? attachedFile
-                        ? 'Indica qué deseas que Komo analice sobre este archivo...'
-                        : 'Escribe lo que necesitas...'
-                      : 'El asistente se habilitará cuando esté conectado'
+                        ? copy.filePlaceholder
+                        : copy.placeholder
+                      : copy.disabledPlaceholder
                   }
                   rows={1}
                   className="max-h-28 min-h-9 w-full resize-none overflow-y-auto break-words whitespace-pre-wrap bg-transparent px-1 py-2 text-sm outline-none placeholder:text-outline disabled:cursor-not-allowed"
@@ -494,14 +496,14 @@ export function AssistantChat({
                 type="submit"
                 disabled={(!draft.trim() && !attachedFile) || status === 'loading' || !isConnected}
                 className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary text-on-primary transition-colors hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-40"
-                aria-label="Enviar mensaje"
+                aria-label={copy.send}
               >
                 <ArrowUp className="size-4" />
               </button>
             </div>
 
             <div className="flex items-center justify-between px-2 pt-2 text-[11px] text-outline">
-              <span>Komo propone; tú revisas antes de aplicar cualquier cambio.</span>
+              <span>{copy.reviewNotice}</span>
               {draft.length > 500 && (
                 <span className="shrink-0 text-on-surface-variant font-mono">
                   {draft.length}/4000
@@ -524,6 +526,7 @@ export function AssistantChat({
               isLoading={isLoadingHistory}
               onSelect={onSelectConversation}
               onDelete={onDeleteConversation}
+              locale={locale}
             />
           </div>
 
@@ -531,7 +534,7 @@ export function AssistantChat({
             <Card className="p-4 shadow-sm border-outline-variant/40">
               <div className="mb-3 flex items-center gap-2 text-sm font-bold text-on-surface">
                 <Lightbulb className="size-4 text-accent-amber" />
-                Consultas frecuentes
+                {copy.commonQuestions}
               </div>
               <div className="space-y-2">
                 {context.suggestions.map((suggestion) => (
@@ -552,11 +555,10 @@ export function AssistantChat({
           <Card className="bg-surface-container p-4 shadow-none border-none">
             <div className="mb-2 flex items-center gap-2 text-sm font-bold text-primary">
               <Check className="size-4" />
-              Contexto controlado
+              {copy.controlledContext}
             </div>
             <p className="text-xs leading-relaxed text-on-surface-variant">
-              Este chat tiene acceso a tus proyectos actuales y a la información de{' '}
-              {context.label.toLowerCase()} para responder de forma personalizada.
+              {copy.controlledContextDescription(context.label.toLowerCase())}
             </p>
           </Card>
         </aside>
@@ -575,30 +577,33 @@ function ChatHistoryCard({
   isLoading,
   onSelect,
   onDelete,
+  locale,
 }: {
   conversations: ConversationItem[];
   activeId?: string | null;
   isLoading?: boolean;
   onSelect?: (id: string) => void;
   onDelete?: (id: string) => void;
+  locale: Locale;
 }) {
+  const copy = getChatCopy(locale);
   return (
     <Card className="p-3.5 shadow-sm border-outline-variant/40">
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2 text-sm font-bold text-on-surface">
           <History className="size-4 text-primary" />
-          <span>Historial de chats</span>
+          <span>{copy.chatHistory}</span>
         </div>
       </div>
 
       <div className="max-h-60 overflow-y-auto space-y-1 pr-1">
         {isLoading ? (
           <div className="py-6 text-center text-xs text-on-surface-variant animate-pulse">
-            Cargando historial...
+            {copy.loadingHistory}
           </div>
         ) : conversations.length === 0 ? (
           <div className="py-6 text-center text-xs text-on-surface-variant">
-            No tienes conversaciones guardadas.
+            {copy.noConversations}
           </div>
         ) : (
           conversations.map((conv) => {
@@ -632,7 +637,7 @@ function ChatHistoryCard({
                       onDelete(conv.id);
                     }}
                     className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-outline hover:text-error rounded"
-                    title="Eliminar conversación"
+                    title={copy.deleteConversation}
                   >
                     <Trash2 className="size-3" />
                   </button>
@@ -649,22 +654,25 @@ function ChatHistoryCard({
 function EmptyConversation({
   context,
   isConnected,
+  locale,
 }: {
   context: AssistantContext;
   isConnected: boolean;
+  locale: Locale;
 }) {
+  const copy = getChatCopy(locale);
   return (
     <div className="flex min-h-80 flex-col items-center justify-center px-4 text-center">
       <div className="flex size-14 items-center justify-center rounded-2xl bg-surface-container text-primary">
         <Sparkles className="size-6" />
       </div>
       <h3 className="mt-4 text-lg font-bold">
-        {isConnected ? 'Inicia una conversación' : 'Este espacio está preparado para Komo'}
+        {isConnected ? copy.startConversation : copy.spaceReady}
       </h3>
       <p className="mt-2 max-w-sm text-sm leading-relaxed text-on-surface-variant">
         {isConnected
-          ? `Escribe una consulta para trabajar desde ${context.label.toLowerCase()} o pide consejos sobre tus proyectos.`
-          : `Cuando se conecte el servicio, podrás conversar desde ${context.label.toLowerCase()} sin salir de esta sección.`}
+          ? copy.emptyDescription(context.label.toLowerCase())
+          : copy.offlineDescription(context.label.toLowerCase())}
       </p>
     </div>
   );
@@ -791,6 +799,7 @@ function ChatMessage({
   userProjects = [],
   onCreateProject,
   onUpdateProject,
+  locale,
 }: {
   message: AssistantMessage;
   userProjects?: UserProjectItem[];
@@ -800,7 +809,9 @@ function ChatMessage({
     tasks: GeneratedTaskItem[],
     title?: string,
   ) => Promise<string | void> | void;
+  locale: Locale;
 }) {
+  const copy = getChatCopy(locale);
   const isAssistant = message.role === 'assistant';
   const file = message.fileAttachment || (message.contextData?.file as FileAttachment | undefined);
   const tasks = message.tasks || (message.contextData?.tasks as GeneratedTaskItem[] | undefined);
@@ -824,11 +835,11 @@ function ChatMessage({
     const topicTitle =
       message.suggestedTopicTitle ||
       (message.contextData?.suggestedTopicTitle as string | undefined) ||
-      'Proyecto Recomendado';
+      copy.recommendedProject;
     const topicObj =
       message.suggestedTopicObjective ||
       (message.contextData?.suggestedTopicObjective as string | undefined) ||
-      'Plan de estudio propuesto por Komo IA';
+      copy.studyPlanByKomo;
     effectiveProjectLink = `/proyectos/nuevo?step=2&titulo=${encodeURIComponent(topicTitle)}&objetivo=${encodeURIComponent(topicObj)}`;
   } else if (!effectiveProjectLink && resolvedIntent === 'create_project') {
     effectiveProjectLink = '/proyectos/nuevo';
@@ -870,7 +881,7 @@ function ChatMessage({
       const projName =
         typeof res === 'string'
           ? res
-          : userProjects.find((p) => p.id === selectedProjectId)?.titulo || 'Proyecto';
+          : userProjects.find((p) => p.id === selectedProjectId)?.titulo || copy.project;
       setUpdatedProjectName(projName);
     } finally {
       setIsUpdatingProject(false);
@@ -890,7 +901,7 @@ function ChatMessage({
 
       <div className={cn('min-w-0 max-w-[85%] sm:max-w-[75%]', !isAssistant && 'text-right')}>
         <p className="mb-1 px-1 text-[11px] font-semibold text-on-surface-variant">
-          {isAssistant ? 'Komo' : 'Tú'}
+          {isAssistant ? 'Komo' : copy.you}
         </p>
 
         <div
@@ -930,25 +941,17 @@ function ChatMessage({
             <div className="mt-3.5 rounded-2xl border border-primary/20 bg-primary/[0.04] p-3 sm:p-3.5 text-left transition-all">
               <div className="flex items-center gap-1.5 mb-1 text-xs font-bold text-primary">
                 <Sparkles className="size-3.5 shrink-0 text-[#845326]" />
-                <span>
-                  {isSkipQuestions ? 'Configuración de Proyecto Lista' : 'Formulario de Proyectos'}
-                </span>
+                <span>{isSkipQuestions ? copy.projectSetupReady : copy.projectForm}</span>
               </div>
               <p className="text-[11px] text-on-surface-variant mb-2.5 leading-relaxed">
-                {isSkipQuestions
-                  ? 'Hemos omitido y prellenado las 2 primeras preguntas (Nombre y Objetivo). Ahora define tu fecha límite, prioridad y horario en el formulario.'
-                  : 'Define tu fecha límite, prioridad, dedicación diaria y materiales en el formulario interactivo para organizar tus metas.'}
+                {isSkipQuestions ? copy.prefilledProjectDescription : copy.projectFormDescription}
               </p>
               <Link
                 href={effectiveProjectLink}
                 className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-primary text-on-primary text-xs font-semibold shadow-xs hover:brightness-105 active:scale-[0.99] transition-all cursor-pointer"
               >
                 <FolderPlus className="size-3.5" />
-                <span>
-                  {isSkipQuestions
-                    ? 'Continuar en el formulario (Paso 3 de 7)'
-                    : 'Ir al formulario de proyectos'}
-                </span>
+                <span>{isSkipQuestions ? copy.continueProjectForm : copy.goToProjectForm}</span>
                 <ArrowRight className="size-3.5" />
               </Link>
             </div>
@@ -960,20 +963,20 @@ function ChatMessage({
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-1.5 text-xs font-bold text-primary">
                   <CheckCircle2 className="size-4 text-primary" />
-                  {planTitle || 'Plan de tareas estructurado'}
+                  {planTitle || copy.structuredTaskPlan}
                 </span>
                 <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
-                  {tasks.length} {tasks.length === 1 ? 'tarea' : 'tareas'}
+                  {tasks.length} {tasks.length === 1 ? copy.task : copy.tasks}
                 </span>
               </div>
 
               <div className="grid gap-2">
                 {tasks.map((task, idx) => {
-                  const title = task.title || task.titulo || `Tarea ${idx + 1}`;
+                  const title = task.title || task.titulo || `${copy.task} ${idx + 1}`;
                   const desc = task.description || task.descripcion;
                   const dur = task.duration || task.duracion;
                   const res = task.resourceUrl || task.resource_url;
-                  const resName = task.resourceName || 'Ver recurso';
+                  const resName = task.resourceName || copy.viewResource;
 
                   return (
                     <div
@@ -1017,20 +1020,17 @@ function ChatMessage({
                 {updatedProjectName ? (
                   <div className="flex items-center gap-2 rounded-xl bg-status-success-bg p-2.5 text-xs font-semibold text-status-success">
                     <Check className="size-4" />
-                    <span>
-                      ¡Proyecto &quot;{updatedProjectName}&quot; actualizado con {tasks.length}{' '}
-                      nuevas tareas!
-                    </span>
+                    <span>{copy.projectUpdated(updatedProjectName, tasks.length)}</span>
                   </div>
                 ) : projectCreated ? (
                   <div className="flex items-center gap-2 rounded-xl bg-status-success-bg p-2.5 text-xs font-semibold text-status-success">
                     <Check className="size-4" />
-                    <span>¡Redirigiendo al formulario de proyectos!</span>
+                    <span>{copy.redirectingToProjectForm}</span>
                   </div>
                 ) : userProjects.length > 0 && onUpdateProject ? (
                   <div className="space-y-2 rounded-2xl border border-primary/20 bg-primary/[0.03] p-3">
                     <div className="text-xs font-semibold text-on-surface">
-                      ¿Deseas agregar estas tareas a uno de tus proyectos existentes?
+                      {copy.addTasksQuestion}
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
@@ -1041,7 +1041,7 @@ function ChatMessage({
                       >
                         {userProjects.map((p) => (
                           <option key={p.id} value={p.id}>
-                            Proyecto: {p.titulo} ({p.progreso}%)
+                            {copy.project}: {p.titulo} ({p.progreso}%)
                           </option>
                         ))}
                       </select>
@@ -1055,7 +1055,7 @@ function ChatMessage({
                         className="gap-1.5 text-xs whitespace-nowrap shrink-0 cursor-pointer"
                       >
                         <FolderPlus className="size-3.5" />
-                        <span>{isUpdatingProject ? 'Actualizando...' : 'Actualizar proyecto'}</span>
+                        <span>{isUpdatingProject ? copy.updating : copy.updateProject}</span>
                       </Button>
                     </div>
 
@@ -1066,7 +1066,7 @@ function ChatMessage({
                         disabled={isCreatingProject || isUpdatingProject}
                         className="text-[11px] font-semibold text-primary hover:underline transition-colors block text-left pt-1 cursor-pointer"
                       >
-                        O configurar como nuevo proyecto en el formulario
+                        {copy.configureAsNewProject}
                       </button>
                     )}
                   </div>
@@ -1080,7 +1080,7 @@ function ChatMessage({
                     className="w-full gap-2 text-xs cursor-pointer"
                   >
                     <FolderPlus className="size-3.5 text-primary" />
-                    <span>Configurar proyecto en el formulario</span>
+                    <span>{copy.configureProjectForm}</span>
                   </Button>
                 ) : null}
               </div>
@@ -1092,9 +1092,10 @@ function ChatMessage({
   );
 }
 
-function TypingIndicator() {
+function TypingIndicator({ locale = 'es' }: { locale?: Locale }) {
+  const copy = getChatCopy(locale);
   return (
-    <div className="flex gap-3" role="status" aria-label="Komo está escribiendo">
+    <div className="flex gap-3" role="status" aria-label={copy.typing}>
       <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-on-primary">
         <Bot className="size-4" />
       </div>
@@ -1107,6 +1108,138 @@ function TypingIndicator() {
       </div>
     </div>
   );
+}
+
+function getChatCopy(locale: Locale) {
+  return locale === 'es'
+    ? {
+        assistant: 'Asistente IA',
+        history: 'Historial',
+        ready: 'Listo para conversar',
+        pending: 'Conexión pendiente',
+        context: 'Contexto',
+        analytics: 'Analítica',
+        analyticsPrivacy: 'Se enviará solo la vista y el período, no tus títulos ni notas.',
+        generalMode: 'Modo general',
+        newConversation: 'Nueva conversación',
+        newChat: 'Nuevo chat',
+        responseError: 'No se pudo obtener una respuesta',
+        responseRetryHint: 'Tu mensaje se conserva para que puedas intentarlo de nuevo.',
+        retry: 'Reintentar',
+        wordsExtracted: 'palabras extraídas',
+        noReadableText: 'Sin texto legible (adjuntando nombre)',
+        removeFile: 'Remover archivo',
+        attachFile: 'Adjuntar archivo',
+        writeMessage: 'Escribe tu mensaje',
+        filePlaceholder: 'Indica qué deseas que Komo analice sobre este archivo...',
+        placeholder: 'Escribe lo que necesitas...',
+        disabledPlaceholder: 'El asistente se habilitará cuando esté conectado',
+        send: 'Enviar mensaje',
+        reviewNotice: 'Komo propone; tú revisas antes de aplicar cualquier cambio.',
+        commonQuestions: 'Consultas frecuentes',
+        controlledContext: 'Contexto controlado',
+        controlledContextDescription: (label: string) =>
+          `Este chat tiene acceso a tus proyectos actuales y a la información de ${label} para responder de forma personalizada.`,
+        chatHistory: 'Historial de chats',
+        loadingHistory: 'Cargando historial...',
+        noConversations: 'No tienes conversaciones guardadas.',
+        deleteConversation: 'Eliminar conversación',
+        startConversation: 'Inicia una conversación',
+        spaceReady: 'Este espacio está preparado para Komo',
+        emptyDescription: (label: string) =>
+          `Escribe una consulta para trabajar desde ${label} o pide consejos sobre tus proyectos.`,
+        offlineDescription: (label: string) =>
+          `Cuando se conecte el servicio, podrás conversar desde ${label} sin salir de esta sección.`,
+        you: 'Tú',
+        typing: 'Komo está escribiendo',
+        recommendedProject: 'Proyecto recomendado',
+        studyPlanByKomo: 'Plan de estudio propuesto por Komo IA',
+        project: 'Proyecto',
+        projectSetupReady: 'Configuración del proyecto lista',
+        projectForm: 'Formulario de proyectos',
+        prefilledProjectDescription:
+          'Hemos omitido y prellenado las dos primeras preguntas (nombre y objetivo). Ahora define tu fecha límite, prioridad y horario en el formulario.',
+        projectFormDescription:
+          'Define tu fecha límite, prioridad, dedicación diaria y materiales en el formulario interactivo para organizar tus metas.',
+        continueProjectForm: 'Continuar en el formulario (paso 3 de 7)',
+        goToProjectForm: 'Ir al formulario de proyectos',
+        structuredTaskPlan: 'Plan de tareas estructurado',
+        task: 'tarea',
+        tasks: 'tareas',
+        viewResource: 'Ver recurso',
+        projectUpdated: (project: string, taskCount: number) =>
+          `¡Proyecto “${project}” actualizado con ${taskCount} ${taskCount === 1 ? 'nueva tarea' : 'nuevas tareas'}!`,
+        redirectingToProjectForm: 'Redirigiendo al formulario de proyectos',
+        addTasksQuestion: '¿Deseas agregar estas tareas a uno de tus proyectos existentes?',
+        updating: 'Actualizando...',
+        updateProject: 'Actualizar proyecto',
+        configureAsNewProject: 'O configurar como nuevo proyecto en el formulario',
+        configureProjectForm: 'Configurar proyecto en el formulario',
+      }
+    : {
+        assistant: 'AI Assistant',
+        history: 'History',
+        ready: 'Ready to chat',
+        pending: 'Connection pending',
+        context: 'Context',
+        analytics: 'Analytics',
+        analyticsPrivacy: 'Only the view and period will be sent, never your titles or notes.',
+        generalMode: 'General mode',
+        newConversation: 'New conversation',
+        newChat: 'New chat',
+        responseError: 'Could not get a response',
+        responseRetryHint: 'Your message is kept so you can try again.',
+        retry: 'Try again',
+        wordsExtracted: 'words extracted',
+        noReadableText: 'No readable text (attaching filename)',
+        removeFile: 'Remove file',
+        attachFile: 'Attach file',
+        writeMessage: 'Write your message',
+        filePlaceholder: 'Tell Komo what you would like analyzed from this file...',
+        placeholder: 'Write what you need...',
+        disabledPlaceholder: 'The assistant will be enabled when connected',
+        send: 'Send message',
+        reviewNotice: 'Komo proposes; you review before applying any change.',
+        commonQuestions: 'Common questions',
+        controlledContext: 'Controlled context',
+        controlledContextDescription: (label: string) =>
+          `This chat can use your current projects and ${label} information to respond personally.`,
+        chatHistory: 'Chat history',
+        loadingHistory: 'Loading history...',
+        noConversations: 'You have no saved conversations.',
+        deleteConversation: 'Delete conversation',
+        startConversation: 'Start a conversation',
+        spaceReady: 'This space is ready for Komo',
+        emptyDescription: (label: string) =>
+          `Write a question about ${label} or ask for advice about your projects.`,
+        offlineDescription: (label: string) =>
+          `Once the service connects, you can chat from ${label} without leaving this section.`,
+        you: 'You',
+        typing: 'Komo is typing',
+        recommendedProject: 'Recommended project',
+        studyPlanByKomo: 'Study plan proposed by Komo AI',
+        project: 'Project',
+        projectSetupReady: 'Project setup ready',
+        projectForm: 'Project form',
+        prefilledProjectDescription:
+          'We skipped and prefilled the first two questions (name and goal). Now set your deadline, priority, and schedule in the form.',
+        projectFormDescription:
+          'Set your deadline, priority, daily commitment, and materials in the interactive form to organize your goals.',
+        continueProjectForm: 'Continue in the form (step 3 of 7)',
+        goToProjectForm: 'Go to the project form',
+        structuredTaskPlan: 'Structured task plan',
+        task: 'task',
+        tasks: 'tasks',
+        viewResource: 'View resource',
+        projectUpdated: (project: string, taskCount: number) =>
+          `Project “${project}” updated with ${taskCount} new ${taskCount === 1 ? 'task' : 'tasks'}!`,
+        redirectingToProjectForm: 'Redirecting to the project form',
+        addTasksQuestion: 'Would you like to add these tasks to one of your existing projects?',
+        updating: 'Updating...',
+        updateProject: 'Update project',
+        configureAsNewProject: 'Or set it up as a new project in the form',
+        configureProjectForm: 'Set up project in the form',
+      };
 }
 
 function formatBytes(bytes: number): string {

@@ -7,10 +7,13 @@ import type {
   ForgotPasswordFormData,
 } from '@/features/auth/types/auth.types';
 import { createClient } from '@/lib/supabase/server';
+import type { Locale } from '@/lib/i18n/locale';
+import { localizedHref } from '@/lib/i18n/routes';
 
 export async function requestPasswordReset(
   formData: ForgotPasswordFormData,
   origin?: string,
+  locale: Locale = 'es',
 ): Promise<ForgotPasswordActionResponse> {
   const validationResult = forgotPasswordSchema.safeParse(formData);
 
@@ -63,7 +66,7 @@ export async function requestPasswordReset(
     const supabase = await createClient();
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${siteUrl}/auth/callback?next=/restablecer-contrasena`,
+      redirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent(localizedHref(locale, 'resetPassword'))}`,
     });
 
     if (error) {

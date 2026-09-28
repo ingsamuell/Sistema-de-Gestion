@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import {
   X,
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { defaultLocale, getLocaleFromPathname } from '@/lib/i18n/locale';
 
 interface CertData {
   hash_sha256: string;
@@ -51,6 +53,46 @@ export function CertificateModal({
   isPreview = false,
   previewData,
 }: CertificateModalProps) {
+  const pathname = usePathname();
+  const locale = getLocaleFromPathname(pathname) ?? defaultLocale;
+  const copy =
+    locale === 'es'
+      ? {
+          preview: 'Vista previa del certificado',
+          official: 'Certificado oficial',
+          accreditation: 'Acreditación oficial de tiempo invertido',
+          loading: 'Cargando documento...',
+          watermark: 'VISTA PREVIA',
+          academic: 'Acreditación académica',
+          title: 'CERTIFICADO DE INVERSIÓN DE TIEMPO',
+          subtitle: 'Constancia oficial de dedicación y cumplimiento de metas',
+          presented: 'Por cuanto se hace constar oficialmente que el/la estudiante',
+          unnamed: 'Nombre no definido',
+          dedication:
+            'Ha dedicado y completado con disciplina un tiempo efectivo de foco y estudio de:',
+          hours: 'horas',
+          tasks: 'TAREAS REALIZADAS',
+          applied: 'Aplicadas con éxito en el desarrollo del proyecto académico:',
+          additional: 'tareas adicionales',
+        }
+      : {
+          preview: 'Certificate preview',
+          official: 'Official certificate',
+          accreditation: 'Official time-investment accreditation',
+          loading: 'Loading document...',
+          watermark: 'PREVIEW',
+          academic: 'Academic accreditation',
+          title: 'TIME INVESTMENT CERTIFICATE',
+          subtitle: 'Official record of dedication and goal completion',
+          presented: 'This is to officially certify that the student',
+          unnamed: 'Name not provided',
+          dedication:
+            'Has dedicated and completed with discipline an effective amount of focused study time of:',
+          hours: 'hours',
+          tasks: 'TASKS COMPLETED',
+          applied: 'Successfully applied to the academic project:',
+          additional: 'additional tasks',
+        };
   const supabase = createClient();
   const certRef = useRef<HTMLDivElement>(null);
   const [fetchedData, setFetchedData] = useState<CertData | null>(null);
@@ -247,10 +289,10 @@ export function CertificateModal({
         <div className="flex items-center gap-2">
           <Award className="size-5 text-[#845326]" />
           <span className="font-bold text-sm sm:text-base">
-            {effectiveIsPreview ? 'Vista Previa del Certificado' : 'Certificado Oficial'}
+            {effectiveIsPreview ? copy.preview : copy.official}
           </span>
           <span className="hidden sm:inline-block text-[#845326] text-xs opacity-70 ml-2">
-            Acreditación oficial de tiempo invertido • Komorebi
+            {copy.accreditation} • Komorebi
           </span>
         </div>
         <button
@@ -266,7 +308,7 @@ export function CertificateModal({
         {loading || !data ? (
           <div className="flex flex-col items-center justify-center py-20 text-white/70">
             <Loader2 className="size-8 animate-spin mb-4" />
-            <p>Cargando documento...</p>
+            <p>{copy.loading}</p>
           </div>
         ) : (
           <div className="w-full max-w-[1050px] flex flex-col gap-4 relative">
@@ -293,7 +335,7 @@ export function CertificateModal({
                 {effectiveIsPreview && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
                     <span className="transform -rotate-45 text-7xl font-black text-gray-400 opacity-10">
-                      VISTA PREVIA
+                      {copy.watermark}
                     </span>
                   </div>
                 )}
@@ -303,48 +345,47 @@ export function CertificateModal({
                     {/* Top Badge */}
                     <div className="mt-1 flex items-center justify-center gap-2 text-[9px] sm:text-[10px] font-bold text-[#845326] uppercase tracking-[0.2em] bg-[#F2EFE8] px-4 py-1.5 rounded-full mb-3 border border-[#E8DCD1]">
                       <Award className="size-3.5" />
-                      <span>Komorebi Study Studio • Acreditación Académica</span>
+                      <span>Komorebi Study Studio • {copy.academic}</span>
                     </div>
 
                     {/* Main Title */}
                     <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-[#2C1F14] tracking-widest mb-1 whitespace-nowrap">
-                      CERTIFICADO DE INVERSIÓN DE TIEMPO
+                      {copy.title}
                     </h1>
                     <h2 className="text-[9px] sm:text-[11px] text-[#845326] uppercase tracking-[0.3em] mb-3">
-                      Constancia Oficial de Dedicación y Cumplimiento de Metas
+                      {copy.subtitle}
                     </h2>
 
                     {/* Presentación */}
                     <p className="italic font-serif text-[#845326] mb-1 text-xs sm:text-sm">
-                      Por cuanto se hace constar oficialmente que el/la estudiante
+                      {copy.presented}
                     </p>
 
                     {/* Nombre */}
                     <div className="w-full max-w-2xl border-b border-[#E8DCD1] pb-1 mb-2">
                       <p className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold text-[#2C1F14] capitalize">
-                        {data.profiles.nombre_completo || 'Nombre no definido'}
+                        {data.profiles.nombre_completo || copy.unnamed}
                       </p>
                     </div>
 
                     {/* Descripción */}
                     <p className="text-[#2C1F14] text-xs sm:text-sm mb-2 max-w-2xl mx-auto leading-relaxed">
-                      Ha dedicado y completado con disciplina un tiempo efectivo de foco y estudio
-                      de:
+                      {copy.dedication}
                     </p>
 
                     {/* Estadísticas */}
                     <div className="flex items-center justify-center gap-4 mb-2">
                       <div className="font-bold text-lg text-gray-800">
                         <span className="mr-2">🕒</span>
-                        {data.horas_invertidas} horas
+                        {data.horas_invertidas} {copy.hours}
                       </div>
                       <div className="text-gray-500 text-sm uppercase tracking-wide">
-                        {data.temas_aprobados} TAREAS REALIZADAS
+                        {data.temas_aprobados} {copy.tasks}
                       </div>
                     </div>
 
                     <p className="text-[#2C1F14] text-xs sm:text-sm mb-2 max-w-xl mx-auto">
-                      Aplicadas con éxito en el desarrollo del proyecto académico:{' '}
+                      {copy.applied}{' '}
                       <span className="font-bold">&quot;{data.proyectos.titulo}&quot;</span>
                     </p>
 
@@ -366,7 +407,7 @@ export function CertificateModal({
                             ))}
                             <div className="border border-gray-200 rounded-md px-2 py-1 text-xs flex items-center justify-center bg-gray-50 shadow-xs">
                               <span className="text-gray-600 font-bold italic">
-                                + {data.tareas!.length - 7} tareas adicionales
+                                + {data.tareas!.length - 7} {copy.additional}
                               </span>
                             </div>
                           </>

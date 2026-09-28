@@ -16,19 +16,69 @@ import {
   getProjectsAction,
   type ProjectRecord,
 } from '@/features/proyectos/actions/proyectoActions';
+import { defaultLocale, getLocaleFromPathname } from '@/lib/i18n/locale';
+import { localizedHref, localizedProjectHref } from '@/lib/i18n/routes';
 import { useTourContext } from '@/contexts/TourContext';
 
 export function SidebarNav() {
   const pathname = usePathname();
+  const locale = getLocaleFromPathname(pathname) ?? defaultLocale;
   const { hasTour, startCurrentTour } = useTourContext();
+  const copy =
+    locale === 'es'
+      ? {
+          home: 'Inicio',
+          projects: 'Proyectos',
+          topics: 'Temas',
+          calendar: 'Calendario',
+          analytics: 'Analítica',
+          assistant: 'Asistente IA',
+          emptyProjects: 'Aún no tienes proyectos.',
+          help: 'Ayuda de esta página',
+        }
+      : {
+          home: 'Home',
+          projects: 'Projects',
+          topics: 'Topics',
+          calendar: 'Calendar',
+          analytics: 'Analytics',
+          assistant: 'AI assistant',
+          emptyProjects: 'You do not have any projects yet.',
+          help: 'Help with this page',
+        };
 
   const navItems = [
-    { href: '/', icon: Home, label: 'Inicio' },
-    { href: '/proyectos', icon: FolderKanban, label: 'Proyectos' },
-    { href: '/temas', icon: LibraryBig, label: 'Temas' },
-    { href: '/calendario', icon: Calendar, label: 'Calendario' },
-    { href: '/analitica', icon: BarChart2, label: 'Analítica' },
-    { href: '/ia', icon: Sparkles, label: 'Asistente IA' },
+    { href: localizedHref(locale, 'app'), icon: Home, label: copy.home, route: 'app' },
+    {
+      href: localizedHref(locale, 'projects'),
+      icon: FolderKanban,
+      label: copy.projects,
+      route: 'projects',
+    },
+    {
+      href: localizedHref(locale, 'topics'),
+      icon: LibraryBig,
+      label: copy.topics,
+      route: 'topics',
+    },
+    {
+      href: localizedHref(locale, 'calendar'),
+      icon: Calendar,
+      label: copy.calendar,
+      route: 'calendar',
+    },
+    {
+      href: localizedHref(locale, 'analytics'),
+      icon: BarChart2,
+      label: copy.analytics,
+      route: 'analytics',
+    },
+    {
+      href: localizedHref(locale, 'assistant'),
+      icon: Sparkles,
+      label: copy.assistant,
+      route: 'assistant',
+    },
   ];
 
   const [sidebarProjects, setSidebarProjects] = React.useState<
@@ -74,7 +124,7 @@ export function SidebarNav() {
     <nav className="flex-1 px-4 space-y-1 mt-4">
       {navItems.map((item) => {
         const Icon = item.icon;
-        const isActive = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
+        const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
 
         return (
           <div key={item.href}>
@@ -92,7 +142,7 @@ export function SidebarNav() {
               {item.label}
             </Link>
 
-            {item.href === '/proyectos' && isActive && sidebarProjects.length > 0 && (
+            {item.route === 'projects' && isActive && sidebarProjects.length > 0 && (
               <div className="pl-11 pr-4 py-2 space-y-3 animate-in fade-in duration-200">
                 {sidebarProjects
                   .sort((a, b) => {
@@ -111,15 +161,15 @@ export function SidebarNav() {
                     <SubItem
                       key={`${p.id || 'project'}-${pIdx}`}
                       label={p.name}
-                      href={`/proyectos/${p.id}`}
+                      href={localizedProjectHref(locale, p.id)}
                     />
                   ))}
               </div>
             )}
 
-            {item.href === '/proyectos' && isActive && sidebarProjects.length === 0 && (
+            {item.route === 'projects' && isActive && sidebarProjects.length === 0 && (
               <div className="pl-11 pr-4 py-2 animate-in fade-in duration-200">
-                <p className="text-xs text-on-surface-variant">Aún no tienes proyectos.</p>
+                <p className="text-xs text-on-surface-variant">{copy.emptyProjects}</p>
               </div>
             )}
           </div>
@@ -128,13 +178,14 @@ export function SidebarNav() {
 
       {hasTour && (
         <button
+          type="button"
           onClick={startCurrentTour}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-on-surface hover:bg-surface-container mt-2"
+          className="mt-2 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-on-surface transition-colors hover:bg-surface-container"
         >
           <div className="text-outline">
             <HelpCircle className="size-5" />
           </div>
-          Ayuda de esta página
+          {copy.help}
         </button>
       )}
     </nav>

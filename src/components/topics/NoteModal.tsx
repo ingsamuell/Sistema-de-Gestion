@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { X, FileText, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { defaultLocale, getLocaleFromPathname } from '@/lib/i18n/locale';
 
 interface NoteModalProps {
   isOpen: boolean;
@@ -26,6 +28,32 @@ interface NoteModalContentProps {
 }
 
 function NoteModalContent({ onClose, onSubmit }: NoteModalContentProps) {
+  const pathname = usePathname();
+  const locale = getLocaleFromPathname(pathname) ?? defaultLocale;
+  const copy =
+    locale === 'es'
+      ? {
+          required: 'El título de la nota es obligatorio.',
+          error: 'Error al guardar la nota',
+          heading: 'Escribir nota de fuente',
+          title: 'Título de la nota',
+          titlePlaceholder: 'Ej: Mapa de conceptos, resumen de clase...',
+          content: 'Contenido de la nota',
+          contentPlaceholder: 'Escribe aquí los puntos clave, explicaciones o referencias...',
+          cancel: 'Cancelar',
+          save: 'Guardar nota',
+        }
+      : {
+          required: 'A note title is required.',
+          error: 'Could not save the note',
+          heading: 'Write source note',
+          title: 'Note title',
+          titlePlaceholder: 'E.g. Concept map, class summary...',
+          content: 'Note content',
+          contentPlaceholder: 'Write key points, explanations, or references here...',
+          cancel: 'Cancel',
+          save: 'Save note',
+        };
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
@@ -35,7 +63,7 @@ function NoteModalContent({ onClose, onSubmit }: NoteModalContentProps) {
     e.preventDefault();
     const cleanTitle = title.trim();
     if (!cleanTitle) {
-      setError('El título de la nota es obligatorio.');
+      setError(copy.required);
       return;
     }
 
@@ -45,7 +73,7 @@ function NoteModalContent({ onClose, onSubmit }: NoteModalContentProps) {
       await onSubmit(cleanTitle, content.trim());
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al guardar la nota');
+      setError(err instanceof Error ? err.message : copy.error);
     } finally {
       setLoading(false);
     }
@@ -58,7 +86,7 @@ function NoteModalContent({ onClose, onSubmit }: NoteModalContentProps) {
           <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
             <FileText className="size-4" />
           </div>
-          <span>Escribir Nota de Fuente</span>
+          <span>{copy.heading}</span>
         </div>
         <button
           type="button"
@@ -78,14 +106,14 @@ function NoteModalContent({ onClose, onSubmit }: NoteModalContentProps) {
 
         <div>
           <label className="block text-xs font-semibold text-on-surface mb-1.5">
-            Título de la nota <span className="text-error">*</span>
+            {copy.title} <span className="text-error">*</span>
           </label>
           <input
             type="text"
             autoFocus
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Ej: Mapa de conceptos, Resumen de clase..."
+            placeholder={copy.titlePlaceholder}
             className="w-full rounded-xl border border-outline-variant/70 bg-surface px-3.5 py-2.5 text-sm outline-none transition-colors placeholder:text-outline focus:border-primary focus:ring-2 focus:ring-primary/10"
             maxLength={100}
           />
@@ -93,12 +121,12 @@ function NoteModalContent({ onClose, onSubmit }: NoteModalContentProps) {
 
         <div>
           <label className="block text-xs font-semibold text-on-surface mb-1.5">
-            Contenido de la nota
+            {copy.content}
           </label>
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder="Escribe aquí los puntos clave, explicaciones o referencias..."
+            placeholder={copy.contentPlaceholder}
             rows={5}
             className="w-full rounded-xl border border-outline-variant/70 bg-surface p-3.5 text-sm outline-none transition-colors placeholder:text-outline focus:border-primary focus:ring-2 focus:ring-primary/10 resize-y"
           />
@@ -106,11 +134,11 @@ function NoteModalContent({ onClose, onSubmit }: NoteModalContentProps) {
 
         <div className="mt-6 flex items-center justify-end gap-2 pt-3 border-t border-outline-variant/30">
           <Button type="button" variant="secondary" size="sm" disabled={loading} onClick={onClose}>
-            Cancelar
+            {copy.cancel}
           </Button>
           <Button type="submit" size="sm" disabled={loading || !title.trim()} className="gap-2">
             {loading && <Loader2 className="size-3.5 animate-spin" />}
-            Guardar Nota
+            {copy.save}
           </Button>
         </div>
       </form>

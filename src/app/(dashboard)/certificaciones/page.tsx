@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { headers } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
@@ -7,6 +8,8 @@ import {
   CertificadosGallery,
   CertificadoViewItem,
 } from '@/features/certifications/components/CertificadosGallery';
+import { defaultLocale, isLocale } from '@/lib/i18n/locale';
+import { localizedHref } from '@/lib/i18n/routes';
 
 export const metadata: Metadata = {
   title: 'Mis Certificaciones | Komorebi',
@@ -14,6 +17,31 @@ export const metadata: Metadata = {
 };
 
 export default async function CertificacionesPage() {
+  const requestHeaders = await headers();
+  const requestedLocale = requestHeaders.get('x-komorebi-locale');
+  const locale = requestedLocale && isLocale(requestedLocale) ? requestedLocale : defaultLocale;
+  const copy =
+    locale === 'es'
+      ? {
+          back: 'Volver al Perfil',
+          title: 'Mis Certificaciones',
+          description: 'Galería de tus logros validados criptográficamente en Komorebi.',
+          emptyTitle: 'Aún no tienes certificaciones',
+          emptyDescription:
+            'Completa todas las tareas de un proyecto al 100% y aprueba el cuestionario de evaluación para obtener tu primer certificado de inversión de tiempo.',
+          projects: 'Ir a mis proyectos',
+          fallbackProject: 'Proyecto Académico',
+        }
+      : {
+          back: 'Back to profile',
+          title: 'My certifications',
+          description: 'A gallery of your cryptographically validated achievements in Komorebi.',
+          emptyTitle: 'You do not have certifications yet',
+          emptyDescription:
+            'Complete every task in a project and pass its assessment quiz to earn your first time-investment certificate.',
+          projects: 'Go to my projects',
+          fallbackProject: 'Academic project',
+        };
   const supabase = await createClient();
   const {
     data: { user },
@@ -88,7 +116,7 @@ export default async function CertificacionesPage() {
       horas_invertidas: Number(c.horas_invertidas) || 1,
       temas_aprobados: Number(c.temas_aprobados) || 1,
       project_id: c.project_id,
-      tituloProyecto: projectsMap[c.project_id] || 'Proyecto Académico',
+      tituloProyecto: projectsMap[c.project_id] || copy.fallbackProject,
     }),
   );
 
@@ -96,20 +124,18 @@ export default async function CertificacionesPage() {
     <div className="flex flex-col min-h-full pb-20 animate-in fade-in duration-500 max-w-5xl mx-auto">
       <header className="mb-8 flex items-center gap-4">
         <Link
-          href="/perfil"
+          href={localizedHref(locale, 'profile')}
           className="p-2 rounded-full hover:bg-surface-container transition-colors text-on-surface-variant hover:text-on-surface"
-          title="Volver al Perfil"
+          title={copy.back}
         >
           <ArrowLeft className="size-5" />
         </Link>
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-[#2C1F14] flex items-center gap-2">
             <Award className="size-8 text-primary" />
-            Mis Certificaciones
+            {copy.title}
           </h1>
-          <p className="text-on-surface-variant">
-            Galería de tus logros validados criptográficamente en Komorebi.
-          </p>
+          <p className="text-on-surface-variant">{copy.description}</p>
         </div>
       </header>
 
@@ -118,20 +144,17 @@ export default async function CertificacionesPage() {
           <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
             <Award className="size-8 text-primary/60" />
           </div>
-          <h2 className="text-xl font-bold text-on-surface mb-2">Aún no tienes certificaciones</h2>
-          <p className="text-on-surface-variant max-w-md mx-auto mb-6">
-            Completa todas las tareas de un proyecto al 100% y aprueba el cuestionario de evaluación
-            para obtener tu primer certificado de inversión de tiempo.
-          </p>
+          <h2 className="text-xl font-bold text-on-surface mb-2">{copy.emptyTitle}</h2>
+          <p className="text-on-surface-variant max-w-md mx-auto mb-6">{copy.emptyDescription}</p>
           <Link
-            href="/proyectos"
+            href={localizedHref(locale, 'projects')}
             className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-on-primary rounded-xl font-bold hover:bg-primary/90 transition-colors shadow-sm hover:shadow"
           >
-            Ir a mis proyectos
+            {copy.projects}
           </Link>
         </div>
       ) : (
-        <CertificadosGallery certificados={certificados} />
+        <CertificadosGallery certificados={certificados} locale={locale} />
       )}
     </div>
   );

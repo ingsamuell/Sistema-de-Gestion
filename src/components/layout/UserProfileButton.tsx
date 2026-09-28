@@ -2,15 +2,19 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { LogOut, Loader2 } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
 import { logoutUser } from '@/features/auth/actions/logoutAction';
+import { defaultLocale, getLocaleFromPathname } from '@/lib/i18n/locale';
+import { localizedHref } from '@/lib/i18n/routes';
 
 interface UserProfileButtonProps {
   initialUser?: User | null;
   compact?: boolean;
+  minimal?: boolean;
+  showLogout?: boolean;
 }
 
 interface ProfileOverride {
@@ -19,8 +23,15 @@ interface ProfileOverride {
   avatarUrl?: string;
 }
 
-export function UserProfileButton({ initialUser, compact = false }: UserProfileButtonProps) {
+export function UserProfileButton({
+  initialUser,
+  compact = false,
+  minimal = false,
+  showLogout = false,
+}: UserProfileButtonProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const locale = getLocaleFromPathname(pathname) ?? defaultLocale;
   const [user, setUser] = useState<User | null>(initialUser ?? null);
   const [prevInitialUser, setPrevInitialUser] = useState(initialUser);
   const [override, setOverride] = useState<ProfileOverride | null>(null);
@@ -152,15 +163,50 @@ export function UserProfileButton({ initialUser, compact = false }: UserProfileB
 
     setUser(null);
     setOverride(null);
-    router.push('/login');
+    router.push(localizedHref(locale, 'login'));
     router.refresh();
   };
+
+  if (minimal) {
+    return (
+      <div className="flex items-center gap-1">
+        <Link
+          href={localizedHref(locale, 'profile')}
+          aria-label={locale === 'es' ? 'Abrir perfil' : 'Open profile'}
+          className="flex size-9 items-center justify-center overflow-hidden rounded-full border border-outline-variant/30 bg-surface-container transition-colors hover:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+        >
+          {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={avatarUrl} alt="" className="size-full object-cover" />
+          ) : (
+            <span className="text-xs font-bold text-primary select-none">{initials}</span>
+          )}
+        </Link>
+        {showLogout && (
+          <button
+            type="button"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            title={locale === 'es' ? 'Cerrar sesión' : 'Log out'}
+            aria-label={locale === 'es' ? 'Cerrar sesión' : 'Log out'}
+            className="rounded-lg p-1.5 text-outline transition-colors hover:bg-error/10 hover:text-error"
+          >
+            {isLoggingOut ? (
+              <Loader2 className="size-4 animate-spin text-outline" />
+            ) : (
+              <LogOut className="size-4" />
+            )}
+          </button>
+        )}
+      </div>
+    );
+  }
 
   if (compact) {
     return (
       <div className="flex items-center gap-2">
         <Link
-          href="/perfil"
+          href={localizedHref(locale, 'profile')}
           className="flex min-w-0 items-center gap-2 rounded-full border border-outline-variant/30 bg-surface-container py-1 pl-1.5 pr-3 transition-colors hover:bg-surface-container-high"
         >
           <div className="size-7 rounded-full bg-surface-tint/20 flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -199,7 +245,7 @@ export function UserProfileButton({ initialUser, compact = false }: UserProfileB
   return (
     <div className="bg-surface-container rounded-2xl p-3 flex items-center gap-3 hover:bg-surface-container-high transition-colors group">
       <Link
-        href="/perfil"
+        href={localizedHref(locale, 'profile')}
         className="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left transition-colors group-hover:text-primary"
       >
         <div className="size-10 rounded-full bg-surface-tint/20 flex-shrink-0 flex items-center justify-center overflow-hidden border border-outline-variant/20">

@@ -11,9 +11,75 @@ import { Button } from '@/components/ui/Button';
 import { registerUser } from '@/features/auth/actions/registerAction';
 import { createClient } from '@/lib/supabase/client';
 import type { RegisterFormData } from '@/features/auth/types/auth.types';
+import type { Locale } from '@/lib/i18n/locale';
+import { localizedHref } from '@/lib/i18n/routes';
 
-export function RegisterForm() {
+const registerCopy = {
+  es: {
+    title: 'Crear una cuenta',
+    subtitle: 'Completa tus datos para registrarte en Komorebi',
+    firstName: 'Nombre',
+    lastName: 'Apellido',
+    username: 'Nombre de usuario',
+    email: 'Correo electrónico',
+    password: 'Contraseña',
+    passwordRequirements: 'Requisitos para la contraseña:',
+    confirmPassword: 'Confirmación de contraseña',
+    hide: 'Ocultar contraseña',
+    show: 'Ver contraseña',
+    termsStart: 'He leído y acepto los',
+    terms: 'Términos y condiciones',
+    privacy: 'Política de privacidad',
+    submit: 'Registrarse',
+    loading: 'Creando cuenta...',
+    or: 'o',
+    googleLoading: 'Conectando con Google...',
+    google: 'Continuar con Google',
+    existingAccount: '¿Ya tienes una cuenta?',
+    login: 'Inicia sesión',
+    success: '¡Cuenta creada con éxito! Redirigiendo para verificar tu correo...',
+    criteria: [
+      'Mínimo 6 caracteres',
+      'Mínimo 1 letra mayúscula',
+      'Mínimo 1 número',
+      'Mínimo 1 carácter especial (ej. !@#$%^&*)',
+    ],
+  },
+  en: {
+    title: 'Create an account',
+    subtitle: 'Complete your details to join Komorebi',
+    firstName: 'First name',
+    lastName: 'Last name',
+    username: 'Username',
+    email: 'Email address',
+    password: 'Password',
+    passwordRequirements: 'Password requirements:',
+    confirmPassword: 'Confirm password',
+    hide: 'Hide password',
+    show: 'Show password',
+    termsStart: 'I have read and accept the',
+    terms: 'Terms and conditions',
+    privacy: 'Privacy policy',
+    submit: 'Create account',
+    loading: 'Creating account...',
+    or: 'or',
+    googleLoading: 'Connecting to Google...',
+    google: 'Continue with Google',
+    existingAccount: 'Already have an account?',
+    login: 'Log in',
+    success: 'Account created successfully. Redirecting to email verification...',
+    criteria: [
+      'At least 6 characters',
+      'At least 1 uppercase letter',
+      'At least 1 number',
+      'At least 1 special character (e.g. !@#$%^&*)',
+    ],
+  },
+} as const;
+
+export function RegisterForm({ locale }: { locale: Locale }) {
   const router = useRouter();
+  const copy = registerCopy[locale];
 
   const [formData, setFormData] = useState<RegisterFormData>({
     firstName: '',
@@ -51,22 +117,22 @@ export function RegisterForm() {
   const passwordCriteria = [
     {
       id: 'length',
-      label: 'Mínimo 6 caracteres',
+      label: copy.criteria[0],
       met: formData.password.length >= 6,
     },
     {
       id: 'uppercase',
-      label: 'Mínimo 1 letra mayúscula',
+      label: copy.criteria[1],
       met: /[A-Z\p{Lu}]/u.test(formData.password),
     },
     {
       id: 'number',
-      label: 'Mínimo 1 número',
+      label: copy.criteria[2],
       met: /[0-9]/.test(formData.password),
     },
     {
       id: 'special',
-      label: 'Mínimo 1 carácter especial (ej. !@#$%^&*)',
+      label: copy.criteria[3],
       met: /[^a-zA-Z0-9\s\p{L}]/u.test(formData.password),
     },
   ];
@@ -101,7 +167,9 @@ export function RegisterForm() {
       // Registro exitoso -> Redirigir a la pantalla de verificación de correo
       setIsSuccess(true);
       setTimeout(() => {
-        router.push(`/verificar-correo?email=${encodeURIComponent(formData.email)}`);
+        router.push(
+          `${localizedHref(locale, 'verifyEmail')}?email=${encodeURIComponent(formData.email)}`,
+        );
       }, 1200);
     } catch {
       setGeneralError('Ocurrió un error inesperado. Por favor intenta de nuevo.');
@@ -147,10 +215,8 @@ export function RegisterForm() {
       {/* Encabezado e Ícono */}
       <div className="flex flex-col items-center text-center mb-8">
         <AuthMascotVideo framed={false} objectFit="contain" className="mb-4 h-40 w-40 lg:hidden" />
-        <h1 className="text-2xl font-bold text-primary mb-1 tracking-tight">Crear una cuenta</h1>
-        <p className="text-sm text-on-surface-variant font-medium max-w-sm">
-          Completa tus datos para registrarte en Komorebi Study Studio
-        </p>
+        <h1 className="text-2xl font-bold text-primary mb-1 tracking-tight">{copy.title}</h1>
+        <p className="text-sm text-on-surface-variant font-medium max-w-sm">{copy.subtitle}</p>
       </div>
 
       {/* Alerta de Error General */}
@@ -165,7 +231,7 @@ export function RegisterForm() {
       {isSuccess && (
         <div className="mb-4 flex items-center gap-3 rounded-xl bg-status-success-bg p-4 text-status-success text-sm font-medium animate-in fade-in">
           <CheckCircle2 className="size-5 shrink-0" />
-          <span>¡Cuenta creada con éxito! Redirigiendo para verificar tu correo...</span>
+          <span>{copy.success}</span>
         </div>
       )}
 
@@ -175,7 +241,7 @@ export function RegisterForm() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <label className="text-sm font-semibold text-on-surface ml-1" htmlFor="firstName">
-              Nombre
+              {copy.firstName}
             </label>
             <input
               id="firstName"
@@ -198,7 +264,7 @@ export function RegisterForm() {
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-semibold text-on-surface ml-1" htmlFor="lastName">
-              Apellido
+              {copy.lastName}
             </label>
             <input
               id="lastName"
@@ -224,7 +290,7 @@ export function RegisterForm() {
         {/* Nombre de usuario */}
         <div className="space-y-1.5">
           <label className="text-sm font-semibold text-on-surface ml-1" htmlFor="username">
-            Nombre de usuario
+            {copy.username}
           </label>
           <input
             id="username"
@@ -249,7 +315,7 @@ export function RegisterForm() {
         {/* Correo electrónico */}
         <div className="space-y-1.5">
           <label className="text-sm font-semibold text-on-surface ml-1" htmlFor="email">
-            Correo electrónico
+            {copy.email}
           </label>
           <input
             id="email"
@@ -272,7 +338,7 @@ export function RegisterForm() {
         {/* Contraseña */}
         <div className="space-y-1.5">
           <label className="text-sm font-semibold text-on-surface ml-1" htmlFor="password">
-            Contraseña
+            {copy.password}
           </label>
           <div className="relative">
             <input
@@ -294,7 +360,7 @@ export function RegisterForm() {
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
               className="absolute right-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface transition-colors focus:outline-none"
-              aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+              aria-label={showPassword ? copy.hide : copy.show}
             >
               {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
             </button>
@@ -306,7 +372,7 @@ export function RegisterForm() {
           {/* Recuadro de requisitos de seguridad de la contraseña */}
           <div className="mt-2 rounded-xl border border-outline-variant/40 bg-surface-container-low/60 p-3.5 space-y-2 transition-all">
             <p className="text-xs font-semibold text-on-surface-variant/90">
-              Requisitos para la contraseña:
+              {copy.passwordRequirements}
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {passwordCriteria.map((criterion) => (
@@ -331,7 +397,7 @@ export function RegisterForm() {
         {/* Confirmación de contraseña */}
         <div className="space-y-1.5">
           <label className="text-sm font-semibold text-on-surface ml-1" htmlFor="confirmPassword">
-            Confirmación de contraseña
+            {copy.confirmPassword}
           </label>
           <div className="relative">
             <input
@@ -353,7 +419,7 @@ export function RegisterForm() {
               type="button"
               onClick={() => setShowConfirmPassword((prev) => !prev)}
               className="absolute right-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface transition-colors focus:outline-none"
-              aria-label={showConfirmPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+              aria-label={showConfirmPassword ? copy.hide : copy.show}
             >
               {showConfirmPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
             </button>
@@ -381,25 +447,25 @@ export function RegisterForm() {
               className="mt-0.5 size-4 shrink-0 rounded border-outline-variant text-primary accent-primary focus:ring-2 focus:ring-primary/30"
             />
             <span className="text-xs leading-relaxed text-on-surface-variant">
-              He leído y acepto los{' '}
+              {copy.termsStart}{' '}
               <Link
-                href="/terms"
+                href={localizedHref(locale, 'terms')}
                 target="_blank"
                 rel="noreferrer"
                 onClick={(event) => event.stopPropagation()}
                 className="font-semibold text-primary underline decoration-primary/40 underline-offset-2 transition-colors hover:text-accent-amber"
               >
-                Términos y condiciones
+                {copy.terms}
               </Link>{' '}
               y la{' '}
               <Link
-                href="/privacy"
+                href={localizedHref(locale, 'privacy')}
                 target="_blank"
                 rel="noreferrer"
                 onClick={(event) => event.stopPropagation()}
                 className="font-semibold text-primary underline decoration-primary/40 underline-offset-2 transition-colors hover:text-accent-amber"
               >
-                Política de privacidad
+                {copy.privacy}
               </Link>
               .
             </span>
@@ -417,10 +483,10 @@ export function RegisterForm() {
             {isLoading ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
-                <span>Creando cuenta...</span>
+                <span>{copy.loading}</span>
               </>
             ) : (
-              'Registrarse'
+              copy.submit
             )}
           </Button>
         </div>
@@ -429,7 +495,7 @@ export function RegisterForm() {
         <div className="relative my-6 flex items-center justify-center">
           <div className="border-t border-outline-variant/30 w-full" />
           <span className="bg-surface/80 backdrop-blur-sm px-3 text-xs text-on-surface-variant uppercase tracking-wider absolute font-medium rounded-full">
-            o
+            {copy.or}
           </span>
         </div>
 
@@ -444,7 +510,7 @@ export function RegisterForm() {
           {isGoogleLoading ? (
             <>
               <Loader2 className="size-4 animate-spin" />
-              <span>Conectando con Google...</span>
+              <span>{copy.googleLoading}</span>
             </>
           ) : (
             <>
@@ -466,7 +532,7 @@ export function RegisterForm() {
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                 />
               </svg>
-              <span>Continuar con Google</span>
+              <span>{copy.google}</span>
             </>
           )}
         </Button>
@@ -474,12 +540,12 @@ export function RegisterForm() {
 
       {/* Enlace inferior */}
       <div className="relative z-10 mt-8 text-center text-sm text-on-surface-variant font-medium">
-        ¿Ya tienes una cuenta?{' '}
+        {copy.existingAccount}{' '}
         <Link
-          href="/login"
+          href={localizedHref(locale, 'login')}
           className="text-primary font-bold hover:text-primary/80 transition-colors"
         >
-          Inicia sesión
+          {copy.login}
         </Link>
       </div>
     </Card>

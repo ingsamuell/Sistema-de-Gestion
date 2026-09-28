@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft,
   ArrowRight,
@@ -19,6 +19,8 @@ import {
 import { createProjectAction } from '@/features/proyectos/actions/proyectoActions';
 import { ImpossibleDateModal } from './ImpossibleDateModal';
 import { hasObsceneContent } from '@/lib/moderation/clientModeration';
+import { defaultLocale, getLocaleFromPathname } from '@/lib/i18n/locale';
+import { localizedHref, localizedProjectHref } from '@/lib/i18n/routes';
 
 interface StepMaterials {
   files: string[];
@@ -43,6 +45,72 @@ type WizardAnswers = {
 export function CreateProjectWizard() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const locale = getLocaleFromPathname(pathname) ?? defaultLocale;
+  const copy =
+    locale === 'es'
+      ? {
+          unnamed: 'Proyecto sin nombre',
+          priority: 'Prioritario',
+          serverError: 'Error al guardar el proyecto en el servidor.',
+          createError: 'No fue posible crear el proyecto.',
+          previous: 'Anterior',
+          next: 'Siguiente',
+          finish: 'Finalizar',
+          designing: 'Diseñando plan...',
+          back: 'Volver a proyectos',
+          step: 'Paso',
+          of: 'de',
+        }
+      : {
+          unnamed: 'Untitled project',
+          priority: 'Priority',
+          serverError: 'We could not save the project on the server.',
+          createError: 'We could not create the project.',
+          previous: 'Previous',
+          next: 'Next',
+          finish: 'Finish',
+          designing: 'Designing your plan...',
+          back: 'Back to projects',
+          step: 'Step',
+          of: 'of',
+        };
+
+  const questions =
+    locale === 'es'
+      ? {
+          name: '¿Cuál será el nombre del proyecto?',
+          objective: '¿Cuál es el objetivo final de este proyecto?',
+          deadline: 'Fecha límite para terminar el proyecto',
+          importance: '¿Qué nivel de importancia tiene este proyecto en tu día a día?',
+          knowledge: '¿Cuál es tu nivel de conocimiento actual sobre este tema específico?',
+          materials: '¿Tienes algún material base, índice de libro o temario que debamos seguir?',
+          files: 'Archivos adjuntos',
+          upload: 'Haz clic o arrastra tus archivos aquí',
+          links: 'Enlaces y URL de referencia',
+          addUrl: 'Añadir otra URL',
+          time: '¿Cuánto tiempo puedes dedicarle a este proyecto cada día?',
+          minutes: '¿Cuántos minutos?',
+          goal: 'Atrévete a cumplir tus metas',
+          path: 'Trazamos tu nuevo camino',
+        }
+      : {
+          name: 'What will your project be called?',
+          objective: 'What is the final goal of this project?',
+          deadline: 'Deadline to complete the project',
+          importance: 'How important is this project in your day-to-day life?',
+          knowledge: 'What is your current knowledge level on this topic?',
+          materials:
+            'Do you have any reference material, book index, or syllabus we should follow?',
+          files: 'Attached files',
+          upload: 'Click or drag your files here',
+          links: 'Reference links and URLs',
+          addUrl: 'Add another URL',
+          time: 'How much time can you dedicate to this project each day?',
+          minutes: 'How many minutes?',
+          goal: 'Dare to reach your goals',
+          path: 'We are mapping your new path',
+        };
 
   // Prellenar respuestas si vienen desde recomendación o enlace de Komo IA
   const initialTitle = searchParams.get('titulo') || searchParams.get('nombre') || '';
@@ -179,10 +247,10 @@ export function CreateProjectWizard() {
 
       const dailyMinutes = calculateDailyMinutes(answers[6]);
 
-      const projectName = answers[0]?.trim() || 'Proyecto Sin Nombre';
+      const projectName = answers[0]?.trim() || copy.unnamed;
       const objective = answers[1]?.trim() || '';
       const deadline = answers[2] || '';
-      const priority = answers[3] || 'Prioritario';
+      const priority = answers[3] || copy.priority;
 
       // 2. Guardar en Supabase y generar tareas con n8n usando la Server Action
       const result = await createProjectAction({
@@ -212,13 +280,13 @@ export function CreateProjectWizard() {
           return;
         }
 
-        setErrorMessage(result.error || 'Error al guardar el proyecto en el servidor.');
+        setErrorMessage(result.error || copy.serverError);
         setIsFinishing(false);
         return;
       }
 
       if (!result.project) {
-        setErrorMessage('Error al guardar el proyecto en el servidor.');
+        setErrorMessage(copy.serverError);
         setIsFinishing(false);
         return;
       }
@@ -230,13 +298,13 @@ export function CreateProjectWizard() {
 
       // Si la IA estuvo fuera de servicio, redirigir con parámetro informativo
       if (result.aiAvailable === false) {
-        router.push(`/proyectos/${createdProject.id}?aiOffline=true`);
+        router.push(`${localizedProjectHref(locale, createdProject.id)}?aiOffline=true`);
       } else {
-        router.push(`/proyectos/${createdProject.id}`);
+        router.push(localizedProjectHref(locale, createdProject.id));
       }
     } catch (error: unknown) {
       console.error('Error creating project:', error);
-      const msg = error instanceof Error ? error.message : 'No fue posible crear el proyecto.';
+      const msg = error instanceof Error ? error.message : copy.createError;
       setErrorMessage(msg);
       setIsFinishing(false);
     }
@@ -278,7 +346,7 @@ export function CreateProjectWizard() {
         return (
           <div className="animate-in fade-in slide-in-from-right-4 duration-300">
             <h2 className="text-xl sm:text-2xl font-bold text-[#2C1F14] leading-snug tracking-tight mb-5">
-              ¿Cuál será el nombre del proyecto?
+              {questions.name}
             </h2>
             <input
               type="text"
@@ -297,7 +365,7 @@ export function CreateProjectWizard() {
         return (
           <div className="animate-in fade-in slide-in-from-right-4 duration-300">
             <h2 className="text-xl sm:text-2xl font-bold text-[#2C1F14] leading-snug tracking-tight mb-5">
-              ¿Cuál es el objetivo final de este proyecto?
+              {questions.objective}
             </h2>
             <textarea
               className="w-full h-32 p-4 rounded-2xl border-[1.5px] border-[#E2D9D0] bg-white text-[#2C1F14] placeholder-[#A0958A] focus:border-[#2C1F14] focus:ring-0 outline-none resize-none transition-all"
@@ -317,7 +385,7 @@ export function CreateProjectWizard() {
         return (
           <div className="animate-in fade-in slide-in-from-right-4 duration-300">
             <h2 className="text-xl sm:text-2xl font-bold text-[#2C1F14] leading-snug tracking-tight mb-5">
-              Fecha límite para terminar el proyecto
+              {questions.deadline}
             </h2>
             <input
               type="date"
@@ -355,7 +423,7 @@ export function CreateProjectWizard() {
         return (
           <div className="animate-in fade-in slide-in-from-right-4 duration-300">
             <h2 className="text-xl sm:text-2xl font-bold text-[#2C1F14] leading-snug tracking-tight mb-5">
-              ¿Qué nivel de importancia tiene este proyecto en tu día a día?
+              {questions.importance}
             </h2>
             <div className="space-y-3">
               {options.map((opt) => {
@@ -396,7 +464,7 @@ export function CreateProjectWizard() {
         return (
           <div className="animate-in fade-in slide-in-from-right-4 duration-300">
             <h2 className="text-xl sm:text-2xl font-bold text-[#2C1F14] leading-snug tracking-tight mb-5">
-              ¿Cuál es tu nivel de conocimiento actual sobre este tema específico?
+              {questions.knowledge}
             </h2>
             <div className="space-y-3">
               {options.map((opt) => {
@@ -481,14 +549,14 @@ export function CreateProjectWizard() {
         return (
           <div className="animate-in fade-in slide-in-from-right-4 duration-300">
             <h2 className="text-xl sm:text-2xl font-bold text-[#2C1F14] leading-snug tracking-tight mb-5">
-              ¿Tienes algún material base, índice de libro o temario que debamos seguir?
+              {questions.materials}
             </h2>
 
             <div className="space-y-5">
               {/* Sección Subida de Archivos (Máx 3) */}
               <div>
                 <div className="flex justify-between items-center mb-2">
-                  <label className="text-sm font-bold text-[#2C1F14]">Archivos adjuntos</label>
+                  <label className="text-sm font-bold text-[#2C1F14]">{questions.files}</label>
                   <span className="text-xs font-semibold text-[#845326] bg-[#f5e5d9] px-2 py-0.5 rounded-full">
                     {files.length}/3 archivos
                   </span>
@@ -504,9 +572,7 @@ export function CreateProjectWizard() {
                       onChange={handleFileUpload}
                     />
                     <UploadCloud className="size-7 text-[#845326] mb-1.5" />
-                    <p className="text-sm font-semibold text-[#2C1F14]">
-                      Haz click o arrastra tus archivos aquí
-                    </p>
+                    <p className="text-sm font-semibold text-[#2C1F14]">{questions.upload}</p>
                     <p className="text-xs text-[#845326] mt-0.5">
                       PDF, Imagen (PNG, JPG), DOCX, TXT (Máx. 3)
                     </p>
@@ -545,7 +611,7 @@ export function CreateProjectWizard() {
               {/* Sección URLs Dinámicas */}
               <div>
                 <label className="flex items-center gap-2 text-sm font-bold text-[#2C1F14] mb-2">
-                  <LinkIcon className="size-4 text-[#845326]" /> Enlaces y URLs de referencia
+                  <LinkIcon className="size-4 text-[#845326]" /> {questions.links}
                 </label>
 
                 <div className="space-y-2.5">
@@ -578,7 +644,7 @@ export function CreateProjectWizard() {
                   className="mt-2.5 inline-flex items-center gap-1.5 text-xs font-bold text-[#845326] hover:text-[#433022] bg-[#f5e5d9] hover:bg-[#E8DCD1] px-3 py-1.5 rounded-full transition-colors cursor-pointer"
                 >
                   <Plus className="size-3.5" />
-                  <span>Añadir otra URL</span>
+                  <span>{questions.addUrl}</span>
                 </button>
               </div>
             </div>
@@ -593,9 +659,7 @@ export function CreateProjectWizard() {
         return (
           <div className="animate-in fade-in slide-in-from-right-4 duration-300">
             <h2 className="text-xl sm:text-2xl font-bold text-[#2C1F14] leading-snug tracking-tight mb-5">
-              En la encuesta indicaste que tienes{' '}
-              <span className="text-[#845326]">{onboardingTime}</span> para tareas al día. ¿Cuánto
-              de ese tiempo puedes dedicarle a este proyecto?
+              {questions.time}
             </h2>
             <div className="space-y-3 mb-6">
               {mainOptions.map((opt) => {
@@ -632,7 +696,7 @@ export function CreateProjectWizard() {
 
             {currentData.mainOption === 'Menos de 1 hora diaria' && (
               <div className="animate-in fade-in slide-in-from-top-2 duration-300 p-4 bg-[#FDFBF9] border border-[#EAE3DC] rounded-2xl">
-                <p className="text-sm font-semibold text-[#2C1F14] mb-3">¿Cuántos minutos?</p>
+                <p className="text-sm font-semibold text-[#2C1F14] mb-3">{questions.minutes}</p>
                 <div className="space-y-2">
                   {subOptions.map((sub) => {
                     const isSubSelected = currentData.subOption === sub;
@@ -669,10 +733,10 @@ export function CreateProjectWizard() {
         <div className="flex flex-col items-center text-center w-full max-w-[420px]">
           <div className="mb-6">
             <h1 className="font-handwriting text-3xl sm:text-4xl font-bold text-[#2C1F14] tracking-wide leading-tight">
-              Atrévete a Cumplir Tus Metas
+              {questions.goal}
             </h1>
             <p className="font-handwriting text-xl sm:text-2xl text-[#845326] font-semibold mt-1">
-              Trazamos tu Nuevo Camino
+              {questions.path}
             </p>
           </div>
 
@@ -697,7 +761,7 @@ export function CreateProjectWizard() {
             <div className="space-y-2.5 mb-6">
               <div className="flex items-center justify-between">
                 <span className="inline-flex items-center px-3 py-1 rounded-full bg-[#E8DCD1] text-xs font-semibold text-[#2C1F14] uppercase tracking-wider">
-                  Paso {currentStep + 1} de {totalSteps}
+                  {copy.step} {currentStep + 1} {copy.of} {totalSteps}
                 </span>
                 <span className="text-xs font-bold text-[#2C1F14]/70">{progressPercent}%</span>
               </div>
@@ -772,7 +836,7 @@ export function CreateProjectWizard() {
                 className="rounded-[25px] bg-[#E8DCD1] hover:bg-[#dfd1c4] text-[#2C1F14] px-5 py-2.5 font-semibold text-xs sm:text-sm transition-all disabled:opacity-40 disabled:pointer-events-none flex items-center gap-1.5 active:scale-[0.99] cursor-pointer"
               >
                 <ArrowLeft className="size-3.5" />
-                <span>Anterior</span>
+                <span>{copy.previous}</span>
               </button>
 
               <button
@@ -784,16 +848,16 @@ export function CreateProjectWizard() {
                 {isFinishing ? (
                   <>
                     <Loader2 className="size-3.5 animate-spin" />
-                    <span>Diseñando plan...</span>
+                    <span>{copy.designing}</span>
                   </>
                 ) : currentStep === totalSteps - 1 ? (
                   <>
-                    <span>Finalizar</span>
+                    <span>{copy.finish}</span>
                     <Sparkles className="size-3.5 text-[#FEB800]" />
                   </>
                 ) : (
                   <>
-                    <span>Siguiente</span>
+                    <span>{copy.next}</span>
                     <ArrowRight className="size-3.5" />
                   </>
                 )}
@@ -807,12 +871,12 @@ export function CreateProjectWizard() {
       <div className="mt-8 flex justify-start w-full">
         <button
           type="button"
-          onClick={() => router.push('/proyectos')}
+          onClick={() => router.push(localizedHref(locale, 'projects'))}
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold text-[#845326] bg-[#f5e5d9] hover:bg-[#E8DCD1] hover:text-[#433022] transition-all shadow-xs cursor-pointer active:scale-95"
-          aria-label="Volver a Proyectos"
+          aria-label={copy.back}
         >
           <ArrowLeft className="size-4" />
-          <span>Volver a Proyectos</span>
+          <span>{copy.back}</span>
         </button>
       </div>
 

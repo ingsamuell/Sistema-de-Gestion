@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X, BookOpen, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import type { Locale } from '@/lib/i18n/locale';
 
 interface TopicModalProps {
   isOpen: boolean;
@@ -11,6 +12,7 @@ interface TopicModalProps {
   initialTitle?: string;
   initialDescription?: string;
   isEditing?: boolean;
+  locale?: Locale;
 }
 
 export function TopicModal({
@@ -20,6 +22,7 @@ export function TopicModal({
   initialTitle = '',
   initialDescription = '',
   isEditing = false,
+  locale = 'es',
 }: TopicModalProps) {
   if (!isOpen) return null;
 
@@ -32,6 +35,7 @@ export function TopicModal({
         initialTitle={initialTitle}
         initialDescription={initialDescription}
         isEditing={isEditing}
+        locale={locale}
       />
     </div>
   );
@@ -43,6 +47,7 @@ interface TopicModalContentProps {
   initialTitle: string;
   initialDescription: string;
   isEditing: boolean;
+  locale: Locale;
 }
 
 function TopicModalContent({
@@ -51,7 +56,36 @@ function TopicModalContent({
   initialTitle,
   initialDescription,
   isEditing,
+  locale,
 }: TopicModalContentProps) {
+  const copy =
+    locale === 'es'
+      ? {
+          required: 'El título del tema es requerido.',
+          unexpected: 'Ocurrió un error',
+          edit: 'Editar Tema',
+          create: 'Nuevo Tema de Estudio',
+          title: 'Título del tema',
+          titlePlaceholder: 'Ej: Programación Backend y APIs',
+          description: 'Descripción o enfoque',
+          descriptionPlaceholder: 'Ej: Fundamentos, buenas prácticas y arquitectura...',
+          cancel: 'Cancelar',
+          save: 'Guardar Cambios',
+          createButton: 'Crear Tema',
+        }
+      : {
+          required: 'A topic title is required.',
+          unexpected: 'Something went wrong',
+          edit: 'Edit topic',
+          create: 'New study topic',
+          title: 'Topic title',
+          titlePlaceholder: 'E.g. Backend programming and APIs',
+          description: 'Description or focus',
+          descriptionPlaceholder: 'E.g. Fundamentals, best practices, and architecture...',
+          cancel: 'Cancel',
+          save: 'Save changes',
+          createButton: 'Create topic',
+        };
   const [title, setTitle] = useState(initialTitle);
   const [description, setDescription] = useState(initialDescription);
   const [loading, setLoading] = useState(false);
@@ -61,7 +95,7 @@ function TopicModalContent({
     e.preventDefault();
     const cleanTitle = title.trim();
     if (!cleanTitle) {
-      setError('El título del tema es requerido.');
+      setError(copy.required);
       return;
     }
 
@@ -71,7 +105,7 @@ function TopicModalContent({
       await onSubmit(cleanTitle, description.trim());
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ocurrió un error');
+      setError(err instanceof Error ? err.message : copy.unexpected);
     } finally {
       setLoading(false);
     }
@@ -84,7 +118,7 @@ function TopicModalContent({
           <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
             <BookOpen className="size-4" />
           </div>
-          <span>{isEditing ? 'Editar Tema' : 'Nuevo Tema de Estudio'}</span>
+          <span>{isEditing ? copy.edit : copy.create}</span>
         </div>
         <button
           type="button"
@@ -104,14 +138,14 @@ function TopicModalContent({
 
         <div>
           <label className="block text-xs font-semibold text-on-surface mb-1.5">
-            Título del tema <span className="text-error">*</span>
+            {copy.title} <span className="text-error">*</span>
           </label>
           <input
             type="text"
             autoFocus
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Ej: Programación Backend y APIs"
+            placeholder={copy.titlePlaceholder}
             className="w-full rounded-xl border border-outline-variant/70 bg-surface px-3.5 py-2.5 text-sm outline-none transition-colors placeholder:text-outline focus:border-primary focus:ring-2 focus:ring-primary/10"
             maxLength={100}
           />
@@ -119,12 +153,12 @@ function TopicModalContent({
 
         <div>
           <label className="block text-xs font-semibold text-on-surface mb-1.5">
-            Descripción o enfoque
+            {copy.description}
           </label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Ej: Fundamentos, buenas prácticas y arquitectura..."
+            placeholder={copy.descriptionPlaceholder}
             rows={3}
             className="w-full rounded-xl border border-outline-variant/70 bg-surface p-3.5 text-sm outline-none transition-colors placeholder:text-outline focus:border-primary focus:ring-2 focus:ring-primary/10 resize-none"
             maxLength={300}
@@ -133,11 +167,11 @@ function TopicModalContent({
 
         <div className="mt-6 flex items-center justify-end gap-2 pt-3 border-t border-outline-variant/30">
           <Button type="button" variant="secondary" size="sm" disabled={loading} onClick={onClose}>
-            Cancelar
+            {copy.cancel}
           </Button>
           <Button type="submit" size="sm" disabled={loading || !title.trim()} className="gap-2">
             {loading && <Loader2 className="size-3.5 animate-spin" />}
-            {isEditing ? 'Guardar Cambios' : 'Crear Tema'}
+            {isEditing ? copy.save : copy.createButton}
           </Button>
         </div>
       </form>

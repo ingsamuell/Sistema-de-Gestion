@@ -2,6 +2,7 @@
 
 import React, { useState, useTransition } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -19,6 +20,8 @@ import {
 import { toggleTaskStatusAction } from '@/features/proyectos/actions/proyectoActions';
 import { getTaskTimeStatus } from '@/features/gamification/services/streakService';
 import { TechniqueSelectionModal } from '@/components/study/TechniqueSelectionModal';
+import { defaultLocale, getLocaleFromPathname } from '@/lib/i18n/locale';
+import { localizedHref, localizedProjectHref } from '@/lib/i18n/routes';
 
 export interface HomeTaskItem {
   id: string;
@@ -40,6 +43,8 @@ interface HomeTaskListProps {
 }
 
 export function HomeTaskList({ initialTasks, onTaskToggled }: HomeTaskListProps) {
+  const pathname = usePathname();
+  const locale = getLocaleFromPathname(pathname) ?? defaultLocale;
   const [prevInitialTasks, setPrevInitialTasks] = useState<HomeTaskItem[]>(initialTasks);
   const [tasks, setTasks] = useState<HomeTaskItem[]>(initialTasks);
   if (initialTasks !== prevInitialTasks) {
@@ -115,12 +120,12 @@ export function HomeTaskList({ initialTasks, onTaskToggled }: HomeTaskListProps)
           tus proyectos o descansar.
         </p>
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-          <Link href="/proyectos">
+          <Link href={localizedHref(locale, 'projects')}>
             <Button variant="secondary" className="text-xs font-bold gap-2">
               Ver proyectos <ArrowRight className="size-3.5" />
             </Button>
           </Link>
-          <Link href="/proyectos/nuevo">
+          <Link href={localizedHref(locale, 'newProject')}>
             <Button variant="primary" className="text-xs font-bold gap-2">
               Crear nuevo proyecto
             </Button>
@@ -295,7 +300,7 @@ export function HomeTaskList({ initialTasks, onTaskToggled }: HomeTaskListProps)
                       </button>
                     )}
                     <Link
-                      href={`/proyectos/${task.id_proyecto}`}
+                      href={localizedProjectHref(locale, task.id_proyecto)}
                       className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary/80 transition-colors px-3 py-1.5 rounded-xl hover:bg-surface-container"
                       title="Ver proyecto completo"
                     >

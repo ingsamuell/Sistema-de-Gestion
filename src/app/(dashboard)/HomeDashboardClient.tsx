@@ -9,8 +9,11 @@ import { Coffee, Play, Calendar, ShieldCheck, CheckCircle2, ArrowRight } from 'l
 import Link from 'next/link';
 import { LineChart, Line, ResponsiveContainer, YAxis } from 'recharts';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { enUS, es } from 'date-fns/locale';
 import { useOnboardingTour } from '@/hooks/useOnboardingTour';
+import { usePathname } from 'next/navigation';
+import { defaultLocale, getLocaleFromPathname } from '@/lib/i18n/locale';
+import { localizedHref, localizedProjectHref } from '@/lib/i18n/routes';
 
 export interface UpcomingTask {
   id: string;
@@ -61,6 +64,90 @@ export function HomeDashboardClient({
   metrics,
   isNewUser,
 }: HomeDashboardClientProps) {
+  const pathname = usePathname();
+  const locale = getLocaleFromPathname(pathname) ?? defaultLocale;
+  const copy =
+    locale === 'es'
+      ? {
+          morning: '¡Buenos días',
+          afternoon: '¡Buenas tardes',
+          evening: '¡Buenas noches',
+          noTasks:
+            'No tienes tareas pendientes próximas. Disfruta tu tiempo libre o explora nuevos temas.',
+          oneTask: 'Tienes 1 tarea pendiente en tu lista. Concéntrate y avanza a tu ritmo.',
+          manyTasks: (count: number) =>
+            `Tienes ${count} tareas pendientes en tu lista. Respeta tus ritmos y tiempos de descanso.`,
+          center: 'Tu centro de operaciones académico',
+          centerDescription:
+            'Sincroniza tus eventos en tiempo real con Google Calendar, organiza bloques de estudio y gestiona proyectos con IA integrada.',
+          viewCalendar: 'Ver calendario',
+          streakTip: 'Días consecutivos marcando tareas como completadas',
+          streak: 'Racha',
+          day: 'día',
+          days: 'días',
+          habit: 'Hábito consolidado',
+          weekTip: 'Horas acumuladas de estudio o trabajo durante esta semana',
+          week: 'Esta semana',
+          activity: 'Actividad de L a D',
+          progressTip: 'Tareas terminadas hoy en relación a lo planificado para el día',
+          progress: 'Progreso hoy',
+          completed: 'completado',
+          noAssigned: 'Sin tareas asignadas',
+          paceTip: 'Tasa global de éxito: total de tareas completadas de tu cuenta',
+          pace: 'Ritmo global',
+          compliance: 'Tasa de cumplimiento',
+          today: 'Tareas de hoy',
+          noneToday: 'No tienes tareas pendientes para hoy.',
+          pending: (count: number) => `${count} pendientes por abordar`,
+          viewAll: 'Ver todas',
+          noTime: 'Sin hora',
+          noProject: 'Sin proyecto',
+          priority: 'Prioritario',
+          next: 'Siguiente turno',
+          start: 'Iniciar tarea',
+          clear: '¡Todo al día! Has completado tus tareas o no tienes nada programado para hoy.',
+          dateFormat: "EEEE, d 'de' MMMM 'de' yyyy",
+        }
+      : {
+          morning: 'Good morning',
+          afternoon: 'Good afternoon',
+          evening: 'Good evening',
+          noTasks: 'You have no upcoming tasks. Enjoy your free time or explore new topics.',
+          oneTask: 'You have 1 pending task on your list. Focus and move forward at your own pace.',
+          manyTasks: (count: number) =>
+            `You have ${count} pending tasks on your list. Respect your rhythms and rest time.`,
+          center: 'Your academic operations center',
+          centerDescription:
+            'Sync your events with Google Calendar in real time, organize study blocks, and manage projects with integrated AI.',
+          viewCalendar: 'View calendar',
+          streakTip: 'Consecutive days marking tasks as completed',
+          streak: 'Streak',
+          day: 'day',
+          days: 'days',
+          habit: 'Habit built',
+          weekTip: 'Accumulated study or work hours this week',
+          week: 'This week',
+          activity: 'Activity Mon–Sun',
+          progressTip: 'Tasks completed today compared with what was planned',
+          progress: 'Today’s progress',
+          completed: 'completed',
+          noAssigned: 'No tasks assigned',
+          paceTip: 'Overall completion rate for tasks in your account',
+          pace: 'Overall pace',
+          compliance: 'Completion rate',
+          today: 'Today’s tasks',
+          noneToday: 'You have no pending tasks for today.',
+          pending: (count: number) => `${count} pending to tackle`,
+          viewAll: 'View all',
+          noTime: 'No time',
+          noProject: 'No project',
+          priority: 'Priority',
+          next: 'Next up',
+          start: 'Start task',
+          clear:
+            'All caught up! You have completed your tasks or have nothing scheduled for today.',
+          dateFormat: 'EEEE, MMMM d, yyyy',
+        };
   const [greeting, setGreeting] = useState('¡Buenos días');
   const [currentDate, setCurrentDate] = useState('');
 
@@ -77,16 +164,16 @@ export function HomeDashboardClient({
     /* eslint-disable react-hooks/set-state-in-effect */
     const hour = new Date().getHours();
     if (hour >= 12 && hour < 19) {
-      setGreeting('¡Buenas tardes');
+      setGreeting(copy.afternoon);
     } else if (hour >= 19) {
-      setGreeting('¡Buenas noches');
+      setGreeting(copy.evening);
     } else {
-      setGreeting('¡Buenos días');
+      setGreeting(copy.morning);
     }
 
-    setCurrentDate(format(new Date(), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es }));
+    setCurrentDate(format(new Date(), copy.dateFormat, { locale: locale === 'es' ? es : enUS }));
     /* eslint-enable react-hooks/set-state-in-effect */
-  }, []);
+  }, [copy, locale]);
 
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -135,10 +222,10 @@ export function HomeDashboardClient({
             <span className="capitalize">{currentDate}</span>
             {' · '}
             {totalPendingTasks === 0
-              ? 'No tienes tareas pendientes próximas. Disfruta tu tiempo libre o explora nuevos temas.'
+              ? copy.noTasks
               : totalPendingTasks === 1
-                ? 'Tienes 1 tarea pendiente en tu lista. Concéntrate y avanza a tu ritmo.'
-                : `Tienes ${totalPendingTasks} tareas pendientes en tu lista. Respeta tus ritmos y tiempos de descanso.`}
+                ? copy.oneTask
+                : copy.manyTasks(totalPendingTasks)}
           </p>
         </div>
       </motion.header>
@@ -164,21 +251,18 @@ export function HomeDashboardClient({
                 Google OAuth
               </span>
             </div>
-            <h2 className="text-lg font-bold text-on-surface">
-              Tu centro de operaciones académico
-            </h2>
+            <h2 className="text-lg font-bold text-on-surface">{copy.center}</h2>
             <p className="text-xs sm:text-sm text-on-surface-variant leading-relaxed">
-              Sincroniza tus eventos en tiempo real con Google Calendar, organiza bloques de estudio
-              y gestiona proyectos con IA integrada.
+              {copy.centerDescription}
             </p>
           </div>
-          <Link href="/calendario">
+          <Link href={localizedHref(locale, 'calendar')}>
             <Button
               variant="primary"
               className="shrink-0 gap-2 shadow-md hover:shadow-lg transition-shadow"
             >
               <Calendar className="size-4 text-accent-amber" />
-              <span>Ver Calendario</span>
+              <span>{copy.viewCalendar}</span>
             </Button>
           </Link>
         </div>
@@ -191,25 +275,25 @@ export function HomeDashboardClient({
         id="tour-metrics"
       >
         <motion.div variants={itemVariants} whileHover={{ y: -5 }}>
-          <MetricTooltip text="Días consecutivos marcando tareas como completadas">
+          <MetricTooltip text={copy.streakTip}>
             <Card className="p-4 flex flex-col gap-2 h-full shadow-sm hover:shadow-md transition-shadow">
               <Badge variant="streak" className="self-start">
-                Racha
+                {copy.streak}
               </Badge>
               <div className="mt-2">
                 <span className="text-3xl font-bold">
-                  {rachaActiva} {rachaActiva === 1 ? 'día' : 'días'}
+                  {rachaActiva} {rachaActiva === 1 ? copy.day : copy.days}
                 </span>
               </div>
-              <p className="text-xs text-on-surface-variant mt-auto">Hábito consolidado</p>
+              <p className="text-xs text-on-surface-variant mt-auto">{copy.habit}</p>
             </Card>
           </MetricTooltip>
         </motion.div>
 
         <motion.div variants={itemVariants} whileHover={{ y: -5 }}>
-          <MetricTooltip text="Horas acumuladas de estudio o trabajo durante esta semana">
+          <MetricTooltip text={copy.weekTip}>
             <Card className="p-4 flex flex-col gap-2 h-full shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
-              <Badge className="self-start relative z-10">Esta semana</Badge>
+              <Badge className="self-start relative z-10">{copy.week}</Badge>
               <div className="mt-2 relative z-10">
                 <span className="text-3xl font-bold">{metrics.weeklyHoursText}</span>
               </div>
@@ -228,17 +312,17 @@ export function HomeDashboardClient({
                 </ResponsiveContainer>
               </div>
               <div className="flex items-center gap-2 mt-auto relative z-10">
-                <p className="text-xs text-on-surface-variant mt-auto">Actividad de L a D</p>
+                <p className="text-xs text-on-surface-variant mt-auto">{copy.activity}</p>
               </div>
             </Card>
           </MetricTooltip>
         </motion.div>
 
         <motion.div variants={itemVariants} whileHover={{ y: -5 }}>
-          <MetricTooltip text="Tareas terminadas hoy en relación a lo planificado para el día">
+          <MetricTooltip text={copy.progressTip}>
             <Card className="p-4 flex flex-col gap-2 h-full shadow-sm hover:shadow-md transition-shadow">
               <Badge variant="success" className="self-start">
-                Progreso hoy
+                {copy.progress}
               </Badge>
               <div className="mt-2">
                 <span className="text-3xl font-bold">
@@ -247,22 +331,22 @@ export function HomeDashboardClient({
               </div>
               <p className="text-xs text-on-surface-variant mt-auto">
                 {metrics.todayTotal > 0
-                  ? `${Math.round((metrics.todayCompleted / metrics.todayTotal) * 100)}% completado`
-                  : 'Sin tareas asignadas'}
+                  ? `${Math.round((metrics.todayCompleted / metrics.todayTotal) * 100)}% ${copy.completed}`
+                  : copy.noAssigned}
               </p>
             </Card>
           </MetricTooltip>
         </motion.div>
 
         <motion.div variants={itemVariants} whileHover={{ y: -5 }}>
-          <MetricTooltip text="Tasa global de éxito: total de tareas completadas de tu cuenta">
+          <MetricTooltip text={copy.paceTip}>
             <Card className="p-4 flex flex-col gap-2 h-full shadow-sm hover:shadow-md transition-shadow">
-              <Badge className="self-start">Ritmo Global</Badge>
+              <Badge className="self-start">{copy.pace}</Badge>
               <div className="mt-2">
                 <span className="text-3xl font-bold">{metrics.globalPace}%</span>
               </div>
               <p className="text-xs text-status-success font-medium mt-auto flex items-center gap-1">
-                Tasa de cumplimiento
+                {copy.compliance}
               </p>
             </Card>
           </MetricTooltip>
@@ -273,16 +357,14 @@ export function HomeDashboardClient({
       <motion.section variants={itemVariants} id="tour-tasks">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-xl font-bold">Tareas de hoy</h2>
+            <h2 className="text-xl font-bold">{copy.today}</h2>
             <p className="text-sm text-on-surface-variant">
-              {upcomingTasks.length === 0
-                ? 'No tienes tareas pendientes para hoy.'
-                : `${upcomingTasks.length} pendientes por abordar`}
+              {upcomingTasks.length === 0 ? copy.noneToday : copy.pending(upcomingTasks.length)}
             </p>
           </div>
-          <Link href="/proyectos">
+          <Link href={localizedHref(locale, 'projects')}>
             <Button variant="ghost" className="gap-2 text-sm">
-              Ver todas <ArrowRight className="size-4" />
+              {copy.viewAll} <ArrowRight className="size-4" />
             </Button>
           </Link>
         </div>
@@ -294,7 +376,7 @@ export function HomeDashboardClient({
               task.prioridad?.toLowerCase() === 'alta';
 
             // Format time safely
-            let formattedTime = 'Sin hora';
+            let formattedTime = copy.noTime;
             if (task.fecha_inicio) {
               try {
                 formattedTime = format(new Date(task.fecha_inicio), 'HH:mm a');
@@ -317,14 +399,12 @@ export function HomeDashboardClient({
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <Badge variant={isPriority ? 'default' : undefined}>
-                          {task.project_titulo || 'Sin proyecto'}
+                          {task.project_titulo || copy.noProject}
                         </Badge>
-                        {isPriority && <Badge variant="priority">Prioritario</Badge>}
+                        {isPriority && <Badge variant="priority">{copy.priority}</Badge>}
                       </div>
                       {index === 0 && (
-                        <span className="text-xs font-semibold text-accent-amber">
-                          Siguiente turno
-                        </span>
+                        <span className="text-xs font-semibold text-accent-amber">{copy.next}</span>
                       )}
                     </div>
 
@@ -342,12 +422,15 @@ export function HomeDashboardClient({
                     </div>
 
                     <div className="flex items-center gap-3 mt-6">
-                      <Link href={`/proyectos/${task.id_proyecto}`} className="ml-auto block">
+                      <Link
+                        href={localizedProjectHref(locale, task.id_proyecto)}
+                        className="ml-auto block"
+                      >
                         <Button
                           variant={isPriority ? 'primary' : 'secondary'}
                           className={`gap-2 w-full ${isPriority ? 'group-hover:scale-105 transition-transform' : 'group-hover:bg-primary group-hover:text-on-primary transition-colors'}`}
                         >
-                          Iniciar tarea{' '}
+                          {copy.start}{' '}
                           <Play
                             className={`size-4 fill-current ${!isPriority && 'group-hover:text-on-primary'}`}
                           />
@@ -364,7 +447,7 @@ export function HomeDashboardClient({
             <motion.div variants={itemVariants} id="tour-calendar">
               <Card className="p-8 text-center border-dashed flex flex-col items-center justify-center text-on-surface-variant gap-3">
                 <CheckCircle2 className="size-8 text-status-success/50" />
-                <p>¡Todo al día! Has completado tus tareas o no tienes nada programado para hoy.</p>
+                <p>{copy.clear}</p>
               </Card>
             </motion.div>
           )}

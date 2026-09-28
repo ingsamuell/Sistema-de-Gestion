@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { X, FolderKanban, Plus, Check, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { LinkedProject, ProjectOption } from '@/features/topics/types';
@@ -10,6 +11,7 @@ import {
   unlinkProjectAction,
 } from '@/features/topics/actions/projectsActions';
 import { cn } from '@/lib/utils';
+import { defaultLocale, getLocaleFromPathname } from '@/lib/i18n/locale';
 
 interface LinkProjectModalProps {
   isOpen: boolean;
@@ -54,6 +56,45 @@ function LinkProjectModalContent({
   onProjectLinked,
   onProjectUnlinked,
 }: LinkProjectModalContentProps) {
+  const pathname = usePathname();
+  const locale = getLocaleFromPathname(pathname) ?? defaultLocale;
+  const copy =
+    locale === 'es'
+      ? {
+          loadError: 'Error al cargar proyectos',
+          unavailable: 'No se pudieron obtener los proyectos',
+          unlinkError: 'Error al desvincular',
+          linkError: 'Error al vincular',
+          title: 'Vincular proyecto al tema',
+          yourProjects: 'Tus proyectos',
+          project: 'proyecto',
+          projects: 'proyectos',
+          loading: 'Cargando proyectos...',
+          empty: 'No tienes proyectos registrados',
+          emptyHint:
+            'Crea un proyecto en el módulo de proyectos para poder vincularlo a este tema.',
+          milestones: 'hitos',
+          linked: 'Vinculado',
+          link: 'Vincular',
+          close: 'Cerrar',
+        }
+      : {
+          loadError: 'Could not load projects',
+          unavailable: 'Could not get your projects',
+          unlinkError: 'Could not unlink project',
+          linkError: 'Could not link project',
+          title: 'Link project to topic',
+          yourProjects: 'Your projects',
+          project: 'project',
+          projects: 'projects',
+          loading: 'Loading projects...',
+          empty: 'You have no registered projects',
+          emptyHint: 'Create a project in the Projects area to link it to this topic.',
+          milestones: 'milestones',
+          linked: 'Linked',
+          link: 'Link',
+          close: 'Close',
+        };
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
@@ -68,19 +109,19 @@ function LinkProjectModalContent({
         if (res.success && res.data) {
           setProjects(res.data);
         } else {
-          setError(res.error || 'Error al cargar proyectos');
+          setError(res.error || copy.loadError);
         }
       })
       .catch(() => {
         if (!isMounted) return;
         setLoading(false);
-        setError('No se pudieron obtener los proyectos');
+        setError(copy.unavailable);
       });
 
     return () => {
       isMounted = false;
     };
-  }, [topicId]);
+  }, [topicId, copy.loadError, copy.unavailable]);
 
   async function handleToggleLink(project: ProjectOption) {
     setActionLoadingId(project.id);
@@ -93,7 +134,7 @@ function LinkProjectModalContent({
           );
           onProjectUnlinked(project.id);
         } else {
-          setError(res.error || 'Error al desvincular');
+          setError(res.error || copy.unlinkError);
         }
       } else {
         const res = await linkProjectAction(topicId, project.id);
@@ -105,7 +146,7 @@ function LinkProjectModalContent({
           );
           onProjectLinked(res.data);
         } else {
-          setError(res.error || 'Error al vincular');
+          setError(res.error || copy.linkError);
         }
       }
     } finally {
@@ -120,7 +161,7 @@ function LinkProjectModalContent({
           <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
             <FolderKanban className="size-4" />
           </div>
-          <span>Vincular Proyecto al Tema</span>
+          <span>{copy.title}</span>
         </div>
         <button
           type="button"
@@ -133,11 +174,11 @@ function LinkProjectModalContent({
 
       <div className="mt-4 flex items-center justify-between">
         <h4 className="text-xs font-semibold uppercase tracking-wider text-outline">
-          Tus Proyectos
+          {copy.yourProjects}
         </h4>
         {!loading && projects.length > 0 && (
           <span className="text-xs text-on-surface-variant font-medium">
-            {projects.length} {projects.length === 1 ? 'proyecto' : 'proyectos'}
+            {projects.length} {projects.length === 1 ? copy.project : copy.projects}
           </span>
         )}
       </div>
@@ -152,15 +193,13 @@ function LinkProjectModalContent({
         {loading ? (
           <div className="flex flex-col items-center justify-center py-12 text-outline">
             <Loader2 className="size-6 animate-spin mb-2" />
-            <p className="text-xs">Cargando proyectos...</p>
+            <p className="text-xs">{copy.loading}</p>
           </div>
         ) : projects.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-outline-variant bg-surface-container-low/40 p-8 text-center">
             <FolderKanban className="mx-auto size-8 text-outline mb-2" />
-            <p className="text-sm font-semibold">No tienes proyectos registrados</p>
-            <p className="mt-1 text-xs text-on-surface-variant">
-              Crea un proyecto en el módulo de proyectos para poder vincularlo a este tema.
-            </p>
+            <p className="text-sm font-semibold">{copy.empty}</p>
+            <p className="mt-1 text-xs text-on-surface-variant">{copy.emptyHint}</p>
           </div>
         ) : (
           projects.map((project) => {
@@ -186,7 +225,7 @@ function LinkProjectModalContent({
                     </div>
                     <span className="text-[11px] font-semibold text-outline">
                       {project.progress}% ({project.completedMilestones}/{project.totalMilestones}{' '}
-                      hitos)
+                      {copy.milestones})
                     </span>
                   </div>
                 </div>
@@ -208,12 +247,12 @@ function LinkProjectModalContent({
                   ) : project.isLinked ? (
                     <>
                       <Check className="size-3.5" />
-                      Vinculado
+                      {copy.linked}
                     </>
                   ) : (
                     <>
                       <Plus className="size-3.5" />
-                      Vincular
+                      {copy.link}
                     </>
                   )}
                 </Button>
@@ -225,7 +264,7 @@ function LinkProjectModalContent({
 
       <div className="mt-4 pt-3 border-t border-outline-variant/30 flex justify-end">
         <Button type="button" variant="secondary" size="sm" onClick={onClose}>
-          Cerrar
+          {copy.close}
         </Button>
       </div>
     </div>

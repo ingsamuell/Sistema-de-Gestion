@@ -2,6 +2,8 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Trash2, Calendar } from 'lucide-react';
+import type { Locale } from '@/lib/i18n/locale';
+import { localizedProjectHref } from '@/lib/i18n/routes';
 
 export interface Project {
   id: string;
@@ -17,6 +19,7 @@ interface ProjectCardProps {
   project: Project;
   index: number;
   onDelete?: (id: string) => void;
+  locale: Locale;
 }
 
 const GRADIENTS = [
@@ -34,7 +37,23 @@ const CHIGUI_IMAGES = [
   'imagendechiwiconcafe.png',
 ];
 
-export function ProjectCard({ project, index, onDelete }: ProjectCardProps) {
+export function ProjectCard({ project, index, onDelete, locale }: ProjectCardProps) {
+  const copy =
+    locale === 'es'
+      ? {
+          illustration: 'Ilustración de proyecto',
+          tasks: 'Nro. de tareas:',
+          delete: 'Eliminar proyecto',
+          deadline: 'Límite:',
+          progress: 'Progreso',
+        }
+      : {
+          illustration: 'Project illustration',
+          tasks: 'Tasks:',
+          delete: 'Delete project',
+          deadline: 'Deadline:',
+          progress: 'Progress',
+        };
   const gradient = GRADIENTS[index % GRADIENTS.length];
 
   // Determinar color de la píldora de importancia
@@ -51,7 +70,7 @@ export function ProjectCard({ project, index, onDelete }: ProjectCardProps) {
 
   return (
     <Link
-      href={`/proyectos/${project.id}`}
+      href={localizedProjectHref(locale, project.id)}
       className="group relative flex flex-col bg-white rounded-[20px] border border-[#EAE3DC] overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.03)] transition-all duration-200 ease-in-out hover:-translate-y-[3px] hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] block"
     >
       {/* Cabecera superior ("Fondo Cute") */}
@@ -62,7 +81,7 @@ export function ProjectCard({ project, index, onDelete }: ProjectCardProps) {
         <div className="relative w-[85%] h-[85%] m-auto">
           <Image
             src={`/images/mascot/${CHIGUI_IMAGES[index % CHIGUI_IMAGES.length]}`}
-            alt="Ilustración de proyecto"
+            alt={copy.illustration}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className="object-contain"
@@ -88,7 +107,7 @@ export function ProjectCard({ project, index, onDelete }: ProjectCardProps) {
           {/* Fila intermedia: Texto informativo */}
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold text-[#845326]">
-              Nro. de tareas: {project.tasksCount}
+              {copy.tasks} {project.tasksCount}
             </p>
 
             {/* Botón de Eliminación (Abajo a la Derecha) */}
@@ -101,8 +120,8 @@ export function ProjectCard({ project, index, onDelete }: ProjectCardProps) {
                   onDelete(project.id);
                 }}
                 className="w-8 h-8 rounded-full bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 ease-in-out shadow-xs border border-red-200/60 cursor-pointer active:scale-90"
-                title="Eliminar proyecto"
-                aria-label="Eliminar proyecto"
+                title={copy.delete}
+                aria-label={copy.delete}
               >
                 <Trash2 className="size-4" />
               </button>
@@ -114,7 +133,7 @@ export function ProjectCard({ project, index, onDelete }: ProjectCardProps) {
             <div className="flex items-center gap-1.5 text-xs text-[#845326] font-medium">
               <Calendar className="size-3.5 text-[#845326]/70 shrink-0" />
               <span>
-                Límite:{' '}
+                {copy.deadline}{' '}
                 <span className="font-semibold text-[#2C1F14]">
                   {(() => {
                     try {
@@ -133,7 +152,7 @@ export function ProjectCard({ project, index, onDelete }: ProjectCardProps) {
           {/* Fila inferior (Progreso) */}
           <div className="flex flex-col gap-1.5">
             <div className="flex justify-between items-center text-xs font-bold text-[#2C1F14]">
-              <span>Progreso</span>
+              <span>{copy.progress}</span>
               <span>{project.progress}%</span>
             </div>
             <div className="w-full h-2 rounded-full bg-[#EAE3DC] overflow-hidden">

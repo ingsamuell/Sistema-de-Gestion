@@ -11,10 +11,50 @@ import { loginUser } from '@/features/auth/actions/loginAction';
 import { createClient } from '@/lib/supabase/client';
 import { ForgotPasswordModal } from '@/features/auth/components/ForgotPasswordModal';
 import type { LoginFormData } from '@/features/auth/types/auth.types';
+import type { Locale } from '@/lib/i18n/locale';
+import { localizedHref } from '@/lib/i18n/routes';
 
-export function LoginForm() {
+const loginCopy = {
+  es: {
+    welcome: 'Bienvenido de vuelta',
+    subtitle: 'Inicia sesión para continuar en Komorebi',
+    email: 'Correo electrónico',
+    password: 'Contraseña',
+    forgot: '¿Olvidaste tu contraseña?',
+    hide: 'Ocultar contraseña',
+    show: 'Ver contraseña',
+    loading: 'Iniciando sesión...',
+    submit: 'Iniciar sesión',
+    or: 'o',
+    googleLoading: 'Conectando con Google...',
+    google: 'Continuar con Google',
+    noAccount: '¿No tienes una cuenta?',
+    register: 'Regístrate',
+    unexpected: 'Ocurrió un error inesperado al iniciar sesión.',
+  },
+  en: {
+    welcome: 'Welcome back',
+    subtitle: 'Log in to continue to Komorebi',
+    email: 'Email address',
+    password: 'Password',
+    forgot: 'Forgot your password?',
+    hide: 'Hide password',
+    show: 'Show password',
+    loading: 'Logging in...',
+    submit: 'Log in',
+    or: 'or',
+    googleLoading: 'Connecting to Google...',
+    google: 'Continue with Google',
+    noAccount: "Don't have an account?",
+    register: 'Create an account',
+    unexpected: 'An unexpected error occurred while signing in.',
+  },
+} as const;
+
+export function LoginForm({ locale }: { locale: Locale }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const copy = loginCopy[locale];
 
   const [formData, setFormData] = useState<LoginFormData>({
     email: '',
@@ -99,7 +139,7 @@ export function LoginForm() {
       router.push('/');
       router.refresh();
     } catch {
-      setGeneralError('Ocurrió un error inesperado al iniciar sesión.');
+      setGeneralError(copy.unexpected);
       setIsLoading(false);
     }
   };
@@ -138,12 +178,8 @@ export function LoginForm() {
     <Card className="w-full p-8 sm:p-10 bg-surface-container-lowest border-outline-variant/30 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
       <div className="flex flex-col items-center text-center mb-8">
         <AuthMascotVideo framed={false} objectFit="contain" className="mb-4 h-40 w-40 lg:hidden" />
-        <h1 className="text-2xl font-bold text-primary mb-1.5 tracking-tight">
-          Bienvenido de vuelta
-        </h1>
-        <p className="text-sm text-on-surface-variant font-medium">
-          Inicia sesión para continuar en Komorebi Study Studio
-        </p>
+        <h1 className="text-2xl font-bold text-primary mb-1.5 tracking-tight">{copy.welcome}</h1>
+        <p className="text-sm text-on-surface-variant font-medium">{copy.subtitle}</p>
       </div>
 
       {displaySuccess && (
@@ -163,7 +199,7 @@ export function LoginForm() {
       <form onSubmit={handleSubmit} className="relative z-10 space-y-4">
         <div className="space-y-1.5">
           <label className="text-sm font-semibold text-on-surface ml-1" htmlFor="email">
-            Correo electrónico
+            {copy.email}
           </label>
           <input
             id="email"
@@ -186,14 +222,14 @@ export function LoginForm() {
         <div className="space-y-1.5">
           <div className="flex items-center justify-between ml-1">
             <label className="text-sm font-semibold text-on-surface" htmlFor="password">
-              Contraseña
+              {copy.password}
             </label>
             <button
               type="button"
               onClick={() => setIsForgotPasswordOpen(true)}
               className="text-xs text-accent-amber font-semibold hover:underline focus:outline-none focus:ring-1 focus:ring-accent-amber/40 rounded transition-all"
             >
-              ¿Olvidaste tu contraseña?
+              {copy.forgot}
             </button>
           </div>
           <div className="relative">
@@ -216,7 +252,7 @@ export function LoginForm() {
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
               className="absolute right-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface transition-colors focus:outline-none"
-              aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+              aria-label={showPassword ? copy.hide : copy.show}
             >
               {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
             </button>
@@ -236,10 +272,10 @@ export function LoginForm() {
             {isLoading ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
-                <span>Iniciando sesión...</span>
+                <span>{copy.loading}</span>
               </>
             ) : (
-              'Iniciar Sesión'
+              copy.submit
             )}
           </Button>
         </div>
@@ -247,7 +283,7 @@ export function LoginForm() {
         <div className="relative my-6 flex items-center justify-center">
           <div className="border-t border-outline-variant/30 w-full" />
           <span className="bg-surface/80 backdrop-blur-sm px-3 text-xs text-on-surface-variant uppercase tracking-wider absolute font-medium rounded-full">
-            o
+            {copy.or}
           </span>
         </div>
 
@@ -261,7 +297,7 @@ export function LoginForm() {
           {isGoogleLoading ? (
             <>
               <Loader2 className="size-4 animate-spin" />
-              <span>Conectando con Google...</span>
+              <span>{copy.googleLoading}</span>
             </>
           ) : (
             <>
@@ -283,19 +319,19 @@ export function LoginForm() {
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                 />
               </svg>
-              <span>Continuar con Google</span>
+              <span>{copy.google}</span>
             </>
           )}
         </Button>
       </form>
 
       <div className="relative z-10 mt-8 text-center text-sm text-on-surface-variant font-medium">
-        ¿No tienes una cuenta?{' '}
+        {copy.noAccount}{' '}
         <Link
-          href="/register"
+          href={localizedHref(locale, 'register')}
           className="text-primary font-bold hover:text-primary/80 transition-colors"
         >
-          Regístrate
+          {copy.register}
         </Link>
       </div>
 

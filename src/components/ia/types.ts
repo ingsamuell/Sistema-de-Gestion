@@ -1,4 +1,5 @@
 import type { AnalyticsMetricId } from '@/features/analytics/data/types';
+import type { Locale } from '@/lib/i18n/locale';
 
 export type AssistantScope = 'general' | 'project' | 'topic' | 'calendar' | 'analytics';
 
@@ -90,6 +91,23 @@ export const GENERAL_ASSISTANT_CONTEXT: AssistantContext = {
     '¿Cómo puedo mantener un ritmo sostenible?',
   ],
 };
+
+export function getGeneralAssistantContext(locale: Locale): AssistantContext {
+  return locale === 'es'
+    ? GENERAL_ASSISTANT_CONTEXT
+    : {
+        scope: 'general',
+        title: 'General assistant',
+        label: 'your learning space',
+        description:
+          'A space to ask questions, organize ideas, and receive support throughout your learning journey.',
+        suggestions: [
+          'What should I prioritize this week?',
+          'Help me prepare a study session',
+          'How can I keep a sustainable pace?',
+        ],
+      };
+}
 
 export type SendAssistantMessage = (input: {
   content: string;
