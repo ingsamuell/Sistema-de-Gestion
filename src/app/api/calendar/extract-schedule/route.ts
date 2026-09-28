@@ -48,7 +48,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { base64Data, mimeType, guardarEnDisponibilidad, categoria, replicarOpcion, semanasEspecificas, mesEspecifico, anoEspecifico } = parsed.data;
+    const {
+      base64Data,
+      mimeType,
+      guardarEnDisponibilidad,
+      categoria,
+      replicarOpcion,
+      semanasEspecificas,
+      mesEspecifico,
+      anoEspecifico,
+    } = parsed.data;
 
     // Ejecutar extracción con visión multimodal de Gemini
     const resultado = await extractScheduleFromImageWithGemini({
@@ -87,7 +96,8 @@ export async function POST(req: NextRequest) {
 
         if (calData?.availability?.blocks) {
           const newBlocks = calData.availability.blocks.filter(
-            (b: { type?: string }) => b.type !== 'estudio' && b.type !== 'trabajo' && b.type !== 'estudiando'
+            (b: { type?: string }) =>
+              b.type !== 'estudio' && b.type !== 'trabajo' && b.type !== 'estudiando',
           );
           await supabase
             .from('calendar_availability')
@@ -107,7 +117,7 @@ export async function POST(req: NextRequest) {
         tipo: string;
         origen: 'extraido_ia';
       }[] = [];
-      
+
       if (replicarOpcion === 'todos') {
         inserts = bloquesConCategoria.map((b) => ({
           usuario_id: user.id,
@@ -120,23 +130,28 @@ export async function POST(req: NextRequest) {
       } else {
         const today = new Date();
         let targetDates: Date[] = [];
-        
+
         if (replicarOpcion === 'mes') {
           const targetMonth = mesEspecifico !== undefined ? mesEspecifico : today.getMonth();
-          const targetYear = anoEspecifico !== undefined ? anoEspecifico : (targetMonth < today.getMonth() ? today.getFullYear() + 1 : today.getFullYear());
+          const targetYear =
+            anoEspecifico !== undefined
+              ? anoEspecifico
+              : targetMonth < today.getMonth()
+                ? today.getFullYear() + 1
+                : today.getFullYear();
           const targetDate = new Date(targetYear, targetMonth, 1);
           targetDates = eachDayOfInterval({ start: targetDate, end: endOfMonth(targetDate) });
         } else if (replicarOpcion === 'semanas' && semanasEspecificas) {
-          semanasEspecificas.forEach(weekStartIso => {
+          semanasEspecificas.forEach((weekStartIso) => {
             const weekStart = parseISO(weekStartIso);
             const weekDates = eachDayOfInterval({ start: weekStart, end: addDays(weekStart, 6) });
             targetDates.push(...weekDates);
           });
         }
-        
+
         bloquesConCategoria.forEach((b) => {
-          const matchingDates = targetDates.filter(d => d.getDay() === b.dia_semana);
-          matchingDates.forEach(d => {
+          const matchingDates = targetDates.filter((d) => d.getDay() === b.dia_semana);
+          matchingDates.forEach((d) => {
             inserts.push({
               usuario_id: user.id,
               fecha_especifica: format(d, 'yyyy-MM-dd'),

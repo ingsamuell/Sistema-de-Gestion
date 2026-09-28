@@ -1,9 +1,5 @@
 export type NotificationEventType =
-  | 'tarea_completada'
-  | 'racha_3h'
-  | 'racha_expirada'
-  | 'proyecto_proximo'
-  | 'proyecto_expirado';
+  'tarea_completada' | 'racha_3h' | 'racha_expirada' | 'proyecto_proximo' | 'proyecto_expirado';
 
 export interface JobExecutionResult {
   enviados: number;

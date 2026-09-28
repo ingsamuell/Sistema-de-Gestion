@@ -48,17 +48,25 @@ export async function deleteCalendarBlocksForTask(taskId: string): Promise<numbe
       .select('id');
 
     if (error) {
-      console.warn(`[taskCompletedJob] Aviso eliminando eventos de calendario para tarea ${taskId}:`, error.message);
+      console.warn(
+        `[taskCompletedJob] Aviso eliminando eventos de calendario para tarea ${taskId}:`,
+        error.message,
+      );
       return 0;
     }
 
     const count = deleted?.length || 0;
     if (count > 0) {
-      console.info(`[taskCompletedJob] Se eliminaron ${count} bloque(s) de calendario asociados a la tarea ${taskId}.`);
+      console.info(
+        `[taskCompletedJob] Se eliminaron ${count} bloque(s) de calendario asociados a la tarea ${taskId}.`,
+      );
     }
     return count;
   } catch (err) {
-    console.error(`[taskCompletedJob] Error eliminando bloques de calendario para tarea ${taskId}:`, err);
+    console.error(
+      `[taskCompletedJob] Error eliminando bloques de calendario para tarea ${taskId}:`,
+      err,
+    );
     return 0;
   }
 }
@@ -70,7 +78,9 @@ export async function deleteCalendarBlocksForTask(taskId: string): Promise<numbe
  * - Notifica al usuario dueño del proyecto por Telegram: {emoji}-Tarea completada: {titulo_tarea} (Proyecto: {nombre_proyecto})
  * - Deduplica por (usuario_id, 'tarea_completada', tarea_id).
  */
-export async function runTaskCompletedJob(payload: TaskCompletedPayload): Promise<JobExecutionResult> {
+export async function runTaskCompletedJob(
+  payload: TaskCompletedPayload,
+): Promise<JobExecutionResult> {
   const result: JobExecutionResult = {
     enviados: 0,
     omitidos: 0,
@@ -85,23 +95,22 @@ export async function runTaskCompletedJob(payload: TaskCompletedPayload): Promis
   }
 
   // 1. Extraer ID de la tarea desde distintos formatos de payload de Supabase Webhook o llamada directa
-  const taskId =
-    payload.tarea_id ||
-    payload.id ||
-    payload.record?.id;
+  const taskId = payload.tarea_id || payload.id || payload.record?.id;
 
   if (!taskId) {
     console.warn('[taskCompletedJob] Payload no contiene tarea_id o id:', payload);
     return {
       ...result,
       errores: 1,
-      detalles: [{
-        usuario_id: 'desconocido',
-        tipo_evento: 'tarea_completada',
-        referencia_id: null,
-        resultado: 'error',
-        motivo: 'Falta tarea_id en el payload',
-      }],
+      detalles: [
+        {
+          usuario_id: 'desconocido',
+          tipo_evento: 'tarea_completada',
+          referencia_id: null,
+          resultado: 'error',
+          motivo: 'Falta tarea_id en el payload',
+        },
+      ],
     };
   }
 
@@ -120,13 +129,15 @@ export async function runTaskCompletedJob(payload: TaskCompletedPayload): Promis
     return {
       ...result,
       errores: 1,
-      detalles: [{
-        usuario_id: 'desconocido',
-        tipo_evento: 'tarea_completada',
-        referencia_id: taskId,
-        resultado: 'error',
-        motivo: 'Tarea no encontrada en la base de datos',
-      }],
+      detalles: [
+        {
+          usuario_id: 'desconocido',
+          tipo_evento: 'tarea_completada',
+          referencia_id: taskId,
+          resultado: 'error',
+          motivo: 'Tarea no encontrada en la base de datos',
+        },
+      ],
     };
   }
 
@@ -155,13 +166,15 @@ export async function runTaskCompletedJob(payload: TaskCompletedPayload): Promis
     return {
       ...result,
       errores: 1,
-      detalles: [{
-        usuario_id: 'desconocido',
-        tipo_evento: 'tarea_completada',
-        referencia_id: taskId,
-        resultado: 'error',
-        motivo: 'Proyecto no encontrado',
-      }],
+      detalles: [
+        {
+          usuario_id: 'desconocido',
+          tipo_evento: 'tarea_completada',
+          referencia_id: taskId,
+          resultado: 'error',
+          motivo: 'Proyecto no encontrado',
+        },
+      ],
     };
   }
 

@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { validateWebhookAuth } from '@/services/notifications/auth';
-import { runTaskCompletedJob, TaskCompletedPayload } from '@/services/notifications/jobs/taskCompletedJob';
+import {
+  runTaskCompletedJob,
+  TaskCompletedPayload,
+} from '@/services/notifications/jobs/taskCompletedJob';
 
 export async function POST(request: Request) {
   const authCheck = validateWebhookAuth(request);

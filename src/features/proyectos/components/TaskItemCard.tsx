@@ -324,7 +324,7 @@ export function TaskItemCard({
                   ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-60'
                   : 'bg-[#f5e5d9] hover:bg-[#E8DCD1] text-[#845326] hover:text-[#433022] border-[#dccbbd]/80 shadow-xs hover:shadow-sm hover:-translate-y-0.5 active:scale-95 cursor-pointer'
               }`}
-              title={isCompleted ? "No se puede editar una tarea completada" : "Editar tarea"}
+              title={isCompleted ? 'No se puede editar una tarea completada' : 'Editar tarea'}
             >
               <Pencil className={`size-3.5 ${isCompleted ? 'text-gray-400' : 'text-[#845326]'}`} />
               <span>Editar tarea</span>

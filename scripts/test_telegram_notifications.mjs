@@ -20,7 +20,11 @@ const now = new Date('2026-09-24T21:00:00-04:00'); // 9:00 PM Caracas
 
 // Caso 1: Racha expira en 3 horas exactas (180 min) -> Debe estar en ventana [165, 195]
 const expira3h = new Date(now.getTime() + 180 * 60 * 1000).toISOString();
-assert.equal(isInStreak3hWindow(expira3h, now), true, 'Racha a 3 horas exactas debe estar en la ventana');
+assert.equal(
+  isInStreak3hWindow(expira3h, now),
+  true,
+  'Racha a 3 horas exactas debe estar en la ventana',
+);
 
 // Caso 2: Racha expira en 2h50m (170 min) -> Debe estar en ventana
 const expira2h50m = new Date(now.getTime() + 170 * 60 * 1000).toISOString();
@@ -28,16 +32,32 @@ assert.equal(isInStreak3hWindow(expira2h50m, now), true, 'Racha a 2h50m debe est
 
 // Caso 3: Racha expira en 5 horas (300 min) -> No debe enviar
 const expira5h = new Date(now.getTime() + 300 * 60 * 1000).toISOString();
-assert.equal(isInStreak3hWindow(expira5h, now), false, 'Racha a 5 horas NO debe estar en la ventana de 3h');
+assert.equal(
+  isInStreak3hWindow(expira5h, now),
+  false,
+  'Racha a 5 horas NO debe estar en la ventana de 3h',
+);
 
 // Caso 4: Racha expira en 1 hora (60 min) -> No debe enviar
 const expira1h = new Date(now.getTime() + 60 * 60 * 1000).toISOString();
-assert.equal(isInStreak3hWindow(expira1h, now), false, 'Racha a 1 hora NO debe estar en la ventana de 3h');
+assert.equal(
+  isInStreak3hWindow(expira1h, now),
+  false,
+  'Racha a 1 hora NO debe estar en la ventana de 3h',
+);
 
 // Caso 5: Racha expirada en el pasado
 const expiraPasado = new Date(now.getTime() - 10 * 60 * 1000).toISOString();
-assert.equal(isStreakExpired(expiraPasado, now), true, 'Racha con fecha en el pasado debe detectarse como expirada');
-assert.equal(isStreakExpired(expira3h, now), false, 'Racha en el futuro no debe detectarse como expirada');
+assert.equal(
+  isStreakExpired(expiraPasado, now),
+  true,
+  'Racha con fecha en el pasado debe detectarse como expirada',
+);
+assert.equal(
+  isStreakExpired(expira3h, now),
+  false,
+  'Racha en el futuro no debe detectarse como expirada',
+);
 
 // Caso 6: Proyecto próximo dentro de 7 días
 // const hoyKey = getCaracasDateKey(now);
@@ -45,13 +65,33 @@ const limite3Dias = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000).toISOStrin
 const limite10Dias = new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000).toISOString();
 const limiteAyer = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
-assert.equal(isProjectUpcomingWithin7Days(limite3Dias, now), true, 'Proyecto a 3 días debe considerarse próximo');
-assert.equal(isProjectUpcomingWithin7Days(limite10Dias, now), false, 'Proyecto a 10 días NO debe considerarse próximo (fuera de ventana 7d)');
-assert.equal(isProjectUpcomingWithin7Days(limiteAyer, now), false, 'Proyecto vencido ayer no debe considerarse próximo');
+assert.equal(
+  isProjectUpcomingWithin7Days(limite3Dias, now),
+  true,
+  'Proyecto a 3 días debe considerarse próximo',
+);
+assert.equal(
+  isProjectUpcomingWithin7Days(limite10Dias, now),
+  false,
+  'Proyecto a 10 días NO debe considerarse próximo (fuera de ventana 7d)',
+);
+assert.equal(
+  isProjectUpcomingWithin7Days(limiteAyer, now),
+  false,
+  'Proyecto vencido ayer no debe considerarse próximo',
+);
 
 // Caso 7: Proyecto expirado
-assert.equal(isProjectExpiredDate(limiteAyer, now), true, 'Proyecto con fecha_limite de ayer debe considerarse expirado');
-assert.equal(isProjectExpiredDate(limite3Dias, now), false, 'Proyecto futuro no debe considerarse expirado');
+assert.equal(
+  isProjectExpiredDate(limiteAyer, now),
+  true,
+  'Proyecto con fecha_limite de ayer debe considerarse expirado',
+);
+assert.equal(
+  isProjectExpiredDate(limite3Dias, now),
+  false,
+  'Proyecto futuro no debe considerarse expirado',
+);
 
 console.log('✓ Tests de fechas y ventanas horarias superados.\n');
 
@@ -105,12 +145,20 @@ assert.equal(validateJobAuth(noAuth).status, 401, 'Petición sin token debe reto
 // Request con token incorrecto -> 401
 const wrongAuth = mockRequest('Bearer token_falso');
 assert.equal(validateJobAuth(wrongAuth).authorized, false);
-assert.equal(validateJobAuth(wrongAuth).status, 401, 'Petición con token incorrecto debe retornar 401');
+assert.equal(
+  validateJobAuth(wrongAuth).status,
+  401,
+  'Petición con token incorrecto debe retornar 401',
+);
 
 // Request con token correcto -> 200
 const validJobReq = mockRequest(`Bearer ${process.env.INTERNAL_JOB_TOKEN}`);
 assert.equal(validateJobAuth(validJobReq).authorized, true);
-assert.equal(validateJobAuth(validJobReq).status, 200, 'Petición con token válido debe ser autorizada');
+assert.equal(
+  validateJobAuth(validJobReq).status,
+  200,
+  'Petición con token válido debe ser autorizada',
+);
 
 // Webhook con secreto correcto
 const validWebReq = mockRequest(`Bearer ${process.env.WEBHOOK_SECRET}`);
@@ -144,7 +192,12 @@ async function mockWasSent(usuarioId, tipoEvento, referenciaId = null, fecha = n
   });
 }
 
-async function mockMarkAsSent(usuarioId, tipoEvento, referenciaId = null, fechaEnvio = new Date().toISOString()) {
+async function mockMarkAsSent(
+  usuarioId,
+  tipoEvento,
+  referenciaId = null,
+  fechaEnvio = new Date().toISOString(),
+) {
   const isDup = await mockWasSent(usuarioId, tipoEvento, referenciaId, fechaEnvio);
   if (isDup) {
     // Simula captura de error 23505 unique_violation
@@ -162,10 +215,22 @@ async function mockMarkAsSent(usuarioId, tipoEvento, referenciaId = null, fechaE
 // Test tarea_completada: deduplicación por tarea_id
 const u1 = 'user-001';
 const t1 = 'task-100';
-assert.equal(await mockWasSent(u1, 'tarea_completada', t1), false, 'Inicialmente no debe estar enviada');
+assert.equal(
+  await mockWasSent(u1, 'tarea_completada', t1),
+  false,
+  'Inicialmente no debe estar enviada',
+);
 await mockMarkAsSent(u1, 'tarea_completada', t1);
-assert.equal(await mockWasSent(u1, 'tarea_completada', t1), true, 'Tras registrar, debe reportar como enviada');
-assert.equal(await mockWasSent(u1, 'tarea_completada', 'task-101'), false, 'Otra tarea del mismo usuario no debe reportarse como enviada');
+assert.equal(
+  await mockWasSent(u1, 'tarea_completada', t1),
+  true,
+  'Tras registrar, debe reportar como enviada',
+);
+assert.equal(
+  await mockWasSent(u1, 'tarea_completada', 'task-101'),
+  false,
+  'Otra tarea del mismo usuario no debe reportarse como enviada',
+);
 
 // Test racha_3h: deduplicación a nivel de usuario sin referencia
 assert.equal(await mockWasSent(u1, 'racha_3h', null), false);
@@ -179,8 +244,16 @@ const fechaManana = new Date('2026-09-25T12:00:00-04:00');
 
 assert.equal(await mockWasSent(u1, 'proyecto_proximo', p1, fechaHoy), false);
 await mockMarkAsSent(u1, 'proyecto_proximo', p1, fechaHoy.toISOString());
-assert.equal(await mockWasSent(u1, 'proyecto_proximo', p1, fechaHoy), true, 'Debe estar deduplicada para el mismo día');
-assert.equal(await mockWasSent(u1, 'proyecto_proximo', p1, fechaManana), false, 'No debe estar deduplicada para el día siguiente');
+assert.equal(
+  await mockWasSent(u1, 'proyecto_proximo', p1, fechaHoy),
+  true,
+  'Debe estar deduplicada para el mismo día',
+);
+assert.equal(
+  await mockWasSent(u1, 'proyecto_proximo', p1, fechaManana),
+  false,
+  'No debe estar deduplicada para el día siguiente',
+);
 
 console.log('✓ Tests de deduplicación superados.\n');
 
@@ -199,10 +272,26 @@ const msgProyecto7d = `⚠️-El proyecto "Investigación IA" está próximo a e
 const msgProyectoExp = `❌-El proyecto "Investigación IA" ha expirado. Fecha límite: 2026-09-20`;
 
 assert.match(msgTarea, formatoRegex, 'Mensaje de tarea debe coincidir con formato {emoji}-{texto}');
-assert.match(msgRacha3h, formatoRegex, 'Mensaje de racha 3h debe coincidir con formato {emoji}-{texto}');
-assert.match(msgRachaExpirada, formatoRegex, 'Mensaje de racha expirada debe coincidir con formato {emoji}-{texto}');
-assert.match(msgProyecto7d, formatoRegex, 'Mensaje de proyecto 7 días debe coincidir con formato {emoji}-{texto}');
-assert.match(msgProyectoExp, formatoRegex, 'Mensaje de proyecto expirado debe coincidir con formato {emoji}-{texto}');
+assert.match(
+  msgRacha3h,
+  formatoRegex,
+  'Mensaje de racha 3h debe coincidir con formato {emoji}-{texto}',
+);
+assert.match(
+  msgRachaExpirada,
+  formatoRegex,
+  'Mensaje de racha expirada debe coincidir con formato {emoji}-{texto}',
+);
+assert.match(
+  msgProyecto7d,
+  formatoRegex,
+  'Mensaje de proyecto 7 días debe coincidir con formato {emoji}-{texto}',
+);
+assert.match(
+  msgProyectoExp,
+  formatoRegex,
+  'Mensaje de proyecto expirado debe coincidir con formato {emoji}-{texto}',
+);
 
 // Test de simulación de Job de Racha 3h
 function simulateStreak3hJob(users, nowTime) {
@@ -230,8 +319,8 @@ function simulateStreak3hJob(users, nowTime) {
 const mockUsers = [
   { id: '1', telegram_chat_id: '12345', racha_expira_en: expira3h, yaEnviado: false }, // Debe enviar
   { id: '2', telegram_chat_id: '67890', racha_expira_en: expira5h, yaEnviado: false }, // Omitido (5h)
-  { id: '3', telegram_chat_id: '11111', racha_expira_en: expira3h, yaEnviado: true },  // Omitido (ya enviado)
-  { id: '4', telegram_chat_id: null,    racha_expira_en: expira3h, yaEnviado: false }, // Omitido (sin chat_id)
+  { id: '3', telegram_chat_id: '11111', racha_expira_en: expira3h, yaEnviado: true }, // Omitido (ya enviado)
+  { id: '4', telegram_chat_id: null, racha_expira_en: expira3h, yaEnviado: false }, // Omitido (sin chat_id)
 ];
 
 const resStreak = simulateStreak3hJob(mockUsers, now);
@@ -243,7 +332,9 @@ console.log('✓ Tests de formato de mensaje y lógica de jobs superados.\n');
 // -----------------------------------------------------------------
 // 5. Test de Borrado de Bloques de Calendario al Completar Tarea
 // -----------------------------------------------------------------
-console.log('[Test Suite 5] Petición especial: Borrado de bloques de calendario al completar tarea');
+console.log(
+  '[Test Suite 5] Petición especial: Borrado de bloques de calendario al completar tarea',
+);
 
 let mockCalendarEvents = [
   { id: 'evt-1', tarea_id: 'task-abc', titulo: 'Estudiar tema 1' },

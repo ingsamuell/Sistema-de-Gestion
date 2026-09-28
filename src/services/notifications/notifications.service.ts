@@ -73,7 +73,9 @@ export async function markAsSent(
 ): Promise<boolean> {
   const supabase = getAdminClient();
   if (!supabase) {
-    console.error('[notifications.service] Imposible registrar notificación: falta cliente admin de Supabase.');
+    console.error(
+      '[notifications.service] Imposible registrar notificación: falta cliente admin de Supabase.',
+    );
     return false;
   }
 
@@ -90,7 +92,9 @@ export async function markAsSent(
     if (error) {
       // 23505: unique_violation (otra instancia envió y registró exactamente en el mismo instante)
       if (error.code === '23505') {
-        console.info(`[notifications.service] Registro ya existente (violación única 23505) para usuario=${usuarioId} tipo=${tipoEvento}. Deduplicado.`);
+        console.info(
+          `[notifications.service] Registro ya existente (violación única 23505) para usuario=${usuarioId} tipo=${tipoEvento}. Deduplicado.`,
+        );
         return true;
       }
 

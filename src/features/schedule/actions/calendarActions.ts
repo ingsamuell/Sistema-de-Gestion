@@ -324,14 +324,18 @@ export async function syncAvailabilityBlocksAction(
     const db = adminDb || supabase;
 
     // Eliminar bloques previos del usuario en bloques_disponibilidad para actualizarlos de forma consistente (ignorando los extraidos por IA)
-    await db.from('bloques_disponibilidad').delete().eq('usuario_id', user.id).eq('origen', 'manual');
+    await db
+      .from('bloques_disponibilidad')
+      .delete()
+      .eq('usuario_id', user.id)
+      .eq('origen', 'manual');
 
     if (blocks.length > 0) {
       const inserts = blocks.map((b) => {
         let finalTipo = b.tipo;
         if (b.tipo === 'estudiando') finalTipo = 'estudio';
         if (b.tipo === 'descanso') finalTipo = 'otra_actividad';
-        
+
         let finalFin = b.hora_fin;
         if (finalFin === '24:00' || finalFin === '24:00:00') finalFin = '23:59:59';
         else if (finalFin.length === 5) finalFin = `${finalFin}:00`;
@@ -478,15 +482,20 @@ export async function updateCalendarEventDetailsAction(input: {
 /**
  * Guarda bloques de disponibilidad replicados en la base de datos (bloques_disponibilidad).
  */
-export async function replicateAvailabilitiesAction(blocks: {
-  fecha_especifica: string;
-  hora_inicio: string;
-  hora_fin: string;
-  tipo: string;
-}[]) {
+export async function replicateAvailabilitiesAction(
+  blocks: {
+    fecha_especifica: string;
+    hora_inicio: string;
+    hora_fin: string;
+    tipo: string;
+  }[],
+) {
   try {
     const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return { success: false, error: 'No autenticado' };
@@ -494,17 +503,17 @@ export async function replicateAvailabilitiesAction(blocks: {
 
     if (!blocks || blocks.length === 0) return { success: true };
 
-    const inserts = blocks.map(b => ({
+    const inserts = blocks.map((b) => ({
       usuario_id: user.id,
       fecha_especifica: b.fecha_especifica,
       hora_inicio: b.hora_inicio,
       hora_fin: b.hora_fin,
       tipo: b.tipo,
-      origen: 'manual'
+      origen: 'manual',
     }));
 
     const { error } = await supabase.from('bloques_disponibilidad').insert(inserts);
-    
+
     if (error) {
       console.error('Error insertando bloques replicados:', error);
       return { success: false, error: error.message };

@@ -153,10 +153,7 @@ export async function evaluateAndSyncUserStreak(
         effectiveStreak = 0;
         wasReset = true;
         // Reiniciar la racha a 0
-        await supabase
-          .from('profiles')
-          .update({ racha_activa: 0 })
-          .eq('id', userId);
+        await supabase.from('profiles').update({ racha_activa: 0 }).eq('id', userId);
       }
     }
 
@@ -167,9 +164,9 @@ export async function evaluateAndSyncUserStreak(
         .from('projects')
         .select('id')
         .eq('user_id', userId);
-        
+
       const projectIds = (userProjects || []).map((p) => p.id);
-      
+
       let count = 0;
       if (projectIds.length > 0) {
         const { count: tasksCount } = await supabase
@@ -179,21 +176,15 @@ export async function evaluateAndSyncUserStreak(
           .eq('completado', true);
         count = tasksCount || 0;
       }
-      
+
       if (count === 0) {
         effectiveStreak = 0;
         wasReset = true;
-        await supabase
-          .from('profiles')
-          .update({ racha_activa: 0 })
-          .eq('id', userId);
+        await supabase.from('profiles').update({ racha_activa: 0 }).eq('id', userId);
       } else if (effectiveStreak > count) {
         // Limitar la racha al total absoluto de tareas completadas
         effectiveStreak = count;
-        await supabase
-          .from('profiles')
-          .update({ racha_activa: effectiveStreak })
-          .eq('id', userId);
+        await supabase.from('profiles').update({ racha_activa: effectiveStreak }).eq('id', userId);
       }
     }
 

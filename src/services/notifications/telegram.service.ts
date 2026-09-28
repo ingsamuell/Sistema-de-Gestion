@@ -19,7 +19,9 @@ export async function sendTelegramNotification(
   const token = process.env.TELEGRAM_BOT_TOKEN;
 
   if (!token || token.trim() === '') {
-    console.error('sendTelegramNotification: TELEGRAM_BOT_TOKEN no está configurado en las variables de entorno.');
+    console.error(
+      'sendTelegramNotification: TELEGRAM_BOT_TOKEN no está configurado en las variables de entorno.',
+    );
     return {
       success: false,
       error: 'TELEGRAM_BOT_TOKEN no configurado.',
@@ -66,7 +68,9 @@ export async function sendTelegramNotification(
       // Si el chat_id es inválido o el usuario bloqueó el bot (400 / 403), no reintentar
       if (statusCode === 400 || statusCode === 403) {
         const desc = data?.description || 'Error del cliente de Telegram';
-        console.warn(`[Telegram API] Intento a chat_id ${cleanChatId} falló sin reintento (${statusCode}): ${desc}`);
+        console.warn(
+          `[Telegram API] Intento a chat_id ${cleanChatId} falló sin reintento (${statusCode}): ${desc}`,
+        );
         return {
           success: false,
           error: desc,
@@ -79,7 +83,9 @@ export async function sendTelegramNotification(
       if (statusCode === 429) {
         const retryAfterSeconds = data?.parameters?.retry_after || Math.pow(2, attempt - 1);
         const waitMs = retryAfterSeconds * 1000;
-        console.warn(`[Telegram API] 429 Too Many Requests para ${cleanChatId}. Reintentando en ${waitMs}ms (intento ${attempt}/${maxAttempts})...`);
+        console.warn(
+          `[Telegram API] 429 Too Many Requests para ${cleanChatId}. Reintentando en ${waitMs}ms (intento ${attempt}/${maxAttempts})...`,
+        );
         if (attempt < maxAttempts) {
           await sleep(waitMs);
           continue;
@@ -89,7 +95,9 @@ export async function sendTelegramNotification(
       // Errores 5xx o transitorios
       if (statusCode >= 500 && attempt < maxAttempts) {
         const waitMs = Math.pow(2, attempt - 1) * 1000; // 1s, 2s, 4s
-        console.warn(`[Telegram API] Error de servidor (${statusCode}). Reintentando en ${waitMs}ms...`);
+        console.warn(
+          `[Telegram API] Error de servidor (${statusCode}). Reintentando en ${waitMs}ms...`,
+        );
         await sleep(waitMs);
         continue;
       }
@@ -102,7 +110,10 @@ export async function sendTelegramNotification(
       };
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Error desconocido de red';
-      console.error(`[Telegram API] Error de conexión enviando a ${cleanChatId} (intento ${attempt}):`, message);
+      console.error(
+        `[Telegram API] Error de conexión enviando a ${cleanChatId} (intento ${attempt}):`,
+        message,
+      );
 
       if (attempt < maxAttempts) {
         const waitMs = Math.pow(2, attempt - 1) * 1000;

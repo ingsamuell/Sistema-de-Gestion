@@ -44,7 +44,9 @@ export async function runProjects7DaysJob(): Promise<JobExecutionResult> {
   const now = new Date();
 
   // 2. Filtrar proyectos que expiran dentro de los próximos 7 días
-  const upcomingProjects = projects.filter((p) => isProjectUpcomingWithin7Days(p.fecha_limite, now));
+  const upcomingProjects = projects.filter((p) =>
+    isProjectUpcomingWithin7Days(p.fecha_limite, now),
+  );
 
   if (upcomingProjects.length === 0) {
     return result;

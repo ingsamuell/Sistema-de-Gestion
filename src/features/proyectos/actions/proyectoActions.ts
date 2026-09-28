@@ -3,9 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
-import {
-  generateProjectTasksFromN8n,
-} from '@/services/automation/n8nTasksService';
+import { generateProjectTasksFromN8n } from '@/services/automation/n8nTasksService';
 import {
   generateProjectTasksAndScheduleWithGemini,
   checkProjectFeasibilityWithGemini,
@@ -78,7 +76,9 @@ async function userOwnsProject(
 export async function getActiveProjectsSimpleAction() {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return { success: false, error: 'No autenticado' };
 
     const { data, error } = await supabase
@@ -735,7 +735,7 @@ export async function toggleTaskStatusAction(
     const currentExpira = profile?.racha_expira_en;
 
     const nextNextMidnight = getCaracasNextNextMidnightISO();
-    
+
     // Comparar usando getTime() para evitar errores de formato en strings ISO de la base de datos
     const currentExpiraTime = currentExpira ? new Date(currentExpira).getTime() : 0;
     const nextMidnightTime = new Date(nextNextMidnight).getTime();
@@ -746,7 +746,7 @@ export async function toggleTaskStatusAction(
       if (currentExpiraTime === nextMidnightTime) {
         updatedRacha = currentStreak;
         updatedRachaMaxima = currentMax;
-        
+
         await db
           .from('profiles')
           .update({
@@ -808,8 +808,6 @@ export async function toggleTaskStatusAction(
         .eq('id', targetProjectId)
         .eq('user_id', user.id);
     }
-
-
 
     revalidatePath(`/proyectos/${targetProjectId}`);
     revalidatePath('/proyectos');
@@ -1416,7 +1414,7 @@ export async function updateTaskAction(data: {
       .select('completado')
       .eq('id', data.taskId)
       .single();
-      
+
     if (existingTask?.completado) {
       return {
         success: false,

@@ -1084,5 +1084,3 @@ Devuelve un JSON con la estructura:
     clearTimeout(timeoutId);
   }
 }
-
-

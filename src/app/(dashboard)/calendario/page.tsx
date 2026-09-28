@@ -50,7 +50,10 @@ import {
   updateCalendarEventDetailsAction,
   replicateAvailabilitiesAction,
 } from '@/features/schedule/actions/calendarActions';
-import { getActiveProjectsSimpleAction, createTaskAction } from '@/features/proyectos/actions/proyectoActions';
+import {
+  getActiveProjectsSimpleAction,
+  createTaskAction,
+} from '@/features/proyectos/actions/proyectoActions';
 import { createClient } from '@/lib/supabase/client';
 import { useCalendarTour } from '@/hooks/useCalendarTour';
 
@@ -146,7 +149,9 @@ const parseISODate = (dateStr: string) => {
 const endOfMonthFn = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0);
 
 function consolidateAvailabilitySlots(slots: Availability[]) {
-  const nonTasks = slots.filter((a) => !a.eventId && a.source !== 'google' && a.source !== 'supabase_ia');
+  const nonTasks = slots.filter(
+    (a) => !a.eventId && a.source !== 'google' && a.source !== 'supabase_ia',
+  );
   if (nonTasks.length === 0) return [];
 
   const byDate: Record<string, Availability[]> = {};
@@ -185,16 +190,14 @@ function consolidateAvailabilitySlots(slots: Availability[]) {
         current.end = slot.endTime;
       } else {
         if (current) {
-          let normalizedType: 'ocupado' | 'tareas' | 'estudio' | 'trabajo' | 'otra_actividad' | 'descanso' =
-            'tareas';
+          let normalizedType:
+            'ocupado' | 'tareas' | 'estudio' | 'trabajo' | 'otra_actividad' | 'descanso' = 'tareas';
           if (current.type === 'estudio' || current.type === 'estudiando')
             normalizedType = 'estudio';
           else if (current.type === 'trabajo' || current.type === 'ocupado')
             normalizedType = 'trabajo';
-          else if (current.type === 'otra_actividad')
-            normalizedType = 'otra_actividad';
-          else if (current.type === 'descanso')
-            normalizedType = 'descanso';
+          else if (current.type === 'otra_actividad') normalizedType = 'otra_actividad';
+          else if (current.type === 'descanso') normalizedType = 'descanso';
           else normalizedType = 'tareas';
 
           consolidated.push({
@@ -217,8 +220,8 @@ function consolidateAvailabilitySlots(slots: Availability[]) {
     }
 
     if (current) {
-      let normalizedType: 'ocupado' | 'tareas' | 'estudio' | 'trabajo' | 'otra_actividad' | 'descanso' =
-        'tareas';
+      let normalizedType:
+        'ocupado' | 'tareas' | 'estudio' | 'trabajo' | 'otra_actividad' | 'descanso' = 'tareas';
       if (current.type === 'estudio' || current.type === 'estudiando') normalizedType = 'estudio';
       else if (current.type === 'trabajo' || current.type === 'ocupado') normalizedType = 'trabajo';
       else if (current.type === 'otra_actividad') normalizedType = 'otra_actividad';
@@ -315,8 +318,12 @@ export default function CalendarioPage() {
   const [showReplicateMenu, setShowReplicateMenu] = useState(false);
   const [showSpecificWeeksModal, setShowSpecificWeeksModal] = useState(false);
   const [showSpecificMonthModal, setShowSpecificMonthModal] = useState(false);
-  const [selectedReplicateMonth, setSelectedReplicateMonth] = useState<number>(new Date().getMonth());
-  const [selectedReplicateYear, setSelectedReplicateYear] = useState<number>(new Date().getFullYear());
+  const [selectedReplicateMonth, setSelectedReplicateMonth] = useState<number>(
+    new Date().getMonth(),
+  );
+  const [selectedReplicateYear, setSelectedReplicateYear] = useState<number>(
+    new Date().getFullYear(),
+  );
   const [selectedWeeks, setSelectedWeeks] = useState<string[]>([]);
   const [selectedWeeksYear, setSelectedWeeksYear] = useState<number>(new Date().getFullYear());
   const [futureWeeksList, setFutureWeeksList] = useState<
@@ -331,7 +338,9 @@ export default function CalendarioPage() {
   const [uploadStatusText, setUploadStatusText] = useState<string>('Analizando con Gemini...');
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccessMsg, setUploadSuccessMsg] = useState<string | null>(null);
-  const [uploadReplicateOption, setUploadReplicateOption] = useState<'mes' | 'todos' | 'semanas'>('todos');
+  const [uploadReplicateOption, setUploadReplicateOption] = useState<'mes' | 'todos' | 'semanas'>(
+    'todos',
+  );
   const [uploadSelectedMonth, setUploadSelectedMonth] = useState<number>(new Date().getMonth());
   const [uploadSelectedYear, setUploadSelectedYear] = useState<number>(new Date().getFullYear());
   const [uploadSelectedWeeks, setUploadSelectedWeeks] = useState<string[]>([]);
@@ -425,7 +434,7 @@ export default function CalendarioPage() {
             }
           });
         }
-        
+
         if (res.availabilities && res.availabilities.length > 0) {
           const today = new Date();
           const startRange = new Date(today.getFullYear(), today.getMonth() - 1, 1);
@@ -449,16 +458,29 @@ export default function CalendarioPage() {
             else if (b.tipo === 'descanso') normalizedType = 'descanso';
             else if (b.tipo === 'ocupado') normalizedType = 'trabajo';
 
-            const labelVal = b.tipo === 'estudio' ? 'Estudio' : b.tipo === 'trabajo' ? 'Trabajo' : b.tipo === 'descanso' ? 'Descanso' : b.tipo === 'otra_actividad' ? 'Otra actividad' : 'Ocupado';
+            const labelVal =
+              b.tipo === 'estudio'
+                ? 'Estudio'
+                : b.tipo === 'trabajo'
+                  ? 'Trabajo'
+                  : b.tipo === 'descanso'
+                    ? 'Descanso'
+                    : b.tipo === 'otra_actividad'
+                      ? 'Otra actividad'
+                      : 'Ocupado';
 
             if (b.fecha_especifica) {
-              const dayOfWeekName = format(parseISODate(b.fecha_especifica), 'EEEE', { locale: es });
+              const dayOfWeekName = format(parseISODate(b.fecha_especifica), 'EEEE', {
+                locale: es,
+              });
               const blockId = `block_${b.fecha_especifica}_${startIdx}_${endIdx}`;
 
               for (let i = startIdx; i < endIdx; i++) {
                 const slot = TIME_SLOTS[i];
                 if (slot && slot !== '24:00') {
-                  if (!dbEvents.some(ev => ev.date === b.fecha_especifica && ev.startTime === slot)) {
+                  if (
+                    !dbEvents.some((ev) => ev.date === b.fecha_especifica && ev.startTime === slot)
+                  ) {
                     dbEvents.push({
                       date: b.fecha_especifica,
                       dayOfWeek: dayOfWeekName,
@@ -473,17 +495,17 @@ export default function CalendarioPage() {
                 }
               }
             } else if (b.dia_semana !== null && b.dia_semana !== undefined) {
-              const matchingDays = activeDays.filter(d => d.getDay() === b.dia_semana);
-              matchingDays.forEach(d => {
+              const matchingDays = activeDays.filter((d) => d.getDay() === b.dia_semana);
+              matchingDays.forEach((d) => {
                 const dateStr = format(d, 'yyyy-MM-dd');
                 const dayOfWeekName = format(d, 'EEEE', { locale: es });
                 const blockId = `block_rec_${dateStr}_${startIdx}_${endIdx}`;
-                
+
                 for (let i = startIdx; i < endIdx; i++) {
                   const slot = TIME_SLOTS[i];
                   if (slot && slot !== '24:00') {
                     // Evitar duplicados si hay un bloque manual superpuesto (priorizamos el manual si ya está en dbEvents)
-                    if (!dbEvents.some(ev => ev.date === dateStr && ev.startTime === slot)) {
+                    if (!dbEvents.some((ev) => ev.date === dateStr && ev.startTime === slot)) {
                       dbEvents.push({
                         date: dateStr,
                         dayOfWeek: dayOfWeekName,
@@ -966,8 +988,8 @@ export default function CalendarioPage() {
       setUploadStatusText('Analizando horario con IA Gemini...');
 
       const selectedWeekStarts = futureWeeksList
-        .filter(w => uploadSelectedWeeks.includes(w.label))
-        .map(w => w.start.toISOString());
+        .filter((w) => uploadSelectedWeeks.includes(w.label))
+        .map((w) => w.start.toISOString());
 
       const res = await fetch('/api/calendar/extract-schedule', {
         method: 'POST',
@@ -1576,11 +1598,14 @@ export default function CalendarioPage() {
             date: editingCell.date,
             startTime: editingCell.time,
             endTime: TIME_SLOTS[endIdx + 1] || '24:00',
-            projects: res.projects
+            projects: res.projects,
           });
           setEditingCell(null);
         } else {
-          setToastMessage({ type: 'error', text: 'No tienes proyectos activos para crear una tarea.' });
+          setToastMessage({
+            type: 'error',
+            text: 'No tienes proyectos activos para crear una tarea.',
+          });
         }
       });
       return;
@@ -1650,10 +1675,10 @@ export default function CalendarioPage() {
   const generateFutureWeeks = (currentWeekStart: Date, targetYear: number) => {
     const weeks = [];
     const maxYearLimit = new Date(2036, 11, 31, 23, 59, 59);
-    
+
     let nextWeekStart: Date;
     const nowYear = currentWeekStart.getFullYear();
-    
+
     if (targetYear > nowYear) {
       nextWeekStart = startOfWeek(new Date(targetYear, 0, 1), { weekStartsOn: 1 });
     } else if (targetYear === nowYear) {
@@ -1661,11 +1686,15 @@ export default function CalendarioPage() {
     } else {
       nextWeekStart = startOfWeek(new Date(targetYear, 0, 1), { weekStartsOn: 1 });
     }
-    
-    const endOfTargetYear = targetYear >= 2036 ? maxYearLimit : endOfYear(new Date(targetYear, 0, 1));
+
+    const endOfTargetYear =
+      targetYear >= 2036 ? maxYearLimit : endOfYear(new Date(targetYear, 0, 1));
 
     while (nextWeekStart <= endOfTargetYear && nextWeekStart <= maxYearLimit) {
-      if (nextWeekStart.getFullYear() === targetYear || addDays(nextWeekStart, 6).getFullYear() === targetYear) {
+      if (
+        nextWeekStart.getFullYear() === targetYear ||
+        addDays(nextWeekStart, 6).getFullYear() === targetYear
+      ) {
         const nextWeekEnd = addDays(nextWeekStart, 6);
         const label = `${format(nextWeekStart, 'd MMM', { locale: es })} - ${format(nextWeekEnd, 'd MMM', { locale: es })}`;
         weeks.push({ start: nextWeekStart, end: nextWeekEnd, label });
@@ -1695,9 +1724,11 @@ export default function CalendarioPage() {
       start: startOfCurrentWeek,
       end: endOfCurrentWeek,
     }).map((d) => format(d, 'yyyy-MM-dd'));
-    
+
     // Solo replicar bloques de horario genéricos (no tareas específicas con eventId)
-    const currentWeekAvails = availabilities.filter((a) => currentWeekDates.includes(a.date) && !a.eventId);
+    const currentWeekAvails = availabilities.filter(
+      (a) => currentWeekDates.includes(a.date) && !a.eventId,
+    );
 
     if (currentWeekAvails.length === 0) {
       alert('No hay disponibilidad marcada en esta semana para replicar.');
@@ -1715,7 +1746,7 @@ export default function CalendarioPage() {
         if (dayIndex !== -1) {
           const targetDateStr = targetWeekDates[dayIndex];
           const targetDateObj = parseISODate(targetDateStr);
-          
+
           // Si especificamos un mes objetivo, excluir los días que caen fuera de ese mes (ej. final de oct o inicio de dic)
           if (targetMonth !== undefined && targetDateObj.getMonth() !== targetMonth) {
             return;
@@ -1736,17 +1767,30 @@ export default function CalendarioPage() {
     });
 
     // Guardar los bloques en la base de datos de manera persistente
-    const blocksToSave = newAvails.map(avail => ({
+    const blocksToSave = newAvails.map((avail) => ({
       fecha_especifica: avail.date,
       hora_inicio: avail.startTime.length === 5 ? `${avail.startTime}:00` : avail.startTime,
-      hora_fin: avail.endTime === '24:00' ? '23:59:59' : (avail.endTime.length === 5 ? `${avail.endTime}:00` : avail.endTime),
-      tipo: avail.type === 'estudiando' ? 'estudio' : (avail.type === 'descanso' ? 'otra_actividad' : (avail.type || 'trabajo')),
+      hora_fin:
+        avail.endTime === '24:00'
+          ? '23:59:59'
+          : avail.endTime.length === 5
+            ? `${avail.endTime}:00`
+            : avail.endTime,
+      tipo:
+        avail.type === 'estudiando'
+          ? 'estudio'
+          : avail.type === 'descanso'
+            ? 'otra_actividad'
+            : avail.type || 'trabajo',
     }));
 
     if (blocksToSave.length > 0) {
       const res = await replicateAvailabilitiesAction(blocksToSave);
       if (!res.success) {
-        alert('Ocurrió un error al guardar los bloques replicados de manera permanente. Detalles: ' + res.error);
+        alert(
+          'Ocurrió un error al guardar los bloques replicados de manera permanente. Detalles: ' +
+            res.error,
+        );
         return;
       } else {
         // Recargar datos desde supabase para que se consoliden en bdEvents
@@ -1943,7 +1987,7 @@ export default function CalendarioPage() {
                   <p className="text-sm text-on-surface-variant mb-4 font-medium">
                     Selecciona a qué semanas futuras quieres copiar tu disponibilidad actual:
                   </p>
-                  
+
                   <div className="mb-4">
                     <label className="text-sm font-bold text-[#845326] block mb-2">Año</label>
                     <select
@@ -1957,7 +2001,11 @@ export default function CalendarioPage() {
                     >
                       {Array.from({ length: 5 }).map((_, i) => {
                         const y = new Date().getFullYear() + i;
-                        return <option key={y} value={y}>{y}</option>;
+                        return (
+                          <option key={y} value={y}>
+                            {y}
+                          </option>
+                        );
                       })}
                     </select>
                   </div>
@@ -2021,7 +2069,9 @@ export default function CalendarioPage() {
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#2C1F14]/40 backdrop-blur-sm animate-in fade-in duration-200">
               <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col max-h-[80vh] border border-[#EAE3DC]">
                 <div className="p-5 border-b border-[#EAE3DC] bg-[#FDFBF9]">
-                  <h3 className="text-lg font-bold text-[#433022]">Replicar en un mes específico</h3>
+                  <h3 className="text-lg font-bold text-[#433022]">
+                    Replicar en un mes específico
+                  </h3>
                   <p className="text-sm text-on-surface-variant mt-1">
                     Selecciona el mes donde deseas replicar la disponibilidad de esta semana.
                   </p>
@@ -2036,7 +2086,11 @@ export default function CalendarioPage() {
                     >
                       {Array.from({ length: 5 }).map((_, i) => {
                         const y = new Date().getFullYear() + i;
-                        return <option key={y} value={y}>{y}</option>;
+                        return (
+                          <option key={y} value={y}>
+                            {y}
+                          </option>
+                        );
                       })}
                     </select>
                   </div>
@@ -2049,7 +2103,9 @@ export default function CalendarioPage() {
                     >
                       {Array.from({ length: 12 }).map((_, i) => (
                         <option key={i} value={i}>
-                          {new Date(2024, i, 1).toLocaleString('es-ES', { month: 'long' }).replace(/^\w/, c => c.toUpperCase())}
+                          {new Date(2024, i, 1)
+                            .toLocaleString('es-ES', { month: 'long' })
+                            .replace(/^\w/, (c) => c.toUpperCase())}
                         </option>
                       ))}
                     </select>
@@ -2065,13 +2121,16 @@ export default function CalendarioPage() {
                   <button
                     onClick={() => {
                       const today = new Date();
-                      const targetYear = selectedReplicateMonth < today.getMonth() ? today.getFullYear() + 1 : today.getFullYear();
+                      const targetYear =
+                        selectedReplicateMonth < today.getMonth()
+                          ? today.getFullYear() + 1
+                          : today.getFullYear();
                       const firstDayOfMonth = new Date(targetYear, selectedReplicateMonth, 1);
                       const lastDayOfMonth = endOfMonthFn(firstDayOfMonth);
-                      
+
                       let currentWeekStart = startOfWeek(firstDayOfMonth, { weekStartsOn: 1 });
                       const targetWeeks: Date[] = [];
-                      
+
                       while (currentWeekStart <= lastDayOfMonth) {
                         // Solo agregar si la semana no es la misma semana origen (para no duplicar inútilmente)
                         if (currentWeekStart.getTime() !== start.getTime()) {
@@ -2079,13 +2138,8 @@ export default function CalendarioPage() {
                         }
                         currentWeekStart = addDays(currentWeekStart, 7);
                       }
-                      
-                      replicateToWeeks(
-                        targetWeeks,
-                        start,
-                        end,
-                        selectedReplicateMonth,
-                      );
+
+                      replicateToWeeks(targetWeeks, start, end, selectedReplicateMonth);
                       setShowSpecificMonthModal(false);
                     }}
                     className="px-5 py-2 text-sm font-bold bg-[#845326] text-white rounded-xl hover:bg-[#6c421e] shadow-md transition-all active:scale-95"
@@ -2243,7 +2297,11 @@ export default function CalendarioPage() {
                           >
                             {Array.from({ length: 5 }).map((_, i) => {
                               const y = new Date().getFullYear() + i;
-                              return <option key={y} value={y}>{y}</option>;
+                              return (
+                                <option key={y} value={y}>
+                                  {y}
+                                </option>
+                              );
                             })}
                           </select>
                           <select
@@ -2253,7 +2311,9 @@ export default function CalendarioPage() {
                           >
                             {Array.from({ length: 12 }).map((_, i) => (
                               <option key={i} value={i}>
-                                {new Date(2024, i, 1).toLocaleString('es-ES', { month: 'long' }).replace(/^\w/, c => c.toUpperCase())}
+                                {new Date(2024, i, 1)
+                                  .toLocaleString('es-ES', { month: 'long' })
+                                  .replace(/^\w/, (c) => c.toUpperCase())}
                               </option>
                             ))}
                           </select>
@@ -2274,7 +2334,9 @@ export default function CalendarioPage() {
                   {uploadReplicateOption === 'semanas' && (
                     <div className="border border-[#EAE3DC] rounded-xl p-3 bg-[#FDFBF9] max-h-56 overflow-y-auto custom-scrollbar">
                       <div className="flex justify-between items-center mb-2">
-                        <p className="text-xs text-on-surface-variant font-semibold">Selecciona las semanas:</p>
+                        <p className="text-xs text-on-surface-variant font-semibold">
+                          Selecciona las semanas:
+                        </p>
                         <select
                           value={selectedWeeksYear}
                           onChange={(e) => {
@@ -2286,19 +2348,30 @@ export default function CalendarioPage() {
                         >
                           {Array.from({ length: 5 }).map((_, i) => {
                             const y = new Date().getFullYear() + i;
-                            return <option key={y} value={y}>{y}</option>;
+                            return (
+                              <option key={y} value={y}>
+                                {y}
+                              </option>
+                            );
                           })}
                         </select>
                       </div>
                       <div className="flex flex-col gap-1.5">
                         {futureWeeksList.map((week) => (
-                          <label key={week.label} className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+                          <label
+                            key={week.label}
+                            className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer"
+                          >
                             <input
                               type="checkbox"
                               checked={uploadSelectedWeeks.includes(week.label)}
                               onChange={(e) => {
-                                if (e.target.checked) setUploadSelectedWeeks((prev) => [...prev, week.label]);
-                                else setUploadSelectedWeeks((prev) => prev.filter((l) => l !== week.label));
+                                if (e.target.checked)
+                                  setUploadSelectedWeeks((prev) => [...prev, week.label]);
+                                else
+                                  setUploadSelectedWeeks((prev) =>
+                                    prev.filter((l) => l !== week.label),
+                                  );
                               }}
                               className="accent-[#845326]"
                             />
@@ -2820,11 +2893,18 @@ export default function CalendarioPage() {
                 <button
                   key={proj.id}
                   onClick={async () => {
-                    const sIso = new Date(`${projectSelectorState.date}T${projectSelectorState.startTime}:00`).toISOString();
-                    const eSlot = projectSelectorState.endTime === '24:00' ? '23:59:59' : `${projectSelectorState.endTime}:00`;
+                    const sIso = new Date(
+                      `${projectSelectorState.date}T${projectSelectorState.startTime}:00`,
+                    ).toISOString();
+                    const eSlot =
+                      projectSelectorState.endTime === '24:00'
+                        ? '23:59:59'
+                        : `${projectSelectorState.endTime}:00`;
                     const eIso = new Date(`${projectSelectorState.date}T${eSlot}`).toISOString();
-                    const durationMins = Math.round((new Date(eIso).getTime() - new Date(sIso).getTime()) / 60000);
-                    
+                    const durationMins = Math.round(
+                      (new Date(eIso).getTime() - new Date(sIso).getTime()) / 60000,
+                    );
+
                     setToastMessage({ type: 'success', text: 'Creando tarea...' });
                     setProjectSelectorState(null);
 
@@ -2832,7 +2912,7 @@ export default function CalendarioPage() {
                       projectId: proj.id,
                       titulo: editLabel || 'Nueva Tarea',
                       duracion: durationMins,
-                      fecha_inicio: sIso
+                      fecha_inicio: sIso,
                     });
 
                     if (res.success && res.task?.id) {
@@ -2840,7 +2920,10 @@ export default function CalendarioPage() {
                     } else if (res.success) {
                       router.push(`/proyectos/${proj.id}`);
                     } else {
-                      setToastMessage({ type: 'error', text: res.error || 'Error al crear la tarea' });
+                      setToastMessage({
+                        type: 'error',
+                        text: res.error || 'Error al crear la tarea',
+                      });
                     }
                   }}
                   className="w-full text-left px-4 py-3 hover:bg-[#F4EFEA] rounded-xl transition-colors mb-2 font-medium text-gray-700 flex items-center gap-3 border border-transparent hover:border-[#EAE3DC]"

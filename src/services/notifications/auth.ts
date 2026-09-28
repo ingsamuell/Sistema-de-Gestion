@@ -12,7 +12,11 @@ function extractBearerToken(request: Request): string | null {
 /**
  * Valida autenticación para los endpoints de /jobs/* utilizando INTERNAL_JOB_TOKEN.
  */
-export function validateJobAuth(request: Request): { authorized: boolean; status: number; error?: string } {
+export function validateJobAuth(request: Request): {
+  authorized: boolean;
+  status: number;
+  error?: string;
+} {
   const configuredToken = process.env.INTERNAL_JOB_TOKEN;
 
   if (!configuredToken || configuredToken.trim() === '') {
@@ -39,7 +43,11 @@ export function validateJobAuth(request: Request): { authorized: boolean; status
 /**
  * Valida autenticación para el endpoint de /webhooks/task-completed utilizando WEBHOOK_SECRET.
  */
-export function validateWebhookAuth(request: Request): { authorized: boolean; status: number; error?: string } {
+export function validateWebhookAuth(request: Request): {
+  authorized: boolean;
+  status: number;
+  error?: string;
+} {
   const configuredSecret = process.env.WEBHOOK_SECRET;
 
   if (!configuredSecret || configuredSecret.trim() === '') {
