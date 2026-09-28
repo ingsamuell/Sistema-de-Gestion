@@ -161,6 +161,10 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
           ],
           botFallback:
             'Si el bot no reconoce tu cuenta, vuelve a abrirlo desde la plataforma para generar el enlace correcto.',
+          deleteAccount: 'Eliminar cuenta',
+          deleteAccountTitle: '¿Estás seguro?',
+          deleteAccountWarning: 'Esta acción es irreversible. Se borrarán todos tus proyectos, temas e información personal de forma permanente.',
+          confirmDelete: 'Sí, eliminar mi cuenta',
         }
       : {
           personal: 'Personal space',
@@ -237,6 +241,10 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
           ],
           botFallback:
             'If the bot does not recognize your account, open it again from the platform to generate the correct link.',
+          deleteAccount: 'Delete account',
+          deleteAccountTitle: 'Are you sure?',
+          deleteAccountWarning: 'This action is irreversible. All your projects, topics, and personal information will be permanently deleted.',
+          confirmDelete: 'Yes, delete my account',
         };
   const localizedOnboardingQuestions = getOnboardingQuestions(locale);
   const spanishOnboardingQuestions = getOnboardingQuestions('es');
