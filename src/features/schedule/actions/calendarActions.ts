@@ -511,8 +511,8 @@ export async function replicateAvailabilitiesAction(blocks: {
     }
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error en replicateAvailabilitiesAction:', error);
-    return { success: false, error: error.message || 'Error desconocido' };
+    return { success: false, error: error instanceof Error ? error.message : 'Error desconocido' };
   }
 }

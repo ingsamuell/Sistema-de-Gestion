@@ -40,7 +40,7 @@ assert.equal(isStreakExpired(expiraPasado, now), true, 'Racha con fecha en el pa
 assert.equal(isStreakExpired(expira3h, now), false, 'Racha en el futuro no debe detectarse como expirada');
 
 // Caso 6: Proyecto próximo dentro de 7 días
-const hoyKey = getCaracasDateKey(now);
+// const hoyKey = getCaracasDateKey(now);
 const limite3Dias = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString();
 const limite10Dias = new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000).toISOString();
 const limiteAyer = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
