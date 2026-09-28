@@ -29,10 +29,13 @@ export interface OnboardingSurveyProps {
 const copy = {
   es: {
     welcome: 'Hola, soy la Mariposa del Destino',
-    prompt: '¿Qué experiencia deseas configurar?',
-    standard: 'Continuar con el plan estándar',
-    parent: 'Soy familiar o cuidador de un estudiante',
-    student: 'Es para mi uso personal',
+    prompt:
+      '¿Quieres entrar a nuestro plan de proyectos para perfiles inclusivos y neurodivergentes?',
+    decision:
+      'La decisión que tomes en esta pregunta afectará directamente el comportamiento e interfaz de la página.',
+    standard: 'No, continuar con el plan estándar.',
+    parent: 'Sí, soy familiar/cuidador de un estudiante.',
+    student: 'Sí, es para mi uso personal.',
     privacy:
       'Tus respuestas inclusivas son voluntarias. No pedimos ni guardamos diagnósticos o documentos médicos.',
     consent: 'Confirmación de privacidad',
@@ -52,10 +55,12 @@ const copy = {
   },
   en: {
     welcome: 'Hi, I am the Destiny Butterfly',
-    prompt: 'Which experience would you like to set up?',
-    standard: 'Continue with the standard plan',
-    parent: 'I am a family member or caregiver',
-    student: 'This is for my personal use',
+    prompt: 'Would you like to use our project plan for inclusive and neurodivergent profiles?',
+    decision:
+      'The decision you make here will directly affect the behavior and interface of the page.',
+    standard: 'No, continue with the standard plan.',
+    parent: 'Yes, I am a family member or caregiver of a student.',
+    student: 'Yes, this is for my personal use.',
     privacy:
       'Inclusive answers are voluntary. We do not request or store diagnoses or medical documents.',
     consent: 'Privacy confirmation',
@@ -211,14 +216,18 @@ export function OnboardingSurvey({ locale, devModeOverride }: OnboardingSurveyPr
           : 'Hi, my name is Mr. Chiwi';
   const subheading =
     step === -1
-      ? text.prompt
+      ? null
       : inclusiveContent
         ? inclusiveContent.subtitle
         : locale === 'es'
           ? 'Quiero conocerte mejor'
           : 'I want to get to know you better';
   const speech =
-    currentInclusiveQuestion?.speech || currentStandardQuestion?.chiwiSpeech || text.standardSpeech;
+    step === -1
+      ? text.decision
+      : currentInclusiveQuestion?.speech ||
+        currentStandardQuestion?.chiwiSpeech ||
+        text.standardSpeech;
   const inclusiveImage =
     inclusiveContent && step >= 0 && !isConsentStep
       ? mascotImages[path as InclusivePath][step]
@@ -231,9 +240,11 @@ export function OnboardingSurvey({ locale, devModeOverride }: OnboardingSurveyPr
           <h1 className="font-handwriting text-3xl font-bold tracking-wide text-[#2C1F14] sm:text-4xl">
             {heading}
           </h1>
-          <p className="mt-1 font-handwriting text-xl font-semibold text-[#845326] sm:text-2xl">
-            {subheading}
-          </p>
+          {subheading && (
+            <p className="mt-1 font-handwriting text-xl font-semibold text-[#845326] sm:text-2xl">
+              {subheading}
+            </p>
+          )}
           <div className="mt-5 max-w-md rounded-[40px] border-2 border-[#1A1A1A] bg-white px-6 py-4 shadow-sm">
             <p className="font-handwriting font-bold text-[#1A1A1A]">
               {step === -1 ? text.privacy : speech}
@@ -279,6 +290,9 @@ export function OnboardingSurvey({ locale, devModeOverride }: OnboardingSurveyPr
           )}
           {step === -1 ? (
             <div className="space-y-3">
+              <h2 className="text-xl font-bold leading-snug tracking-tight text-[#2C1F14] sm:text-2xl">
+                {text.prompt}
+              </h2>
               {(
                 [
                   ['standard', text.standard],

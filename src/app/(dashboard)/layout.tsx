@@ -15,7 +15,6 @@ import { GlobalFocusBar } from '@/components/study/GlobalFocusBar';
 import { headers } from 'next/headers';
 import { defaultLocale, isLocale } from '@/lib/i18n/locale';
 import { localizedHref } from '@/lib/i18n/routes';
-import InteractiveMascot from '@/components/InteractiveMascot';
 import { DashboardLanguageSwitch } from '@/components/i18n/DashboardLanguageSwitch';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -90,8 +89,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
             {/* Asistente de Telegram disponible en todas las vistas */}
             <TelegramBotWidget username={username} />
 
-            {/* Mascota Interactiva del Dashboard */}
-            <InteractiveMascot />
           </div>
         </FocusSessionProvider>
       </ToastProvider>

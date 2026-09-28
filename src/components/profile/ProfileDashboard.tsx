@@ -32,13 +32,12 @@ import {
 import { ChangePasswordModal } from '@/components/profile/ChangePasswordModal';
 import { AddPasswordModal } from '@/components/profile/AddPasswordModal';
 import { Button } from '@/components/ui/Button';
-import { onboardingQuestions } from '@/features/onboarding/data/questions';
+import { getOnboardingQuestions } from '@/features/onboarding/data/questions';
 import type { OnboardingAnswersInput } from '@/features/onboarding/actions/saveOnboardingAction';
 import {
-  OBJETIVOS_OPTIONS,
-  RITMOS_OPTIONS,
-  DIFICULTADES_OPTIONS,
-  AREAS_PRIORITARIAS_OPTIONS,
+  getLearningOptions,
+  localizeLearningOption,
+  toCanonicalLearningOption,
 } from '@/features/profile/data/learningOptions';
 import { updateProfileIdentity } from '@/features/profile/actions/updateProfileIdentityAction';
 import { updateLearningPreferences } from '@/features/profile/actions/updateLearningPreferencesAction';
@@ -112,6 +111,55 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
           controlled: 'Contexto bajo tu control',
           controlledDescription:
             'La IA solo usará fuentes de Temas y Proyectos que decidas incluir.',
+          learningProfile: 'Perfil de aprendizaje',
+          learningProfileDescription:
+            'Tus preferencias de estudio y la información complementaria para adaptar la planificación y tus ritmos.',
+          learningPreferences: 'Preferencias de aprendizaje',
+          learningPreferencesDescription:
+            'Estas respuestas adaptan la estructuración de tus proyectos a tu disponibilidad y experiencia previa.',
+          additionalInformation: 'Información complementaria',
+          additionalInformationDescription:
+            'Ajustes adicionales sobre tus objetivos, ritmo, dificultades y áreas prioritarias de estudio.',
+          mainGoal: 'Objetivo principal',
+          preferredPace: 'Ritmo preferido',
+          commonDifficulties: 'Dificultades habituales',
+          commonDifficultiesDescription:
+            'Puedes elegir una o varias opciones que identifiquen tus retos.',
+          priorityAreas: 'Áreas prioritarias',
+          priorityAreasDescription:
+            'Puedes seleccionar una o más áreas en las que centras tu aprendizaje.',
+          savePreferencesHint: 'Guarda las preferencias para adaptar tus recomendaciones.',
+          cancel: 'Cancelar',
+          saving: 'Guardando...',
+          savePreferences: 'Guardar preferencias',
+          learningSaveError: 'No se pudo guardar la información de aprendizaje.',
+          learningSaveSuccess: '¡Preferencias de aprendizaje guardadas correctamente!',
+          unknown: 'Aún no definido',
+          botGuide: 'Cómo usar el bot Komo',
+          botGuideDescription: 'Una guía breve para consultar tu organización desde Telegram.',
+          quickGuide: 'Guía rápida',
+          botSummary: 'Komo te ayuda a consultar proyectos y vencimientos sin salir de Telegram.',
+          botSteps: [
+            {
+              title: 'Abre el bot',
+              description:
+                'Usa el acceso de Komo disponible en la plataforma para iniciar Telegram.',
+            },
+            {
+              title: 'Vinculación automática',
+              description: 'El enlace identifica tu cuenta para que el bot pueda reconocerte.',
+            },
+            {
+              title: 'Consulta tu organización',
+              description: 'Revisa tus proyectos activos y sus fechas de vencimiento.',
+            },
+            {
+              title: 'Navega con botones',
+              description: 'No necesitas memorizar comandos: selecciona los botones del bot.',
+            },
+          ],
+          botFallback:
+            'Si el bot no reconoce tu cuenta, vuelve a abrirlo desde la plataforma para generar el enlace correcto.',
         }
       : {
           personal: 'Personal space',
@@ -140,7 +188,100 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
           controlled: 'Context you control',
           controlledDescription:
             'AI only uses the Topics and Projects sources you choose to include.',
+          learningProfile: 'Learning profile',
+          learningProfileDescription:
+            'Your study preferences and additional information used to adapt planning to your pace.',
+          learningPreferences: 'Learning preferences',
+          learningPreferencesDescription:
+            'These answers adapt the structure of your projects to your availability and previous experience.',
+          additionalInformation: 'Additional information',
+          additionalInformationDescription:
+            'Extra settings for your goals, pace, challenges, and priority study areas.',
+          mainGoal: 'Main goal',
+          preferredPace: 'Preferred pace',
+          commonDifficulties: 'Common challenges',
+          commonDifficultiesDescription:
+            'You can choose one or more options that identify your challenges.',
+          priorityAreas: 'Priority areas',
+          priorityAreasDescription:
+            'You can choose one or more areas where you focus your learning.',
+          savePreferencesHint: 'Save your preferences to adapt your recommendations.',
+          cancel: 'Cancel',
+          saving: 'Saving...',
+          savePreferences: 'Save preferences',
+          learningSaveError: 'We could not save your learning information.',
+          learningSaveSuccess: 'Learning preferences saved successfully!',
+          unknown: 'Not set yet',
+          botGuide: 'How to use the Komo bot',
+          botGuideDescription: 'A brief guide to check your organization from Telegram.',
+          quickGuide: 'Quick guide',
+          botSummary: 'Komo helps you check projects and deadlines without leaving Telegram.',
+          botSteps: [
+            {
+              title: 'Open the bot',
+              description: 'Use the Komo access point in the platform to open Telegram.',
+            },
+            {
+              title: 'Automatic linking',
+              description: 'The link identifies your account so the bot can recognize you.',
+            },
+            {
+              title: 'Check your organization',
+              description: 'Review your active projects and their deadlines.',
+            },
+            {
+              title: 'Navigate with buttons',
+              description: 'You do not need to memorize commands: select the bot buttons.',
+            },
+          ],
+          botFallback:
+            'If the bot does not recognize your account, open it again from the platform to generate the correct link.',
         };
+  const localizedOnboardingQuestions = getOnboardingQuestions(locale);
+  const spanishOnboardingQuestions = getOnboardingQuestions('es');
+  const learningOptions = getLearningOptions(locale);
+  const getOnboardingOptionIndex = (options: string[], value: string) => {
+    const normalize = (text: string) =>
+      text
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLocaleLowerCase()
+        .replace(/\s+/g, ' ')
+        .trim();
+    const normalizedValue = normalize(value);
+    const exactIndex = options.findIndex((option) => normalize(option) === normalizedValue);
+
+    if (exactIndex >= 0 || normalizedValue.length < 4) return exactIndex;
+
+    return options.findIndex((option) => {
+      const normalizedOption = normalize(option);
+      return (
+        normalizedOption.includes(normalizedValue) || normalizedValue.includes(normalizedOption)
+      );
+    });
+  };
+  const localizeOnboardingAnswer = (questionId: number, value: string) => {
+    const spanishQuestion = spanishOnboardingQuestions.find(
+      (question) => question.id === questionId,
+    );
+    const localizedQuestion = localizedOnboardingQuestions.find(
+      (question) => question.id === questionId,
+    );
+    const index = spanishQuestion ? getOnboardingOptionIndex(spanishQuestion.options, value) : -1;
+    return index >= 0 && localizedQuestion ? localizedQuestion.options[index] : value;
+  };
+  const toCanonicalOnboardingAnswer = (questionId: number, value: string) => {
+    const localizedQuestion = localizedOnboardingQuestions.find(
+      (question) => question.id === questionId,
+    );
+    const spanishQuestion = spanishOnboardingQuestions.find(
+      (question) => question.id === questionId,
+    );
+    const index = localizedQuestion
+      ? getOnboardingOptionIndex(localizedQuestion.options, value)
+      : -1;
+    return index >= 0 && spanishQuestion ? spanishQuestion.options[index] : value;
+  };
   const [editingSection, setEditingSection] = useState<EditableSection>(null);
 
   useProfileTour();
@@ -194,7 +335,7 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
   const [learningMessage, setLearningMessage] = useState<string | null>(null);
   const [learningError, setLearningError] = useState<string | null>(null);
 
-  const unknown = 'Aún no definido';
+  const unknown = copy.unknown;
 
   function toggleEditing(section: Exclude<EditableSection, null>) {
     setIdentityMessage(null);
@@ -316,11 +457,11 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
       });
 
       if (!res.success) {
-        setLearningError(res.error || 'No se pudo guardar la información de aprendizaje.');
+        setLearningError(res.error || copy.learningSaveError);
         return;
       }
 
-      setLearningMessage('¡Preferencias de aprendizaje guardadas correctamente!');
+      setLearningMessage(copy.learningSaveSuccess);
       setTimeout(() => {
         setEditingSection(null);
         router.refresh();
@@ -583,7 +724,7 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
                   </p>
                   <div className="mt-3 grid gap-3">
                     {onboardingFields.slice(0, 3).map(({ field, questionId }) => {
-                      const item = onboardingQuestions.find((q) => q.id === questionId);
+                      const item = localizedOnboardingQuestions.find((q) => q.id === questionId);
                       if (!item) return null;
                       return (
                         <div
@@ -592,9 +733,11 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
                         >
                           <p className="text-xs font-semibold">{item.question}</p>
                           <AnswerPicker
-                            value={answers[field]}
+                            value={localizeOnboardingAnswer(questionId, answers[field])}
                             options={item.options}
-                            onChange={(value) => updateAnswer(field, value)}
+                            onChange={(value) =>
+                              updateAnswer(field, toCanonicalOnboardingAnswer(questionId, value))
+                            }
                           />
                         </div>
                       );
@@ -756,7 +899,7 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
                   <h3 className="text-sm font-bold text-on-surface">Información de partida</h3>
                   <div className="mt-3 grid gap-3 sm:grid-cols-3">
                     {onboardingFields.slice(0, 3).map(({ field, questionId }) => {
-                      const item = onboardingQuestions.find((q) => q.id === questionId);
+                      const item = localizedOnboardingQuestions.find((q) => q.id === questionId);
                       if (!item) return null;
                       return (
                         <div
@@ -767,7 +910,7 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
                             {item.question}
                           </p>
                           <p className="mt-1 text-sm font-bold text-on-surface">
-                            {answers[field] || unknown}
+                            {localizeOnboardingAnswer(questionId, answers[field]) || unknown}
                           </p>
                         </div>
                       );
@@ -782,10 +925,10 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
         {/* SECCIÓN 2: Perfil de aprendizaje e Información complementaria */}
         <WideSection
           id="tour-profile-learning"
-          title="Perfil de aprendizaje"
-          description="Tus preferencias de estudio y la información complementaria para adaptar la planificación y tus ritmos."
+          title={copy.learningProfile}
+          description={copy.learningProfileDescription}
           icon={<GraduationCap className="size-5" />}
-          actionLabel={editingSection === 'learning' ? 'Cerrar edición' : 'Editar'}
+          actionLabel={editingSection === 'learning' ? copy.closeEdit : copy.edit}
           onAction={() => toggleEditing('learning')}
         >
           <AnimatePresence mode="wait">
@@ -802,15 +945,14 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
                 {/* Bloque: Preferencias de disponibilidad y metodología */}
                 <div>
                   <h3 className="text-base font-bold text-on-surface">
-                    Preferencias de aprendizaje
+                    {copy.learningPreferences}
                   </h3>
                   <p className="mt-1 text-sm text-on-surface-variant">
-                    Estas respuestas adaptan la estructuración de tus proyectos a tu disponibilidad
-                    y experiencia previa.
+                    {copy.learningPreferencesDescription}
                   </p>
                   <div className="mt-4 grid min-w-0 gap-3">
                     {onboardingFields.slice(3).map(({ field, questionId }) => {
-                      const item = onboardingQuestions.find((q) => q.id === questionId);
+                      const item = localizedOnboardingQuestions.find((q) => q.id === questionId);
                       if (!item) return null;
                       return (
                         <div
@@ -819,9 +961,11 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
                         >
                           <p className="text-sm font-semibold leading-snug">{item.question}</p>
                           <AnswerPicker
-                            value={answers[field]}
+                            value={localizeOnboardingAnswer(questionId, answers[field])}
                             options={item.options}
-                            onChange={(value) => updateAnswer(field, value)}
+                            onChange={(value) =>
+                              updateAnswer(field, toCanonicalOnboardingAnswer(questionId, value))
+                            }
                           />
                         </div>
                       );
@@ -832,11 +976,10 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
                 {/* Bloque: Información complementaria */}
                 <div className="border-t border-outline-variant/40 pt-5">
                   <h3 className="text-base font-bold text-on-surface">
-                    Información complementaria
+                    {copy.additionalInformation}
                   </h3>
                   <p className="mt-1 text-sm text-on-surface-variant">
-                    Ajustes adicionales sobre tus objetivos, ritmo, dificultades y áreas
-                    prioritarias de estudio.
+                    {copy.additionalInformationDescription}
                   </p>
 
                   <div className="mt-4 grid gap-4">
@@ -844,12 +987,14 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
                     <div className="rounded-2xl border border-outline-variant/60 bg-surface-container-low p-4">
                       <div className="flex items-center gap-2">
                         <Target className="size-4 text-primary" />
-                        <p className="text-sm font-semibold">Objetivo principal</p>
+                        <p className="text-sm font-semibold">{copy.mainGoal}</p>
                       </div>
                       <AnswerPicker
-                        value={objective}
-                        options={[...OBJETIVOS_OPTIONS]}
-                        onChange={(val) => setObjective(val)}
+                        value={localizeLearningOption(objective, 'objectives', locale)}
+                        options={[...learningOptions.objectives]}
+                        onChange={(value) =>
+                          setObjective(toCanonicalLearningOption(value, 'objectives'))
+                        }
                       />
                     </div>
 
@@ -857,12 +1002,12 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
                     <div className="rounded-2xl border border-outline-variant/60 bg-surface-container-low p-4">
                       <div className="flex items-center gap-2">
                         <CalendarClock className="size-4 text-primary" />
-                        <p className="text-sm font-semibold">Ritmo preferido</p>
+                        <p className="text-sm font-semibold">{copy.preferredPace}</p>
                       </div>
                       <AnswerPicker
-                        value={pace}
-                        options={[...RITMOS_OPTIONS]}
-                        onChange={(val) => setPace(val)}
+                        value={localizeLearningOption(pace, 'paces', locale)}
+                        options={[...learningOptions.paces]}
+                        onChange={(value) => setPace(toCanonicalLearningOption(value, 'paces'))}
                       />
                     </div>
 
@@ -870,26 +1015,30 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
                     <div className="rounded-2xl border border-outline-variant/60 bg-surface-container-low p-4">
                       <div className="flex items-center gap-2 mb-1">
                         <ShieldAlert className="size-4 text-primary" />
-                        <p className="text-sm font-semibold">Dificultades habituales</p>
+                        <p className="text-sm font-semibold">{copy.commonDifficulties}</p>
                       </div>
                       <p className="text-xs text-on-surface-variant mb-3">
-                        Puedes elegir una o varias opciones que identifiquen tus retos.
+                        {copy.commonDifficultiesDescription}
                       </p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                        {DIFICULTADES_OPTIONS.map((diff) => {
-                          const isSelected = difficulties.includes(diff);
+                        {learningOptions.difficulties.map((difficulty) => {
+                          const canonicalDifficulty = toCanonicalLearningOption(
+                            difficulty,
+                            'difficulties',
+                          );
+                          const isSelected = difficulties.includes(canonicalDifficulty);
                           return (
                             <button
-                              key={diff}
+                              key={difficulty}
                               type="button"
-                              onClick={() => toggleDifficulty(diff)}
+                              onClick={() => toggleDifficulty(canonicalDifficulty)}
                               className={`flex min-h-12 items-center justify-between gap-2.5 rounded-xl border p-3 text-left text-sm transition-all cursor-pointer ${
                                 isSelected
                                   ? 'border-primary bg-primary/10 font-semibold text-primary shadow-sm'
                                   : 'border-outline-variant bg-surface-container-lowest text-on-surface hover:border-primary/40'
                               }`}
                             >
-                              <span className="leading-snug">{diff}</span>
+                              <span className="leading-snug">{difficulty}</span>
                               <div
                                 className={`flex size-5 shrink-0 items-center justify-center rounded-md border transition-colors ${
                                   isSelected
@@ -909,19 +1058,20 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
                     <div className="rounded-2xl border border-outline-variant/60 bg-surface-container-low p-4">
                       <div className="flex items-center gap-2 mb-1">
                         <Layers className="size-4 text-primary" />
-                        <p className="text-sm font-semibold">Áreas prioritarias</p>
+                        <p className="text-sm font-semibold">{copy.priorityAreas}</p>
                       </div>
                       <p className="text-xs text-on-surface-variant mb-3">
-                        Puedes seleccionar una o más áreas en las que centras tu aprendizaje.
+                        {copy.priorityAreasDescription}
                       </p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                        {AREAS_PRIORITARIAS_OPTIONS.map((area) => {
-                          const isSelected = priorityAreas.includes(area);
+                        {learningOptions.priorityAreas.map((area) => {
+                          const canonicalArea = toCanonicalLearningOption(area, 'priorityAreas');
+                          const isSelected = priorityAreas.includes(canonicalArea);
                           return (
                             <button
                               key={area}
                               type="button"
-                              onClick={() => togglePriorityArea(area)}
+                              onClick={() => togglePriorityArea(canonicalArea)}
                               className={`flex min-h-12 items-center justify-between gap-2.5 rounded-xl border p-3 text-left text-sm transition-all cursor-pointer ${
                                 isSelected
                                   ? 'border-primary bg-primary/10 font-semibold text-primary shadow-sm'
@@ -966,9 +1116,7 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
                 )}
 
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-outline-variant/40 pt-4">
-                  <p className="text-xs text-on-surface-variant">
-                    Guarda las preferencias para adaptar tus recomendaciones.
-                  </p>
+                  <p className="text-xs text-on-surface-variant">{copy.savePreferencesHint}</p>
                   <div className="flex gap-2">
                     <Button
                       type="button"
@@ -976,7 +1124,7 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
                       onClick={() => setEditingSection(null)}
                       disabled={isSavingLearning}
                     >
-                      Cancelar
+                      {copy.cancel}
                     </Button>
                     <Button type="submit" disabled={isSavingLearning} className="min-h-11 gap-2">
                       {isSavingLearning ? (
@@ -984,7 +1132,7 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
                       ) : (
                         <CheckCircle2 className="size-4" />
                       )}
-                      {isSavingLearning ? 'Guardando...' : 'Guardar preferencias'}
+                      {isSavingLearning ? copy.saving : copy.savePreferences}
                     </Button>
                   </div>
                 </div>
@@ -1000,10 +1148,10 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
                 className="space-y-6"
               >
                 <div>
-                  <h3 className="text-sm font-bold text-on-surface">Preferencias de aprendizaje</h3>
+                  <h3 className="text-sm font-bold text-on-surface">{copy.learningPreferences}</h3>
                   <div className="mt-3 grid gap-3 sm:grid-cols-2">
                     {onboardingFields.slice(3).map(({ field, questionId }) => {
-                      const item = onboardingQuestions.find((q) => q.id === questionId);
+                      const item = localizedOnboardingQuestions.find((q) => q.id === questionId);
                       if (!item) return null;
                       return (
                         <div
@@ -1014,7 +1162,7 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
                             {item.question}
                           </p>
                           <p className="mt-1 text-sm font-bold text-on-surface">
-                            {answers[field] || unknown}
+                            {localizeOnboardingAnswer(questionId, answers[field]) || unknown}
                           </p>
                         </div>
                       );
@@ -1027,7 +1175,7 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
                   <div className="flex items-center gap-2 mb-3">
                     <Sparkles className="size-4 text-primary" />
                     <h3 className="text-sm font-bold text-on-surface">
-                      Información complementaria
+                      {copy.additionalInformation}
                     </h3>
                   </div>
 
@@ -1035,26 +1183,28 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
                     <div className="rounded-2xl border border-outline-variant/60 bg-surface-container-lowest/75 p-3.5">
                       <div className="flex items-center gap-1.5 text-outline">
                         <Target className="size-3.5" />
-                        <p className="text-[11px] font-semibold uppercase">Objetivo principal</p>
+                        <p className="text-[11px] font-semibold uppercase">{copy.mainGoal}</p>
                       </div>
                       <p className="mt-1 text-sm font-bold text-on-surface">
-                        {objective || unknown}
+                        {localizeLearningOption(objective, 'objectives', locale) || unknown}
                       </p>
                     </div>
 
                     <div className="rounded-2xl border border-outline-variant/60 bg-surface-container-lowest/75 p-3.5">
                       <div className="flex items-center gap-1.5 text-outline">
                         <CalendarClock className="size-3.5" />
-                        <p className="text-[11px] font-semibold uppercase">Ritmo preferido</p>
+                        <p className="text-[11px] font-semibold uppercase">{copy.preferredPace}</p>
                       </div>
-                      <p className="mt-1 text-sm font-bold text-on-surface">{pace || unknown}</p>
+                      <p className="mt-1 text-sm font-bold text-on-surface">
+                        {localizeLearningOption(pace, 'paces', locale) || unknown}
+                      </p>
                     </div>
 
                     <div className="rounded-2xl border border-outline-variant/60 bg-surface-container-lowest/75 p-3.5 sm:col-span-2">
                       <div className="flex items-center gap-1.5 text-outline">
                         <ShieldAlert className="size-3.5" />
                         <p className="text-[11px] font-semibold uppercase">
-                          Dificultades habituales
+                          {copy.commonDifficulties}
                         </p>
                       </div>
                       {difficulties.length > 0 ? (
@@ -1065,7 +1215,7 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
                               className="inline-flex items-center gap-1 rounded-lg border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary"
                             >
                               <Check className="size-3" />
-                              {diff}
+                              {localizeLearningOption(diff, 'difficulties', locale)}
                             </span>
                           ))}
                         </div>
@@ -1077,7 +1227,7 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
                     <div className="rounded-2xl border border-outline-variant/60 bg-surface-container-lowest/75 p-3.5 sm:col-span-2">
                       <div className="flex items-center gap-1.5 text-outline">
                         <Layers className="size-3.5" />
-                        <p className="text-[11px] font-semibold uppercase">Áreas prioritarias</p>
+                        <p className="text-[11px] font-semibold uppercase">{copy.priorityAreas}</p>
                       </div>
                       {priorityAreas.length > 0 ? (
                         <div className="mt-2 flex flex-wrap gap-2">
@@ -1087,7 +1237,7 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
                               className="inline-flex items-center gap-1 rounded-lg border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary"
                             >
                               <Check className="size-3" />
-                              {area}
+                              {localizeLearningOption(area, 'priorityAreas', locale)}
                             </span>
                           ))}
                         </div>
@@ -1171,8 +1321,8 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
         {/* SECCIÓN 4: Guía rápida del bot */}
         <WideSection
           id="tour-profile-bot-guide"
-          title="Cómo usar el bot Komo"
-          description="Una guía breve para consultar tu organización desde Telegram."
+          title={copy.botGuide}
+          description={copy.botGuideDescription}
           icon={<Bot className="size-5" />}
         >
           <div className="rounded-2xl border border-primary/15 bg-primary/[0.035] p-4 sm:p-5">
@@ -1181,33 +1331,15 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
                 <Bot className="size-5" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-on-surface">Guía rápida</h3>
+                <h3 className="text-sm font-bold text-on-surface">{copy.quickGuide}</h3>
                 <p className="mt-1 max-w-2xl text-sm leading-relaxed text-on-surface-variant">
-                  Komo te ayuda a consultar proyectos y vencimientos sin salir de Telegram.
+                  {copy.botSummary}
                 </p>
               </div>
             </div>
 
             <ol className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {[
-                {
-                  title: 'Abre el bot',
-                  description:
-                    'Usa el acceso de Komo disponible en la plataforma para iniciar Telegram.',
-                },
-                {
-                  title: 'Vinculación automática',
-                  description: 'El enlace identifica tu cuenta para que el bot pueda reconocerte.',
-                },
-                {
-                  title: 'Consulta tu organización',
-                  description: 'Revisa tus proyectos activos y sus fechas de vencimiento.',
-                },
-                {
-                  title: 'Navega con botones',
-                  description: 'No necesitas memorizar comandos: selecciona los botones del bot.',
-                },
-              ].map((step, index) => (
+              {copy.botSteps.map((step, index) => (
                 <li
                   key={step.title}
                   className="rounded-xl border border-outline-variant/60 bg-surface-container-lowest/80 p-4"
@@ -1224,8 +1356,7 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
             </ol>
 
             <p className="mt-4 rounded-xl bg-surface-container-low px-3 py-2.5 text-xs leading-relaxed text-on-surface-variant">
-              Si el bot no reconoce tu cuenta, vuelve a abrirlo desde la plataforma para generar el
-              enlace correcto.
+              {copy.botFallback}
             </p>
           </div>
         </WideSection>
