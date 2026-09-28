@@ -31,7 +31,7 @@ export async function createNoteSourceAction(
   if (!noteValidation.isValid) {
     return {
       success: false,
-      error: noteValidation.error || 'La nota contiene términos no permitidos.',
+      error: noteValidation.error || 'No se permiten contenidos obscenos.',
     };
   }
 
@@ -116,13 +116,21 @@ export async function createLinkSourceAction(
     return { success: false, error: 'La dirección URL introducida no es válida.' };
   }
 
-  // [VALIDACIÓN BACKEND DE CONTENIDO]: Términos obscenos o peligrosos en el título del enlace
+  // [VALIDACIÓN BACKEND DE CONTENIDO]: Términos obscenos o peligrosos en el enlace o título
+  const urlValidation = validateContent(url);
+  if (!urlValidation.isValid) {
+    return {
+      success: false,
+      error: urlValidation.error || 'No se permiten contenidos obscenos.',
+    };
+  }
+
   if (title) {
     const linkValidation = validateContent(title);
     if (!linkValidation.isValid) {
       return {
         success: false,
-        error: linkValidation.error || 'El título del enlace contiene términos no permitidos.',
+        error: linkValidation.error || 'No se permiten contenidos obscenos.',
       };
     }
   }
@@ -202,7 +210,7 @@ export async function createFileSourceAction(
   if (!fileValidation.isValid) {
     return {
       success: false,
-      error: fileValidation.error || 'El nombre del archivo contiene términos no permitidos.',
+      error: fileValidation.error || 'No se permiten contenidos obscenos.',
     };
   }
 

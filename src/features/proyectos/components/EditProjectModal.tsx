@@ -22,10 +22,10 @@ interface EditProjectModalProps {
 }
 
 export function EditProjectModal({ isOpen, onClose, project, onSuccess }: EditProjectModalProps) {
-  const currentYear = new Date().getFullYear();
-  const maxYear = currentYear + 10;
+  const maxDate = new Date();
+  maxDate.setFullYear(maxDate.getFullYear() + 1);
   const todayStr = new Date().toISOString().split('T')[0];
-  const maxDateStr = `${maxYear}-12-31`;
+  const maxDateStr = maxDate.toISOString().split('T')[0];
 
   const initialDateStr = project.fecha_limite ? project.fecha_limite.split('T')[0] : '';
 
@@ -164,7 +164,7 @@ export function EditProjectModal({ isOpen, onClose, project, onSuccess }: EditPr
             </div>
             <p className="mt-1 text-xs text-[#845326]/80 font-medium flex items-center gap-1">
               <Calendar className="size-3" />
-              Límite permitido hasta 10 años desde el año actual ({maxYear}).
+              Límite permitido hasta 1 año desde hoy ({maxDateStr}).
             </p>
           </div>
 

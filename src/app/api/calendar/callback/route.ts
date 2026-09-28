@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   exchangeCodeForTokens,
   encryptTokens,
-  getAppBaseUrl,
+  getBaseUrlFromRequest,
   GCAL_COOKIE_NAME,
 } from '@/lib/google-calendar';
 
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url);
-  const baseUrl = getAppBaseUrl(origin);
+  const { searchParams } = new URL(request.url);
+  const baseUrl = getBaseUrlFromRequest(request);
   const code = searchParams.get('code');
   const error = searchParams.get('error');
   const state = searchParams.get('state') || '/calendario';
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // Intercambiar código de autorización por tokens de acceso/actualización
-    const tokens = await exchangeCodeForTokens(code);
+    const tokens = await exchangeCodeForTokens(code, undefined, baseUrl);
 
     // Cifrar los tokens con AES-256-GCM antes de guardarlos en cookie segura (Zero-Trust)
     const encryptedTokens = encryptTokens(tokens);

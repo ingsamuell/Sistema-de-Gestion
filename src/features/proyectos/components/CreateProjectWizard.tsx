@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { createProjectAction } from '@/features/proyectos/actions/proyectoActions';
 import { ImpossibleDateModal } from './ImpossibleDateModal';
+import { hasObsceneContent } from '@/lib/moderation/clientModeration';
 
 interface StepMaterials {
   files: string[];
@@ -87,11 +88,29 @@ export function CreateProjectWizard() {
   const totalSteps = 7;
   const progressPercent = Math.round(((currentStep + 1) / totalSteps) * 100);
   const todayStr = new Date().toISOString().split('T')[0];
-  const currentYear = new Date().getFullYear();
-  const maxYear = currentYear + 10;
-  const maxDateStr = `${maxYear}-12-31`;
+  const maxDate = new Date();
+  maxDate.setFullYear(maxDate.getFullYear() + 1);
+  const maxDateStr = maxDate.toISOString().split('T')[0];
 
   const handleNext = () => {
+    // Si estamos en el paso de archivos/enlaces (paso 5), validar que no haya obscenidad
+    if (currentStep === 5) {
+      const stepFiles = (answers[5]?.files || []).filter(Boolean);
+      const stepUrls = (answers[5]?.urls || []).filter(Boolean);
+      for (const f of stepFiles) {
+        if (hasObsceneContent(f)) {
+          setErrorMessage('No se permiten contenidos obscenos.');
+          return;
+        }
+      }
+      for (const u of stepUrls) {
+        if (hasObsceneContent(u)) {
+          setErrorMessage('No se permiten contenidos obscenos.');
+          return;
+        }
+      }
+    }
+    setErrorMessage(null);
     if (currentStep < totalSteps - 1) {
       setCurrentStep((prev) => prev + 1);
     } else {
@@ -128,6 +147,21 @@ export function CreateProjectWizard() {
       const validUrls = (answers[5]?.urls || []).filter(
         (u: string) => typeof u === 'string' && u.trim().length > 0,
       );
+
+      for (const f of filesNames) {
+        if (hasObsceneContent(f)) {
+          setIsFinishing(false);
+          setErrorMessage('No se permiten contenidos obscenos.');
+          return;
+        }
+      }
+      for (const u of validUrls) {
+        if (hasObsceneContent(u)) {
+          setIsFinishing(false);
+          setErrorMessage('No se permiten contenidos obscenos.');
+          return;
+        }
+      }
 
       let materialUrl: string | undefined = undefined;
       if (validUrls.length === 1 && filesNames.length === 0) {
@@ -306,7 +340,7 @@ export function CreateProjectWizard() {
             {isTooFarDate && (
               <p className="mt-2.5 text-xs text-red-600 font-semibold flex items-center gap-1.5">
                 <AlertCircle className="size-3.5" />
-                La fecha límite no puede superar los 10 años desde el año actual ({maxYear}).
+                La fecha límite no puede superar 1 año desde hoy ({maxDateStr}).
               </p>
             )}
             {!isPastDate && !isTooFarDate && (
@@ -404,8 +438,18 @@ export function CreateProjectWizard() {
           const selectedFiles = e.target.files;
           if (!selectedFiles) return;
 
-          const newFileNames = Array.from(selectedFiles).map((f) => f.name);
+          const filesArray = Array.from(selectedFiles);
+          for (const f of filesArray) {
+            if (hasObsceneContent(f.name)) {
+              setErrorMessage('No se permiten contenidos obscenos.');
+              e.target.value = '';
+              return;
+            }
+          }
+
+          const newFileNames = filesArray.map((f) => f.name);
           const combined = [...files, ...newFileNames].slice(0, 3);
+          setErrorMessage(null);
           updateAnswer(5, { ...currentData, files: combined });
         };
 
@@ -418,6 +462,11 @@ export function CreateProjectWizard() {
           const updated = [...urls];
           updated[index] = val;
           updateAnswer(5, { ...currentData, urls: updated });
+          if (hasObsceneContent(val)) {
+            setErrorMessage('No se permiten contenidos obscenos.');
+          } else if (errorMessage === 'No se permiten contenidos obscenos.') {
+            setErrorMessage(null);
+          }
         };
 
         const handleAddUrl = () => {

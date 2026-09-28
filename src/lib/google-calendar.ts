@@ -25,17 +25,9 @@ export const GCAL_COOKIE_NAME = 'gcal_tokens';
 
 /**
  * Obtiene la URL base de la aplicación (producción en Vercel o entorno local).
+ * Prioriza el origen real del usuario para no forzar saltos de dominio en Vercel.
  */
 export function getAppBaseUrl(requestOrigin?: string): string {
-  if (process.env.APP_URL) {
-    return process.env.APP_URL.replace(/\/$/, '');
-  }
-  if (process.env.NEXT_PUBLIC_APP_URL) {
-    return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '');
-  }
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL.replace(/\/$/, '')}`;
-  }
   if (
     requestOrigin &&
     !requestOrigin.includes('localhost') &&
@@ -43,27 +35,67 @@ export function getAppBaseUrl(requestOrigin?: string): string {
   ) {
     return requestOrigin.replace(/\/$/, '');
   }
-  return requestOrigin ? requestOrigin.replace(/\/$/, '') : 'http://localhost:3000';
+  if (process.env.APP_URL) {
+    return process.env.APP_URL.replace(/\/$/, '');
+  }
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '');
+  }
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL.replace(/\/$/, '')}`;
+  }
+  if (requestOrigin) {
+    return requestOrigin.replace(/\/$/, '');
+  }
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL.replace(/\/$/, '')}`;
+  }
+  return 'http://localhost:3000';
+}
+
+/**
+ * Obtiene de forma confiable el origen canónico de la petición HTTP actual,
+ * respetando encabezados de proxy inverso como 'x-forwarded-host' y 'x-forwarded-proto'
+ * para evitar que las cookies de sesión se pierdan al redirigir entre dominios.
+ */
+export function getBaseUrlFromRequest(request: Request | { headers: Headers; url?: string }): string {
+  try {
+    const forwardedHost = request.headers.get('x-forwarded-host') || request.headers.get('host');
+    const forwardedProto = request.headers.get('x-forwarded-proto') || 'https';
+    if (forwardedHost) {
+      const isLocal = forwardedHost.includes('localhost') || forwardedHost.includes('127.0.0.1');
+      const proto = isLocal ? 'http' : forwardedProto;
+      return `${proto}://${forwardedHost}`.replace(/\/$/, '');
+    }
+    if (request.url) {
+      return new URL(request.url).origin.replace(/\/$/, '');
+    }
+  } catch {}
+  return getAppBaseUrl();
 }
 
 /**
  * Obtiene la URL de redirección configurada para OAuth2.
  */
-export function getRedirectUri(customRedirectUri?: string): string {
+export function getRedirectUri(customRedirectUri?: string, requestOrigin?: string): string {
   if (customRedirectUri) {
     return customRedirectUri;
   }
   if (process.env.GOOGLE_REDIRECT_URI) {
     return process.env.GOOGLE_REDIRECT_URI;
   }
-  const appUrl = getAppBaseUrl();
+  const appUrl = getAppBaseUrl(requestOrigin);
   return `${appUrl}/api/calendar/callback`;
 }
 
 /**
  * Genera la URL de consentimiento para que el usuario autorice el acceso a Google Calendar.
  */
-export function getGoogleAuthUrl(state?: string, customRedirectUri?: string): string {
+export function getGoogleAuthUrl(
+  state?: string,
+  customRedirectUri?: string,
+  requestOrigin?: string,
+): string {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   if (!clientId) {
     throw new Error('Falta la variable de entorno GOOGLE_CLIENT_ID.');
@@ -71,7 +103,7 @@ export function getGoogleAuthUrl(state?: string, customRedirectUri?: string): st
 
   const params = new URLSearchParams({
     client_id: clientId,
-    redirect_uri: getRedirectUri(customRedirectUri),
+    redirect_uri: getRedirectUri(customRedirectUri, requestOrigin),
     response_type: 'code',
     scope: 'https://www.googleapis.com/auth/calendar.readonly',
     access_type: 'offline',
@@ -92,6 +124,7 @@ export function getGoogleAuthUrl(state?: string, customRedirectUri?: string): st
 export async function exchangeCodeForTokens(
   code: string,
   customRedirectUri?: string,
+  requestOrigin?: string,
 ): Promise<GoogleCalendarTokens> {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
@@ -107,7 +140,7 @@ export async function exchangeCodeForTokens(
       code,
       client_id: clientId,
       client_secret: clientSecret,
-      redirect_uri: getRedirectUri(customRedirectUri),
+      redirect_uri: getRedirectUri(customRedirectUri, requestOrigin),
       grant_type: 'authorization_code',
     }),
   });

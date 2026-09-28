@@ -18,9 +18,14 @@ import {
   isSameMonth,
   isSameDay,
   isBefore,
+  isAfter,
   startOfDay,
   addDays,
+  addYears,
+  startOfMonth,
+  endOfMonth,
 } from 'date-fns';
+import { hasObsceneContent } from '@/lib/moderation/clientModeration';
 import { es } from 'date-fns/locale';
 import {
   Calendar,
@@ -762,8 +767,9 @@ export default function CalendarioPage() {
     const endY = endOfYear(currentDate);
     const months = eachMonthOfInterval({ start: startY, end: endY });
 
+    const maxAllowedYear = new Date().getFullYear() + 1;
     const canGoPreviousYear = currentDate.getFullYear() > new Date().getFullYear();
-    const canGoNextYear = currentDate.getFullYear() < 2036;
+    const canGoNextYear = currentDate.getFullYear() < maxAllowedYear;
 
     return (
       <div className="flex flex-col animate-in fade-in duration-500 w-full max-w-5xl mx-auto pb-12">
@@ -860,22 +866,25 @@ export default function CalendarioPage() {
               month.getFullYear() < new Date().getFullYear() ||
               (month.getFullYear() === new Date().getFullYear() &&
                 month.getMonth() < new Date().getMonth());
+            const oneYearFromNow = addYears(new Date(), 1);
+            const isBeyondOneYear = isAfter(startOfMonth(month), endOfMonth(oneYearFromNow));
+            const isMonthDisabled = isPastMonth || isBeyondOneYear;
 
             return (
               <button
                 key={month.toISOString()}
-                disabled={isPastMonth}
+                disabled={isMonthDisabled}
                 onClick={() => {
                   setCurrentDate(isCurrentMonth ? new Date() : month);
                   setView('week');
                 }}
                 className={`
                   flex flex-col items-center justify-center p-4 rounded-[16px] transition-all aspect-square border-2
-                  ${isPastMonth ? 'opacity-50 cursor-not-allowed hover:bg-surface-container-lowest bg-surface-container-lowest text-on-surface-variant' : 'hover:-translate-y-1 hover:shadow-sm cursor-pointer'}
+                  ${isMonthDisabled ? 'opacity-40 cursor-not-allowed hover:bg-surface-container-lowest bg-surface-container-lowest text-on-surface-variant' : 'hover:-translate-y-1 hover:shadow-sm cursor-pointer'}
                   ${
                     isCurrentMonth
                       ? 'bg-[#f5e5d9] border-[#845326] text-[#845326]'
-                      : !isPastMonth
+                      : !isMonthDisabled
                         ? 'bg-white border-[#EAE3DC] text-on-surface hover:border-[#F7D6BF]'
                         : 'border-[#EAE3DC]'
                   }
@@ -975,6 +984,11 @@ export default function CalendarioPage() {
   const handleProcessScheduleFile = async () => {
     if (!uploadFile) {
       setUploadError('Por favor selecciona una imagen o documento PDF con tu horario.');
+      return;
+    }
+
+    if (hasObsceneContent(uploadFile.name)) {
+      setUploadError('No se permiten contenidos obscenos.');
       return;
     }
 
@@ -1343,6 +1357,7 @@ export default function CalendarioPage() {
     };
 
     let collisionTitle: string | null = null;
+    let collisionSlot: string | null = null;
     for (let i = startSlotIdx; i < endSlotIdx; i++) {
       const slot = TIME_SLOTS[i];
       const conflictAvail = availabilities.find(
@@ -1354,6 +1369,7 @@ export default function CalendarioPage() {
           : conflictAvail.source === 'google'
             ? 'Google Calendar'
             : 'otra actividad o bloque';
+        collisionSlot = slot;
         break;
       }
     }
@@ -1361,7 +1377,7 @@ export default function CalendarioPage() {
     if (collisionTitle) {
       setToastMessage({
         type: 'error',
-        text: `⚠️ Conflicto: El horario coincide con "${collisionTitle}". Por favor intenta utilizar otra hora o bloque disponible.`,
+        text: `⚠️ Conflicto de horario: La tarea "${draggedTask.title}" requiere ${draggedTask.durationMinutes} min (de ${targetTimeStr} a ${newEndTimeStr}, ocupando bloques continuos de 5 en 5 minutos). No se puede mover aquí porque el tramo a las ${collisionSlot || targetTimeStr} ya está ocupado por "${collisionTitle}". Por favor selecciona un bloque con suficiente espacio continuo disponible.`,
       });
       setDraggedTask(null);
       setDragOverCell(null);
@@ -1674,7 +1690,7 @@ export default function CalendarioPage() {
 
   const generateFutureWeeks = (currentWeekStart: Date, targetYear: number) => {
     const weeks = [];
-    const maxYearLimit = new Date(2036, 11, 31, 23, 59, 59);
+    const maxYearLimit = addYears(new Date(), 1);
 
     let nextWeekStart: Date;
     const nowYear = currentWeekStart.getFullYear();
@@ -1687,10 +1703,10 @@ export default function CalendarioPage() {
       nextWeekStart = startOfWeek(new Date(targetYear, 0, 1), { weekStartsOn: 1 });
     }
 
-    const endOfTargetYear =
-      targetYear >= 2036 ? maxYearLimit : endOfYear(new Date(targetYear, 0, 1));
+    const endOfTargetYear = endOfYear(new Date(targetYear, 0, 1));
+    const effectiveLimit = isBefore(maxYearLimit, endOfTargetYear) ? maxYearLimit : endOfTargetYear;
 
-    while (nextWeekStart <= endOfTargetYear && nextWeekStart <= maxYearLimit) {
+    while (nextWeekStart <= effectiveLimit) {
       if (
         nextWeekStart.getFullYear() === targetYear ||
         addDays(nextWeekStart, 6).getFullYear() === targetYear
@@ -1809,8 +1825,15 @@ export default function CalendarioPage() {
     const end = endOfWeek(currentDate, { weekStartsOn: 1 });
     const days = eachDayOfInterval({ start, end });
 
-    const goToPrevWeek = () => setCurrentDate(subWeeks(currentDate, 1));
-    const canGoNextWeek = addWeeks(currentDate, 1).getFullYear() <= 2036;
+    const oneYearFromNow = addYears(new Date(), 1);
+    const maxAllowedWeek = endOfWeek(oneYearFromNow, { weekStartsOn: 1 });
+    const minAllowedWeek = startOfWeek(new Date(), { weekStartsOn: 1 });
+
+    const canGoPrevWeek = !isBefore(subWeeks(currentDate, 1), minAllowedWeek);
+    const goToPrevWeek = () => {
+      if (canGoPrevWeek) setCurrentDate(subWeeks(currentDate, 1));
+    };
+    const canGoNextWeek = !isAfter(addWeeks(currentDate, 1), maxAllowedWeek);
     const goToNextWeek = () => {
       if (canGoNextWeek) setCurrentDate(addWeeks(currentDate, 1));
     };
@@ -1920,7 +1943,8 @@ export default function CalendarioPage() {
                 <div className="flex items-center gap-2 bg-white border border-[#EAE3DC] rounded-xl p-1 shadow-sm">
                   <button
                     onClick={goToPrevWeek}
-                    className="p-1.5 rounded-lg hover:bg-surface-container transition-colors text-on-surface"
+                    disabled={!canGoPrevWeek}
+                    className={`p-1.5 rounded-lg transition-colors text-on-surface ${!canGoPrevWeek ? 'opacity-30 cursor-not-allowed' : 'hover:bg-surface-container'}`}
                   >
                     <ChevronLeft className="size-5" />
                   </button>

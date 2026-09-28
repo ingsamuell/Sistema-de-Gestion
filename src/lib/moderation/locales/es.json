@@ -1,7 +1,7 @@
 {
   "messages": {
     "dangerous": "El contenido contiene términos peligrosos o no permitidos relacionados con violencia o seguridad.",
-    "obscene": "El contenido contiene lenguaje obsceno, vulgar o inapropiado. Por favor utiliza un lenguaje profesional y respetuoso."
+    "obscene": "No se permiten contenidos obscenos."
   },
   "dangerous": {
     "words": [
@@ -111,8 +111,65 @@
       "gonorrea",
       "carechimba",
       "huevon",
-      "huevona"
+      "huevona",
+      "porno",
+      "pornografia",
+      "pornografico",
+      "pornografica",
+      "xxx",
+      "hentai",
+      "sexo",
+      "nude",
+      "nudes",
+      "desnudo",
+      "desnuda",
+      "desnudos",
+      "desnudas",
+      "erotico",
+      "erotica",
+      "eroticos",
+      "eroticas",
+      "nsfw",
+      "onlyfans",
+      "xvideos",
+      "pornhub",
+      "redtube",
+      "brazzers",
+      "xnxx",
+      "youporn",
+      "chaturbate",
+      "cam4",
+      "stripchat",
+      "tetas",
+      "senos",
+      "pene",
+      "penes",
+      "vagina",
+      "vaginas",
+      "polla",
+      "pollas",
+      "chupada",
+      "masturbacion",
+      "masturbarse",
+      "follar",
+      "coger",
+      "semen",
+      "esperma",
+      "incesto",
+      "pedofilia",
+      "pedofilo",
+      "zoofilia"
     ],
-    "phrases": ["hijo de puta", "hija de puta"]
+    "phrases": [
+      "hijo de puta",
+      "hija de puta",
+      "videos xxx",
+      "video xxx",
+      "foto desnuda",
+      "fotos desnudas",
+      "contenido sexual",
+      "contenido obsceno",
+      "pack de fotos"
+    ]
   }
 }

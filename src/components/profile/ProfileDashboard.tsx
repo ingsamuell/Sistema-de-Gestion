@@ -43,6 +43,7 @@ import {
 import { updateProfileIdentity } from '@/features/profile/actions/updateProfileIdentityAction';
 import { updateLearningPreferences } from '@/features/profile/actions/updateLearningPreferencesAction';
 import { useProfileTour } from '@/hooks/useProfileTour';
+import { hasObsceneContent } from '@/lib/moderation/clientModeration';
 
 export type ProfileDashboardData = {
   userId?: string;
@@ -161,6 +162,11 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
     const file = event.target.files?.[0];
     if (!file) return;
 
+    if (hasObsceneContent(file.name)) {
+      setAvatarError('No se permiten contenidos obscenos.');
+      return;
+    }
+
     if (!file.type.startsWith('image/')) {
       setAvatarError('Por favor selecciona un archivo de imagen válido (PNG, JPG, WebP).');
       return;
@@ -193,6 +199,17 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
     event.preventDefault();
     setIdentityMessage(null);
     setIdentityError(null);
+
+    if (
+      hasObsceneContent(firstName) ||
+      hasObsceneContent(lastName) ||
+      hasObsceneContent(username) ||
+      hasObsceneContent(description)
+    ) {
+      setIdentityError('No se permiten contenidos obscenos.');
+      return;
+    }
+
     const displayName = `${firstName} ${lastName}`.trim() || username;
 
     startSavingIdentity(async () => {

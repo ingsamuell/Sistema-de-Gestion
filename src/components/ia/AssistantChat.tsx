@@ -37,6 +37,8 @@ import {
 import { extractTextFromFile } from '@/features/ai-assistant/utils/fileTextExtractor';
 import { cn } from '@/lib/utils';
 import { useIATour } from '@/hooks/useIATour';
+import { useToast } from '@/components/ui/Toast';
+import { hasObsceneContent } from '@/lib/moderation/clientModeration';
 
 type AssistantChatProps = {
   context?: AssistantContext;
@@ -75,6 +77,7 @@ export function AssistantChat({
   onClearContext,
   initialDraft = '',
 }: AssistantChatProps) {
+  const toast = useToast();
   const [conversation, setConversation] = useState(messages);
   const [draft, setDraft] = useState(initialDraft);
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
@@ -133,8 +136,20 @@ export function AssistantChat({
     const file = event.target.files?.[0];
     if (!file) return;
 
+    if (hasObsceneContent(file.name)) {
+      toast.error('No se permiten contenidos obscenos.');
+      event.target.value = '';
+      return;
+    }
+
     // Extracción de texto enriquecida (TXT, MD, CSV, PDF, etc.)
     const extraction = await extractTextFromFile(file);
+
+    if (extraction.text && hasObsceneContent(extraction.text)) {
+      toast.error('No se permiten contenidos obscenos.');
+      event.target.value = '';
+      return;
+    }
 
     setAttachedFile({
       name: file.name,
@@ -208,6 +223,12 @@ export function AssistantChat({
     event.preventDefault();
     const content = draft.trim();
     if ((!content && !attachedFile) || status === 'loading' || !isConnected) return;
+
+    if (hasObsceneContent(content)) {
+      toast.error('No se permiten contenidos obscenos.');
+      return;
+    }
+
     await sendMessage(content);
   }
 
