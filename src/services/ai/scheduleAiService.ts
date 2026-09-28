@@ -673,6 +673,7 @@ DATOS DEL PROYECTO:
 - Tiempo disponible diario del usuario: ${minutosDiarios} minutos por día.
 ${project.material_url ? `- Material o recurso suministrado: ${project.material_url}` : ''}${filePart}${existingTasksPrompt}
 ${userAiContext.perfilTexto ? `\n${userAiContext.perfilTexto}` : ''}
+${userAiContext.preferenciasInclusivasTexto ? `\n${userAiContext.preferenciasInclusivasTexto}` : ''}
 ${userAiContext.temasTexto ? `\n${userAiContext.temasTexto}` : ''}
 HORARIOS OCUPADOS DEL USUARIO (¡PROHIBIDO ASIGNAR TAREAS EN ESTAS FRANJAS!):
 ${disponibilidadDesc}
@@ -702,7 +703,13 @@ DIRECTRICES ADICIONALES:
    - Si el perfil define una metodología de aprendizaje preferida (ej. Pomodoro, práctica intensiva, proyectos paso a paso), adapta la secuencia y dinámica de las sesiones a esa metodología.
    - Toma en cuenta su situación laboral y retos o dificultades declaradas para que el plan sea alcanzable.
 7. INCORPORACIÓN DE TEMAS, NOTAS PRINCIPALES Y FUENTES AUTORIZADAS:
-   - Si el usuario tiene temas vinculados a este proyecto o fuentes autorizadas en su biblioteca de Temas, úsalas como guía temática y documental central para estructurar las tareas.`;
+   - Si el usuario tiene temas vinculados a este proyecto o fuentes autorizadas en su biblioteca de Temas, úsalas como guía temática y documental central para estructurar las tareas.
+8. ADAPTACIÓN A PREFERENCIAS INCLUSIVAS Y DE APRENDIZAJE:
+   - Si el usuario cuenta con preferencias inclusivas (ritmo, obstáculos de estudio, tiempo de atención, formato de aprendizaje, estilo de IA o intereses):
+     * Ritmo y micro-pasos: Si prefiere bloques breves (5 a 10 min o 15 a 20 min) o pausas frecuentes, estructura las tareas para que se cumplan en micro-pasos digeribles, evitando saturación cognitiva.
+     * Estilo pedagógico e intereses: Si prefiere estilo con retos/misiones o analogías, enmarca los títulos y descripciones acordemente (ej. "Misión 1: ...", "Reto: ..."), vinculando con sus temas de interés cuando sea pertinente.
+     * Formatos y recursos recomendados: Prioriza recursos y enlaces acordes al formato preferido del estudiante (videos cortos, infografías, resúmenes con viñetas o audios).
+     * Mitigación de barreras: Ante retos como saber por dónde empezar o frustración rápida, proporciona un paso 1 trivial e indicaciones paso a paso directas y concisas.`;
 
     const projectTasksSchema = {
       type: Type.OBJECT,
@@ -1076,8 +1083,12 @@ export async function checkProjectFeasibilityWithGemini(
   if (params.usuario_id) {
     try {
       const userContext = await getUserAiContext({ userId: params.usuario_id });
-      if (userContext.perfilTexto) {
-        userProfileContext = `\n${userContext.perfilTexto}`;
+      const contextBlocks = [
+        userContext.perfilTexto,
+        userContext.preferenciasInclusivasTexto,
+      ].filter(Boolean);
+      if (contextBlocks.length > 0) {
+        userProfileContext = `\n${contextBlocks.join('\n\n')}`;
       }
     } catch {
       // Omitir si no se puede cargar el contexto

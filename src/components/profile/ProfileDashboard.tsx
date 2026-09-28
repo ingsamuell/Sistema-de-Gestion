@@ -28,6 +28,7 @@ import {
   Sparkles,
   Target,
   Award,
+  Trash2,
 } from 'lucide-react';
 import { ChangePasswordModal } from '@/components/profile/ChangePasswordModal';
 import { AddPasswordModal } from '@/components/profile/AddPasswordModal';
@@ -43,6 +44,7 @@ import {
 import { updateProfileIdentity } from '@/features/profile/actions/updateProfileIdentityAction';
 import { updateLearningPreferences } from '@/features/profile/actions/updateLearningPreferencesAction';
 import { useProfileTour } from '@/hooks/useProfileTour';
+import { hasObsceneContent } from '@/lib/moderation/clientModeration';
 import { defaultLocale, getLocaleFromPathname } from '@/lib/i18n/locale';
 import { localizedHref } from '@/lib/i18n/routes';
 
@@ -163,7 +165,8 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
             'Si el bot no reconoce tu cuenta, vuelve a abrirlo desde la plataforma para generar el enlace correcto.',
           deleteAccount: 'Eliminar cuenta',
           deleteAccountTitle: '¿Estás seguro?',
-          deleteAccountWarning: 'Esta acción es irreversible. Se borrarán todos tus proyectos, temas e información personal de forma permanente.',
+          deleteAccountWarning:
+            'Esta acción es irreversible. Se borrarán todos tus proyectos, temas e información personal de forma permanente.',
           confirmDelete: 'Sí, eliminar mi cuenta',
         }
       : {
@@ -243,7 +246,8 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
             'If the bot does not recognize your account, open it again from the platform to generate the correct link.',
           deleteAccount: 'Delete account',
           deleteAccountTitle: 'Are you sure?',
-          deleteAccountWarning: 'This action is irreversible. All your projects, topics, and personal information will be permanently deleted.',
+          deleteAccountWarning:
+            'This action is irreversible. All your projects, topics, and personal information will be permanently deleted.',
           confirmDelete: 'Yes, delete my account',
         };
   const localizedOnboardingQuestions = getOnboardingQuestions(locale);
@@ -375,6 +379,11 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
     const file = event.target.files?.[0];
     if (!file) return;
 
+    if (hasObsceneContent(file.name)) {
+      setAvatarError('No se permiten contenidos obscenos.');
+      return;
+    }
+
     if (!file.type.startsWith('image/')) {
       setAvatarError('Por favor selecciona un archivo de imagen válido (PNG, JPG, WebP).');
       return;
@@ -407,6 +416,17 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
     event.preventDefault();
     setIdentityMessage(null);
     setIdentityError(null);
+
+    if (
+      hasObsceneContent(firstName) ||
+      hasObsceneContent(lastName) ||
+      hasObsceneContent(username) ||
+      hasObsceneContent(description)
+    ) {
+      setIdentityError('No se permiten contenidos obscenos.');
+      return;
+    }
+
     const displayName = `${firstName} ${lastName}`.trim() || username;
 
     startSavingIdentity(async () => {
@@ -503,14 +523,6 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
           icon={<Edit3 className="size-5" />}
           actionLabel={editingSection === 'identity' ? copy.closeEdit : copy.edit}
           onAction={() => toggleEditing('identity')}
-          extraActionNode={
-            <button
-              onClick={() => setIsDeleteModalOpen(true)}
-              className="text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-md text-sm font-medium transition-colors border border-transparent"
-            >
-              {copy.deleteAccount}
-            </button>
-          }
         >
           <AnimatePresence mode="wait">
             {editingSection === 'identity' ? (
@@ -863,6 +875,26 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
                       {isSavingIdentity ? 'Guardando...' : 'Guardar identidad'}
                     </Button>
                   </div>
+                </div>
+
+                {/* Zona de peligro: Eliminar cuenta hacia abajo del todo dentro de la opción de editar perfil */}
+                <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-2xl border border-outline-variant/60 bg-surface-container-lowest p-4 sm:p-5 shadow-xs">
+                  <div>
+                    <h4 className="text-sm font-bold text-red-600 dark:text-red-400">
+                      {copy.deleteAccount}
+                    </h4>
+                    <p className="mt-0.5 text-xs text-on-surface-variant max-w-md">
+                      {copy.deleteAccountWarning}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={() => setIsDeleteModalOpen(true)}
+                    className="bg-red-600 hover:bg-red-700 text-white min-h-10 gap-2 shrink-0 cursor-pointer border-transparent shadow-sm"
+                  >
+                    <Trash2 className="size-4" />
+                    {copy.deleteAccount}
+                  </Button>
                 </div>
               </motion.form>
             ) : (
@@ -1580,7 +1612,6 @@ function WideSection({
   icon,
   actionLabel,
   onAction,
-  extraActionNode,
   children,
   id,
 }: {
@@ -1589,7 +1620,6 @@ function WideSection({
   icon: React.ReactNode;
   actionLabel?: string;
   onAction?: () => void;
-  extraActionNode?: React.ReactNode;
   children: React.ReactNode;
   id?: string;
 }) {
@@ -1615,21 +1645,18 @@ function WideSection({
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 self-start">
-          {extraActionNode}
-          {actionLabel && onAction && (
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              className="min-h-10 w-fit gap-2 cursor-pointer"
-              onClick={onAction}
-            >
-              <Edit3 className="size-3.5" />
-              {actionLabel}
-            </Button>
-          )}
-        </div>
+        {actionLabel && onAction && (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="min-h-10 w-fit gap-2 self-start cursor-pointer"
+            onClick={onAction}
+          >
+            <Edit3 className="size-3.5" />
+            {actionLabel}
+          </Button>
+        )}
       </motion.div>
       <motion.div layout="position">{children}</motion.div>
     </motion.div>

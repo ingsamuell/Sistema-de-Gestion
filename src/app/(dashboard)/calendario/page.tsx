@@ -17,9 +17,14 @@ import {
   isSameMonth,
   isSameDay,
   isBefore,
+  isAfter,
   startOfDay,
   addDays,
+  addYears,
+  startOfMonth,
+  endOfMonth,
 } from 'date-fns';
+import { hasObsceneContent } from '@/lib/moderation/clientModeration';
 import { enUS, es } from 'date-fns/locale';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -143,6 +148,9 @@ for (let h = 0; h <= 23; h++) {
 }
 TIME_SLOTS.push('24:00');
 
+const TIME_SLOT_INDEX_MAP = new Map<string, number>(TIME_SLOTS.map((slot, index) => [slot, index]));
+const getSlotIndex = (slot: string): number => TIME_SLOT_INDEX_MAP.get(slot) ?? -1;
+
 const parseISODate = (dateStr: string) => {
   const [y, m, d] = dateStr.split('-').map(Number);
   return new Date(y, m - 1, d);
@@ -248,181 +256,209 @@ export default function CalendarioPage() {
   const pathname = usePathname();
   const locale = getLocaleFromPathname(pathname) ?? defaultLocale;
   const dateLocale = locale === 'es' ? es : enUS;
-  const copy =
-    locale === 'es'
-      ? {
-          back: 'Volver',
-          upload: 'Subir horario (IA)',
-          replicate: 'Replicar horario',
-          month: 'Replicar en un mes específico...',
-          year: 'Replicar en todos los meses',
-          specific: 'Replicar en semanas específicas...',
-          weeks: 'Semanas específicas',
-          selectWeeks: 'Selecciona a qué semanas futuras quieres copiar tu disponibilidad actual:',
-          weekOf: 'Semana del',
-          noWeeks: 'No hay semanas futuras disponibles en este año.',
-          yearLabel: 'Año',
-          monthLabel: 'Mes',
-          replicateMonthTitle: 'Replicar en un mes específico',
-          replicateMonthDescription:
-            'Selecciona el mes donde deseas replicar la disponibilidad de esta semana.',
-          replicateConfirm: 'Replicar',
-          scheduleReplication: '¿Dónde deseas replicar este horario?',
-          allMonths: 'En todos los meses (predeterminado)',
-          specificMonth: 'Solo en un mes específico',
-          chooseWeeks: 'Selecciona las semanas:',
-          fileFormats: 'PNG, JPG, WEBP o PDF (Hasta 20MB)',
-          noActiveProjects: 'No tienes proyectos activos para crear una tarea.',
-          selectProject: 'Selecciona un proyecto',
-          creatingTask: 'Creando tarea...',
-          newTask: 'Nueva tarea',
-          createTaskError: 'Error al crear la tarea',
-          cancel: 'Cancelar',
-          apply: 'Aplicar horario',
-          googleConnect: 'Conectar Google Calendar',
-          googleConnected: 'Conectado a Google',
-          googleDisconnect: 'Desconectar',
-          googleSynced: 'Google Calendar sincronizado correctamente',
-          googleDisconnected: 'Google Calendar desconectado',
-          googleConnectionError: 'Error al conectar con Google Calendar',
-          uploadTitle: 'Cargar horario con Gemini AI',
-          uploadSubtitle: 'Extrae automáticamente tus materias o turnos',
-          uploadDescription:
-            'Sube una foto, captura de pantalla (.png, .jpg) o documento PDF de tu horario escolar, universitario o laboral. La IA extraerá los días y bloques horarios para que queden reflejados en tu calendario.',
-          scheduleType: '¿Qué tipo de horario deseas agregar?',
-          workSchedule: 'De trabajo',
-          studySchedule: 'De estudio',
-          workCategory: 'Categoría: Trabajo',
-          studyCategory: 'Categoría: Estudio',
-          dropFile: 'Haz clic o arrastra tu archivo aquí',
-          remove: 'Quitar',
-          processSchedule: 'Procesar y montar horario',
-          optimizing: 'Optimizando documento/imagen...',
-          analyzing: 'Analizando horario con IA Gemini...',
-          selectFile: 'Por favor selecciona una imagen o documento PDF con tu horario.',
-          processError: 'Error al procesar el horario',
-          uploadSuccess: (count: number) =>
-            `¡Se detectaron y agregaron ${count} bloques a tu calendario con éxito!`,
-          uploadAndRescheduleSuccess: (count: number, rescheduledCount: number) =>
-            `¡Se agregaron ${count} bloques a tu horario y la IA reagendó automáticamente ${rescheduledCount} tarea(s) para evitar colisiones!`,
-          noBlocksDetected:
-            'La IA no pudo detectar bloques de horario en el documento o imagen. Asegúrate de que las horas y días sean legibles.',
-          unexpectedExtractionError: 'Error inesperado extrayendo el horario',
-          taskUpdated: 'Tarea actualizada en la base de datos',
-          changesSaved: 'Cambios guardados en la base de datos',
-          deleted: 'Bloque y categoría eliminados del calendario',
-          noAvailability: 'No hay disponibilidad marcada en esta semana para replicar.',
-          replicated: '¡Horario replicado con éxito!',
-          editTask: 'Editar tarea',
-          editBlock: 'Editar bloque',
-          newBlock: 'Nuevo bloque',
-          taskName: 'Nombre de tarea...',
-          blockName: 'Nombre / Nota...',
-          save: 'Guardar',
-          tasks: 'Tareas',
-          studying: 'Estudiando',
-          work: 'Trabajo',
-          rest: 'Descanso',
-          otherActivity: 'Otra actividad',
-          availabilityIntro:
-            'Si nos dices cuál es tu horario disponible podemos personalizar los planes de tu proyecto.',
-          uploadHint: 'Subir imagen o PDF de tu horario para que la IA lo monte automáticamente',
-          replicateHint: 'Copiar esta semana a otras fechas',
-          cannotMoveToPast: 'No se pueden mover bloques a fechas pasadas.',
-          conflict: (title: string) =>
-            `⚠️ Conflicto: El horario coincide con "${title}". Por favor intenta utilizar otra hora o bloque disponible.`,
-          taskScheduleUpdated: (title: string, time: string, day: string) =>
-            `¡Horario de "${title}" actualizado a ${time}${day}!`,
-          blockMoved: (title: string, time: string, day: string) =>
-            `¡${title} movido a ${time}${day}!`,
-          saveScheduleError: 'Error al persistir el nuevo horario en el servidor',
-        }
-      : {
-          back: 'Back',
-          upload: 'Upload schedule (AI)',
-          replicate: 'Copy schedule',
-          month: 'Copy to a specific month...',
-          year: 'Copy to every month',
-          specific: 'Copy to specific weeks...',
-          weeks: 'Specific weeks',
-          selectWeeks: 'Select the future weeks where you want to copy your current availability:',
-          weekOf: 'Week of',
-          noWeeks: 'There are no future weeks available this year.',
-          yearLabel: 'Year',
-          monthLabel: 'Month',
-          replicateMonthTitle: 'Copy to a specific month',
-          replicateMonthDescription: 'Choose the month where you want to copy this week’s availability.',
-          replicateConfirm: 'Copy',
-          scheduleReplication: 'Where would you like to copy this schedule?',
-          allMonths: 'Every month (default)',
-          specificMonth: 'Only in a specific month',
-          chooseWeeks: 'Select the weeks:',
-          fileFormats: 'PNG, JPG, WEBP, or PDF (up to 20 MB)',
-          noActiveProjects: 'You do not have active projects to create a task.',
-          selectProject: 'Select a project',
-          creatingTask: 'Creating task...',
-          newTask: 'New task',
-          createTaskError: 'Could not create the task',
-          cancel: 'Cancel',
-          apply: 'Apply schedule',
-          googleConnect: 'Connect Google Calendar',
-          googleConnected: 'Connected to Google',
-          googleDisconnect: 'Disconnect',
-          googleSynced: 'Google Calendar synced successfully',
-          googleDisconnected: 'Google Calendar disconnected',
-          googleConnectionError: 'Could not connect to Google Calendar',
-          uploadTitle: 'Upload schedule with Gemini AI',
-          uploadSubtitle: 'Automatically extract your classes or shifts',
-          uploadDescription:
-            'Upload a photo, screenshot (.png, .jpg), or PDF of your school, university, or work schedule. AI will extract its days and time blocks so they appear in your calendar.',
-          scheduleType: 'What kind of schedule would you like to add?',
-          workSchedule: 'Work schedule',
-          studySchedule: 'Study schedule',
-          workCategory: 'Category: Work',
-          studyCategory: 'Category: Study',
-          dropFile: 'Click or drag your file here',
-          remove: 'Remove',
-          processSchedule: 'Process and add schedule',
-          optimizing: 'Optimizing document/image...',
-          analyzing: 'Analyzing schedule with Gemini AI...',
-          selectFile: 'Please select an image or PDF document with your schedule.',
-          processError: 'Could not process the schedule',
-          uploadSuccess: (count: number) =>
-            `${count} time blocks were detected and added to your calendar successfully!`,
-          uploadAndRescheduleSuccess: (count: number, rescheduledCount: number) =>
-            `${count} time blocks were added and AI automatically rescheduled ${rescheduledCount} task(s) to avoid conflicts!`,
-          noBlocksDetected:
-            'AI could not detect schedule blocks in the document or image. Make sure the days and times are readable.',
-          unexpectedExtractionError: 'Unexpected error while extracting the schedule',
-          taskUpdated: 'Task updated in the database',
-          changesSaved: 'Changes saved in the database',
-          deleted: 'Block and category removed from the calendar',
-          noAvailability: 'There is no availability marked this week to copy.',
-          replicated: 'Schedule copied successfully!',
-          editTask: 'Edit task',
-          editBlock: 'Edit block',
-          newBlock: 'New block',
-          taskName: 'Task name...',
-          blockName: 'Name / note...',
-          save: 'Save',
-          tasks: 'Tasks',
-          studying: 'Studying',
-          work: 'Work',
-          rest: 'Rest',
-          otherActivity: 'Other activity',
-          availabilityIntro:
-            'Tell us when you are available so we can personalize your project plans.',
-          uploadHint: 'Upload an image or PDF of your schedule so AI can add it automatically',
-          replicateHint: 'Copy this week to other dates',
-          cannotMoveToPast: 'Blocks cannot be moved to past dates.',
-          conflict: (title: string) =>
-            `⚠️ Conflict: This time overlaps with "${title}". Please choose another time or available block.`,
-          taskScheduleUpdated: (title: string, time: string, day: string) =>
-            `"${title}" was rescheduled to ${time}${day}.`,
-          blockMoved: (title: string, time: string, day: string) =>
-            `${title} was moved to ${time}${day}.`,
-          saveScheduleError: 'Could not save the new schedule to the server',
-        };
+  const copy = React.useMemo(
+    () =>
+      locale === 'es'
+        ? {
+            back: 'Volver',
+            upload: 'Subir horario (IA)',
+            replicate: 'Replicar horario',
+            month: 'Replicar en un mes específico...',
+            year: 'Replicar en todos los meses',
+            specific: 'Replicar en semanas específicas...',
+            weeks: 'Semanas específicas',
+            selectWeeks:
+              'Selecciona a qué semanas futuras quieres copiar tu disponibilidad actual:',
+            weekOf: 'Semana del',
+            noWeeks: 'No hay semanas futuras disponibles en este año.',
+            yearLabel: 'Año',
+            monthLabel: 'Mes',
+            replicateMonthTitle: 'Replicar en un mes específico',
+            replicateMonthDescription:
+              'Selecciona el mes donde deseas replicar la disponibilidad de esta semana.',
+            replicateConfirm: 'Replicar',
+            scheduleReplication: '¿Dónde deseas replicar este horario?',
+            allMonths: 'En todos los meses (predeterminado)',
+            specificMonth: 'Solo en un mes específico',
+            chooseWeeks: 'Selecciona las semanas:',
+            fileFormats: 'PNG, JPG, WEBP o PDF (Hasta 20MB)',
+            noActiveProjects: 'No tienes proyectos activos para crear una tarea.',
+            selectProject: 'Selecciona un proyecto',
+            creatingTask: 'Creando tarea...',
+            newTask: 'Nueva tarea',
+            createTaskError: 'Error al crear la tarea',
+            cancel: 'Cancelar',
+            apply: 'Aplicar horario',
+            googleConnect: 'Conectar Google Calendar',
+            googleConnected: 'Conectado a Google',
+            googleDisconnect: 'Desconectar',
+            googleSynced: 'Google Calendar sincronizado correctamente',
+            googleDisconnected: 'Google Calendar desconectado',
+            googleConnectionError: 'Error al conectar con Google Calendar',
+            uploadTitle: 'Cargar horario con Gemini AI',
+            uploadSubtitle: 'Extrae automáticamente tus materias o turnos',
+            uploadDescription:
+              'Sube una foto, captura de pantalla (.png, .jpg) o documento PDF de tu horario escolar, universitario o laboral. La IA extraerá los días y bloques horarios para que queden reflejados en tu calendario.',
+            scheduleType: '¿Qué tipo de horario deseas agregar?',
+            workSchedule: 'De trabajo',
+            studySchedule: 'De estudio',
+            workCategory: 'Categoría: Trabajo',
+            studyCategory: 'Categoría: Estudio',
+            dropFile: 'Haz clic o arrastra tu archivo aquí',
+            remove: 'Quitar',
+            processSchedule: 'Procesar y montar horario',
+            optimizing: 'Optimizando documento/imagen...',
+            analyzing: 'Analizando horario con IA Gemini...',
+            selectFile: 'Por favor selecciona una imagen o documento PDF con tu horario.',
+            processError: 'Error al procesar el horario',
+            uploadSuccess: (count: number) =>
+              `¡Se detectaron y agregaron ${count} bloques a tu calendario con éxito!`,
+            uploadAndRescheduleSuccess: (count: number, rescheduledCount: number) =>
+              `¡Se agregaron ${count} bloques a tu horario y la IA reagendó automáticamente ${rescheduledCount} tarea(s) para evitar colisiones!`,
+            noBlocksDetected:
+              'La IA no pudo detectar bloques de horario en el documento o imagen. Asegúrate de que las horas y días sean legibles.',
+            unexpectedExtractionError: 'Error inesperado extrayendo el horario',
+            taskUpdated: 'Tarea actualizada en la base de datos',
+            changesSaved: 'Cambios guardados en la base de datos',
+            deleted: 'Bloque y categoría eliminados del calendario',
+            noAvailability: 'No hay disponibilidad marcada en esta semana para replicar.',
+            replicated: '¡Horario replicado con éxito!',
+            editTask: 'Editar tarea',
+            editBlock: 'Editar bloque',
+            newBlock: 'Nuevo bloque',
+            taskName: 'Nombre de tarea...',
+            blockName: 'Nombre / Nota...',
+            save: 'Guardar',
+            tasks: 'Tareas',
+            studying: 'Estudiando',
+            work: 'Trabajo',
+            rest: 'Descanso',
+            otherActivity: 'Otra actividad',
+            availabilityIntro:
+              'Si nos dices cuál es tu horario disponible podemos personalizar los planes de tu proyecto.',
+            uploadHint: 'Subir imagen o PDF de tu horario para que la IA lo monte automáticamente',
+            replicateHint: 'Copiar esta semana a otras fechas',
+            cannotMoveToPast: 'No se pueden mover bloques a fechas pasadas.',
+            conflict: (
+              title: string,
+              details?: {
+                taskTitle?: string;
+                duration?: number;
+                startTime?: string;
+                endTime?: string;
+                collisionSlot?: string;
+              },
+            ) =>
+              details?.taskTitle && details?.startTime && details?.endTime
+                ? `⚠️ Conflicto de horario: La tarea "${details.taskTitle}" requiere ${details.duration} min (de ${details.startTime} a ${details.endTime}, ocupando bloques continuos de 5 en 5 minutos). No se puede mover aquí porque el tramo a las ${details.collisionSlot || details.startTime} ya está ocupado por "${title}". Por favor selecciona un bloque con suficiente espacio continuo disponible.`
+                : `⚠️ Conflicto: El horario coincide con "${title}". Por favor intenta utilizar otra hora o bloque disponible.`,
+            taskScheduleUpdated: (title: string, time: string, day: string) =>
+              `¡Horario de "${title}" actualizado a ${time}${day}!`,
+            blockMoved: (title: string, time: string, day: string) =>
+              `¡${title} movido a ${time}${day}!`,
+            saveScheduleError: 'Error al persistir el nuevo horario en el servidor',
+          }
+        : {
+            back: 'Back',
+            upload: 'Upload schedule (AI)',
+            replicate: 'Copy schedule',
+            month: 'Copy to a specific month...',
+            year: 'Copy to every month',
+            specific: 'Copy to specific weeks...',
+            weeks: 'Specific weeks',
+            selectWeeks:
+              'Select the future weeks where you want to copy your current availability:',
+            weekOf: 'Week of',
+            noWeeks: 'There are no future weeks available this year.',
+            yearLabel: 'Year',
+            monthLabel: 'Month',
+            replicateMonthTitle: 'Copy to a specific month',
+            replicateMonthDescription:
+              'Choose the month where you want to copy this week’s availability.',
+            replicateConfirm: 'Copy',
+            scheduleReplication: 'Where would you like to copy this schedule?',
+            allMonths: 'Every month (default)',
+            specificMonth: 'Only in a specific month',
+            chooseWeeks: 'Select the weeks:',
+            fileFormats: 'PNG, JPG, WEBP, or PDF (up to 20 MB)',
+            noActiveProjects: 'You do not have active projects to create a task.',
+            selectProject: 'Select a project',
+            creatingTask: 'Creating task...',
+            newTask: 'New task',
+            createTaskError: 'Could not create the task',
+            cancel: 'Cancel',
+            apply: 'Apply schedule',
+            googleConnect: 'Connect Google Calendar',
+            googleConnected: 'Connected to Google',
+            googleDisconnect: 'Disconnect',
+            googleSynced: 'Google Calendar synced successfully',
+            googleDisconnected: 'Google Calendar disconnected',
+            googleConnectionError: 'Could not connect to Google Calendar',
+            uploadTitle: 'Upload schedule with Gemini AI',
+            uploadSubtitle: 'Automatically extract your classes or shifts',
+            uploadDescription:
+              'Upload a photo, screenshot (.png, .jpg), or PDF of your school, university, or work schedule. AI will extract its days and time blocks so they appear in your calendar.',
+            scheduleType: 'What kind of schedule would you like to add?',
+            workSchedule: 'Work schedule',
+            studySchedule: 'Study schedule',
+            workCategory: 'Category: Work',
+            studyCategory: 'Category: Study',
+            dropFile: 'Click or drag your file here',
+            remove: 'Remove',
+            processSchedule: 'Process and add schedule',
+            optimizing: 'Optimizing document/image...',
+            analyzing: 'Analyzing schedule with Gemini AI...',
+            selectFile: 'Please select an image or PDF document with your schedule.',
+            processError: 'Could not process the schedule',
+            uploadSuccess: (count: number) =>
+              `${count} time blocks were detected and added to your calendar successfully!`,
+            uploadAndRescheduleSuccess: (count: number, rescheduledCount: number) =>
+              `${count} time blocks were added and AI automatically rescheduled ${rescheduledCount} task(s) to avoid conflicts!`,
+            noBlocksDetected:
+              'AI could not detect schedule blocks in the document or image. Make sure the days and times are readable.',
+            unexpectedExtractionError: 'Unexpected error while extracting the schedule',
+            taskUpdated: 'Task updated in the database',
+            changesSaved: 'Changes saved in the database',
+            deleted: 'Block and category removed from the calendar',
+            noAvailability: 'There is no availability marked this week to copy.',
+            replicated: 'Schedule copied successfully!',
+            editTask: 'Edit task',
+            editBlock: 'Edit block',
+            newBlock: 'New block',
+            taskName: 'Task name...',
+            blockName: 'Name / note...',
+            save: 'Save',
+            tasks: 'Tasks',
+            studying: 'Studying',
+            work: 'Work',
+            rest: 'Rest',
+            otherActivity: 'Other activity',
+            availabilityIntro:
+              'Tell us when you are available so we can personalize your project plans.',
+            uploadHint: 'Upload an image or PDF of your schedule so AI can add it automatically',
+            replicateHint: 'Copy this week to other dates',
+            cannotMoveToPast: 'Blocks cannot be moved to past dates.',
+            conflict: (
+              title: string,
+              details?: {
+                taskTitle?: string;
+                duration?: number;
+                startTime?: string;
+                endTime?: string;
+                collisionSlot?: string;
+              },
+            ) =>
+              details?.taskTitle && details?.startTime && details?.endTime
+                ? `⚠️ Schedule conflict: The task "${details.taskTitle}" requires ${details.duration} min (from ${details.startTime} to ${details.endTime}, occupying continuous 5-minute blocks). It cannot be placed here because the slot at ${details.collisionSlot || details.startTime} is occupied by "${title}". Please choose a block with enough continuous free time.`
+                : `⚠️ Conflict: This time overlaps with "${title}". Please choose another time or available block.`,
+            taskScheduleUpdated: (title: string, time: string, day: string) =>
+              `"${title}" was rescheduled to ${time}${day}.`,
+            blockMoved: (title: string, time: string, day: string) =>
+              `${title} was moved to ${time}${day}.`,
+            saveScheduleError: 'Could not save the new schedule to the server',
+          },
+    [locale],
+  );
   const router = useRouter();
   const [view, setView] = useState<'month' | 'week'>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -493,7 +529,6 @@ export default function CalendarioPage() {
   const [dragOverCell, setDragOverCell] = useState<{ date: string; time: string } | null>(null);
 
   const [expandedHours, setExpandedHours] = useState<number[]>([]);
-  const [hoveredTimeStr, setHoveredTimeStr] = useState<string | null>(null);
 
   const [showReplicateMenu, setShowReplicateMenu] = useState(false);
   const [showSpecificWeeksModal, setShowSpecificWeeksModal] = useState(false);
@@ -532,11 +567,41 @@ export default function CalendarioPage() {
     text: string;
   } | null>(null);
 
+  const availMap = React.useMemo(() => {
+    const map = new Map<string, Availability>();
+    for (let i = 0; i < availabilities.length; i++) {
+      const a = availabilities[i];
+      map.set(`${a.date}_${a.startTime}`, a);
+    }
+    return map;
+  }, [availabilities]);
+
+  const activeTimes = React.useMemo(
+    () => new Set(availabilities.map((a) => a.startTime)),
+    [availabilities],
+  );
+
+  const visibleTimeSlots = React.useMemo(() => {
+    const slots: string[] = [];
+    for (let h = 0; h <= 23; h++) {
+      const hourStr = h.toString().padStart(2, '0');
+      slots.push(`${hourStr}:00`);
+      if (expandedHours.includes(h)) {
+        for (let m = 5; m < 60; m += 5) {
+          slots.push(`${hourStr}:${m.toString().padStart(2, '0')}`);
+        }
+      }
+    }
+    return slots;
+  }, [expandedHours]);
+
   const loadCalendarEventsFromSupabase = React.useCallback(async () => {
     try {
       const res = await getCalendarDataAction();
       if (res.success) {
         const dbEvents: Availability[] = [];
+        const dbEventKeys = new Set<string>();
+
         if (res.events && res.events.length > 0) {
           res.events.forEach((ev) => {
             const startD = new Date(ev.inicio);
@@ -548,8 +613,8 @@ export default function CalendarioPage() {
             const startSlot = format(startD, 'HH:mm');
             const endSlot = format(endD, 'HH:mm');
 
-            const startIdx = TIME_SLOTS.indexOf(startSlot);
-            const endIdx = TIME_SLOTS.indexOf(endSlot);
+            const startIdx = getSlotIndex(startSlot);
+            const endIdx = getSlotIndex(endSlot);
             const fromIdx = startIdx !== -1 ? startIdx : 0;
             const toIdx =
               endIdx !== -1 && endIdx > fromIdx
@@ -570,6 +635,7 @@ export default function CalendarioPage() {
                   source: 'supabase',
                   eventId: ev.id,
                 });
+                dbEventKeys.add(`${dateStr}_${slot}`);
               }
             }
           });
@@ -583,8 +649,8 @@ export default function CalendarioPage() {
 
             const startSlot = b.startTime.slice(0, 5);
             const endSlot = b.endTime.slice(0, 5);
-            const startIdx = TIME_SLOTS.indexOf(startSlot);
-            const endIdx = TIME_SLOTS.indexOf(endSlot);
+            const startIdx = getSlotIndex(startSlot);
+            const endIdx = getSlotIndex(endSlot);
             if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) return;
 
             let normalizedType:
@@ -610,6 +676,7 @@ export default function CalendarioPage() {
                   source: 'supabase',
                   blockId,
                 });
+                dbEventKeys.add(`${b.date}_${slot}`);
               }
             }
           });
@@ -626,8 +693,8 @@ export default function CalendarioPage() {
 
             const startSlot = b.hora_inicio.slice(0, 5);
             const endSlot = b.hora_fin.slice(0, 5);
-            const startIdx = TIME_SLOTS.indexOf(startSlot);
-            const endIdx = TIME_SLOTS.indexOf(endSlot);
+            const startIdx = getSlotIndex(startSlot);
+            const endIdx = getSlotIndex(endSlot);
             if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) return;
 
             let normalizedType:
@@ -658,9 +725,9 @@ export default function CalendarioPage() {
               for (let i = startIdx; i < endIdx; i++) {
                 const slot = TIME_SLOTS[i];
                 if (slot && slot !== '24:00') {
-                  if (
-                    !dbEvents.some((ev) => ev.date === b.fecha_especifica && ev.startTime === slot)
-                  ) {
+                  const key = `${b.fecha_especifica}_${slot}`;
+                  if (!dbEventKeys.has(key)) {
+                    dbEventKeys.add(key);
                     dbEvents.push({
                       date: b.fecha_especifica,
                       dayOfWeek: dayOfWeekName,
@@ -685,7 +752,9 @@ export default function CalendarioPage() {
                   const slot = TIME_SLOTS[i];
                   if (slot && slot !== '24:00') {
                     // Evitar duplicados si hay un bloque manual superpuesto (priorizamos el manual si ya está en dbEvents)
-                    if (!dbEvents.some((ev) => ev.date === dateStr && ev.startTime === slot)) {
+                    const key = `${dateStr}_${slot}`;
+                    if (!dbEventKeys.has(key)) {
+                      dbEventKeys.add(key);
                       dbEvents.push({
                         date: dateStr,
                         dayOfWeek: dayOfWeekName,
@@ -712,7 +781,7 @@ export default function CalendarioPage() {
     } catch (err) {
       console.warn('Aviso cargando eventos de calendario:', err);
     }
-  }, [copy.otherActivity, copy.studying, copy.work, dateLocale]);
+  }, [copy, dateLocale]);
 
   const loadGoogleCalendarEvents = React.useCallback(async () => {
     try {
@@ -734,8 +803,8 @@ export default function CalendarioPage() {
           const startSlot = format(startD, 'HH:mm');
           const endSlot = format(endD, 'HH:mm');
 
-          const startIdx = TIME_SLOTS.indexOf(startSlot);
-          const endIdx = TIME_SLOTS.indexOf(endSlot);
+          const startIdx = getSlotIndex(startSlot);
+          const endIdx = getSlotIndex(endSlot);
           const fromIdx = startIdx !== -1 ? startIdx : 0;
           const toIdx =
             endIdx !== -1 && endIdx > fromIdx
@@ -751,6 +820,7 @@ export default function CalendarioPage() {
                 dayOfWeek: dayOfWeekName,
                 startTime: slot,
                 endTime: TIME_SLOTS[i + 1] || '24:00',
+
                 label: ev.summary || '(Sin título)',
                 type: 'otra_actividad',
                 source: 'google',
@@ -910,33 +980,13 @@ export default function CalendarioPage() {
       // Si falla, la cookie expirará sola; el estado local ya está limpio
     }
   };
-
-  const activeTimes = new Set(availabilities.map((a) => a.startTime));
-
   useEffect(() => {
-    localStorage.setItem('komorebi_availabilities', JSON.stringify(availabilities));
-
-    // Sincronizar bloques de disponibilidad con Supabase (consolidando franjas en bloques limpios)
-    const timer = setTimeout(() => {
-      const consolidated = consolidateAvailabilitySlots(availabilities);
-      syncAvailabilityBlocksAction(consolidated).catch((err) =>
-        console.warn('Aviso sincronizando bloques en Supabase:', err),
-      );
-    }, 800);
-
-    return () => clearTimeout(timer);
-  }, [availabilities]);
-
-  const visibleTimeSlots: string[] = [];
-  for (let h = 0; h <= 23; h++) {
-    const hourStr = h.toString().padStart(2, '0');
-    visibleTimeSlots.push(`${hourStr}:00`);
-    if (expandedHours.includes(h)) {
-      for (let m = 5; m < 60; m += 5) {
-        visibleTimeSlots.push(`${hourStr}:${m.toString().padStart(2, '0')}`);
-      }
+    try {
+      localStorage.setItem('komorebi_availabilities', JSON.stringify(availabilities));
+    } catch (e) {
+      console.warn('Aviso guardando en localStorage:', e);
     }
-  }
+  }, [availabilities]);
 
   const toggleHour = (h: number) => {
     setExpandedHours((prev) => (prev.includes(h) ? prev.filter((x) => x !== h) : [...prev, h]));
@@ -947,8 +997,9 @@ export default function CalendarioPage() {
     const endY = endOfYear(currentDate);
     const months = eachMonthOfInterval({ start: startY, end: endY });
 
+    const maxAllowedYear = new Date().getFullYear() + 1;
     const canGoPreviousYear = currentDate.getFullYear() > new Date().getFullYear();
-    const canGoNextYear = currentDate.getFullYear() < 2036;
+    const canGoNextYear = currentDate.getFullYear() < maxAllowedYear;
 
     return (
       <div className="flex flex-col animate-in fade-in duration-500 w-full max-w-5xl mx-auto pb-12">
@@ -1046,22 +1097,25 @@ export default function CalendarioPage() {
               month.getFullYear() < new Date().getFullYear() ||
               (month.getFullYear() === new Date().getFullYear() &&
                 month.getMonth() < new Date().getMonth());
+            const oneYearFromNow = addYears(new Date(), 1);
+            const isBeyondOneYear = isAfter(startOfMonth(month), endOfMonth(oneYearFromNow));
+            const isMonthDisabled = isPastMonth || isBeyondOneYear;
 
             return (
               <button
                 key={month.toISOString()}
-                disabled={isPastMonth}
+                disabled={isMonthDisabled}
                 onClick={() => {
                   setCurrentDate(isCurrentMonth ? new Date() : month);
                   setView('week');
                 }}
                 className={`
                   flex flex-col items-center justify-center p-4 rounded-[16px] transition-all aspect-square border-2
-                  ${isPastMonth ? 'opacity-50 cursor-not-allowed hover:bg-surface-container-lowest bg-surface-container-lowest text-on-surface-variant' : 'hover:-translate-y-1 hover:shadow-sm cursor-pointer'}
+                  ${isMonthDisabled ? 'opacity-40 cursor-not-allowed hover:bg-surface-container-lowest bg-surface-container-lowest text-on-surface-variant' : 'hover:-translate-y-1 hover:shadow-sm cursor-pointer'}
                   ${
                     isCurrentMonth
                       ? 'bg-[#f5e5d9] border-[#845326] text-[#845326]'
-                      : !isPastMonth
+                      : !isMonthDisabled
                         ? 'bg-white border-[#EAE3DC] text-on-surface hover:border-[#F7D6BF]'
                         : 'border-[#EAE3DC]'
                   }
@@ -1164,6 +1218,11 @@ export default function CalendarioPage() {
       return;
     }
 
+    if (hasObsceneContent(uploadFile.name)) {
+      setUploadError('No se permiten contenidos obscenos.');
+      return;
+    }
+
     setUploadLoading(true);
     setUploadStatusText(copy.optimizing);
     setUploadError(null);
@@ -1199,7 +1258,6 @@ export default function CalendarioPage() {
       }
 
       if (data.bloques && data.bloques.length > 0) {
-
         // Recargar eventos de Supabase para reflejar de inmediato tareas reagendadas por IA
         await loadCalendarEventsFromSupabase();
 
@@ -1231,18 +1289,19 @@ export default function CalendarioPage() {
   const getBlockForCell = (dateStr: string, timeStr: string, isCollapsedHour: boolean) => {
     let targetAvail: Availability | undefined;
     if (isCollapsedHour) {
-      const startIdx = TIME_SLOTS.indexOf(timeStr);
+      const startIdx = getSlotIndex(timeStr);
       for (let i = startIdx; i < startIdx + 12; i++) {
-        const found = availabilities.find(
-          (a) => a.date === dateStr && a.startTime === TIME_SLOTS[i],
-        );
-        if (found) {
-          targetAvail = found;
-          break;
+        const slot = TIME_SLOTS[i];
+        if (slot) {
+          const found = availMap.get(`${dateStr}_${slot}`);
+          if (found) {
+            targetAvail = found;
+            break;
+          }
         }
       }
     } else {
-      targetAvail = availabilities.find((a) => a.date === dateStr && a.startTime === timeStr);
+      targetAvail = availMap.get(`${dateStr}_${timeStr}`);
     }
 
     if (!targetAvail) return null;
@@ -1251,7 +1310,7 @@ export default function CalendarioPage() {
     if (targetAvail.eventId) {
       const eventSlots = availabilities
         .filter((a) => a.date === dateStr && a.eventId === targetAvail.eventId)
-        .sort((a, b) => TIME_SLOTS.indexOf(a.startTime) - TIME_SLOTS.indexOf(b.startTime));
+        .sort((a, b) => getSlotIndex(a.startTime) - getSlotIndex(b.startTime));
 
       const startTime = eventSlots[0]?.startTime || targetAvail.startTime;
       const endTime = eventSlots[eventSlots.length - 1]?.endTime || targetAvail.endTime;
@@ -1271,7 +1330,7 @@ export default function CalendarioPage() {
     if (targetAvail.blockId) {
       const blockSlots = availabilities
         .filter((a) => a.date === dateStr && a.blockId === targetAvail.blockId)
-        .sort((a, b) => TIME_SLOTS.indexOf(a.startTime) - TIME_SLOTS.indexOf(b.startTime));
+        .sort((a, b) => getSlotIndex(a.startTime) - getSlotIndex(b.startTime));
 
       const startTime = blockSlots[0]?.startTime || targetAvail.startTime;
       const endTime = blockSlots[blockSlots.length - 1]?.endTime || targetAvail.endTime;
@@ -1287,22 +1346,20 @@ export default function CalendarioPage() {
     }
 
     // Bloque manual sin blockId (buscar slots contiguos con mismo label y tipo)
-    const currentIdx = TIME_SLOTS.indexOf(targetAvail.startTime);
+    const currentIdx = getSlotIndex(targetAvail.startTime);
     let minIdx = currentIdx;
     let maxIdx = currentIdx;
 
     while (minIdx > 0) {
       const prevSlot = TIME_SLOTS[minIdx - 1];
-      const prevAvail = availabilities.find(
-        (a) =>
-          a.date === dateStr &&
-          a.startTime === prevSlot &&
-          !a.eventId &&
-          a.source !== 'google' &&
-          a.label === targetAvail.label &&
-          a.type === targetAvail.type,
-      );
-      if (prevAvail) {
+      const prevAvail = availMap.get(`${dateStr}_${prevSlot}`);
+      if (
+        prevAvail &&
+        !prevAvail.eventId &&
+        prevAvail.source !== 'google' &&
+        prevAvail.label === targetAvail.label &&
+        prevAvail.type === targetAvail.type
+      ) {
         minIdx--;
       } else {
         break;
@@ -1311,16 +1368,14 @@ export default function CalendarioPage() {
 
     while (maxIdx < TIME_SLOTS.length - 1) {
       const nextSlot = TIME_SLOTS[maxIdx + 1];
-      const nextAvail = availabilities.find(
-        (a) =>
-          a.date === dateStr &&
-          a.startTime === nextSlot &&
-          !a.eventId &&
-          a.source !== 'google' &&
-          a.label === targetAvail.label &&
-          a.type === targetAvail.type,
-      );
-      if (nextAvail) {
+      const nextAvail = availMap.get(`${dateStr}_${nextSlot}`);
+      if (
+        nextAvail &&
+        !nextAvail.eventId &&
+        nextAvail.source !== 'google' &&
+        nextAvail.label === targetAvail.label &&
+        nextAvail.type === targetAvail.type
+      ) {
         maxIdx++;
       } else {
         break;
@@ -1353,7 +1408,7 @@ export default function CalendarioPage() {
     const h = parseInt(hStr, 10);
     const isCollapsedHour = mStr === '00' && !expandedHours.includes(h);
 
-    const clickStartIdx = TIME_SLOTS.indexOf(timeStr);
+    const clickStartIdx = getSlotIndex(timeStr);
     const clickEndIdx = isCollapsedHour ? clickStartIdx + 11 : clickStartIdx;
 
     const block = getBlockForCell(dateStr, timeStr, isCollapsedHour);
@@ -1413,10 +1468,6 @@ export default function CalendarioPage() {
     setEditType('tareas');
   };
 
-  const handleCellMouseEnter = (_dateStr: string, timeStr: string) => {
-    setHoveredTimeStr(timeStr);
-  };
-
   // Manejo de Drag and Drop para reordenamiento de tareas y bloques manuales
   const handleDragStart = (
     e: React.DragEvent,
@@ -1431,8 +1482,8 @@ export default function CalendarioPage() {
     const block = getBlockForCell(dateStr, timeStr, isCollapsedHour);
     if (!block) return;
 
-    const sIdx = TIME_SLOTS.indexOf(block.startTime);
-    const eIdx = TIME_SLOTS.indexOf(block.endTime);
+    const sIdx = getSlotIndex(block.startTime);
+    const eIdx = getSlotIndex(block.endTime);
     const durationMin = Math.max(5, (eIdx - sIdx) * 5);
 
     setDraggedTask({
@@ -1497,7 +1548,7 @@ export default function CalendarioPage() {
       return;
     }
 
-    const startSlotIdx = TIME_SLOTS.indexOf(targetTimeStr);
+    const startSlotIdx = getSlotIndex(targetTimeStr);
     if (startSlotIdx === -1) {
       setDraggedTask(null);
       setDragOverCell(null);
@@ -1508,14 +1559,15 @@ export default function CalendarioPage() {
     const endSlotIdx = Math.min(TIME_SLOTS.length - 1, startSlotIdx + slotsCount);
     const newEndTimeStr = TIME_SLOTS[endSlotIdx] || '24:00';
 
+    const origStartIdx = getSlotIndex(draggedTask.originalStartTime);
+    const origEndIdx = getSlotIndex(draggedTask.originalEndTime);
+
     // Verificar colisiones con otras tareas, Google o bloques ajenos
     const isOwnSlot = (a: Availability) => {
       if (draggedTask.eventId && a.eventId === draggedTask.eventId) return true;
       if (draggedTask.isManual) {
         if (draggedTask.blockId && a.blockId && a.blockId === draggedTask.blockId) return true;
-        const aIdx = TIME_SLOTS.indexOf(a.startTime);
-        const origStartIdx = TIME_SLOTS.indexOf(draggedTask.originalStartTime);
-        const origEndIdx = TIME_SLOTS.indexOf(draggedTask.originalEndTime);
+        const aIdx = getSlotIndex(a.startTime);
         if (a.date === draggedTask.sourceDate && aIdx >= origStartIdx && aIdx < origEndIdx) {
           return true;
         }
@@ -1524,17 +1576,17 @@ export default function CalendarioPage() {
     };
 
     let collisionTitle: string | null = null;
+    let collisionSlot: string | null = null;
     for (let i = startSlotIdx; i < endSlotIdx; i++) {
       const slot = TIME_SLOTS[i];
-      const conflictAvail = availabilities.find(
-        (a) => a.date === dateStr && a.startTime === slot && !isOwnSlot(a),
-      );
-      if (conflictAvail) {
+      const conflictAvail = availMap.get(`${dateStr}_${slot}`);
+      if (conflictAvail && !isOwnSlot(conflictAvail)) {
         collisionTitle = conflictAvail.label
           ? conflictAvail.label.replace('📌 ', '')
           : conflictAvail.source === 'google'
             ? 'Google Calendar'
             : 'otra actividad o bloque';
+        collisionSlot = slot;
         break;
       }
     }
@@ -1542,7 +1594,13 @@ export default function CalendarioPage() {
     if (collisionTitle) {
       setToastMessage({
         type: 'error',
-        text: copy.conflict(collisionTitle),
+        text: copy.conflict(collisionTitle, {
+          taskTitle: draggedTask.title,
+          duration: draggedTask.durationMinutes,
+          startTime: targetTimeStr,
+          endTime: newEndTimeStr,
+          collisionSlot: collisionSlot || targetTimeStr,
+        }),
       });
       setDraggedTask(null);
       setDragOverCell(null);
@@ -1632,18 +1690,26 @@ export default function CalendarioPage() {
       }
     } else {
       // Bloque manual creado por el usuario
-      const origStartIdx = TIME_SLOTS.indexOf(draggedTask.originalStartTime);
-      const origEndIdx = TIME_SLOTS.indexOf(draggedTask.originalEndTime);
+      const origStartIdx = getSlotIndex(draggedTask.originalStartTime);
+      const origEndIdx = getSlotIndex(draggedTask.originalEndTime);
 
+      let updatedList: Availability[] = [];
       setAvailabilities((prev) => {
         const withoutOld = prev.filter((a) => {
           if (a.date !== draggedTask.sourceDate) return true;
           if (draggedTask.blockId && a.blockId === draggedTask.blockId) return false;
-          const aIdx = TIME_SLOTS.indexOf(a.startTime);
+          const aIdx = getSlotIndex(a.startTime);
           return !(aIdx >= origStartIdx && aIdx < origEndIdx);
         });
-        return [...withoutOld, ...newSlots];
+        updatedList = [...withoutOld, ...newSlots];
+        return updatedList;
       });
+
+      // Persistir inmediatamente el bloque manual movido en Supabase
+      const consolidated = consolidateAvailabilitySlots(updatedList);
+      syncAvailabilityBlocksAction(consolidated).catch((err) =>
+        console.warn('Error sincronizando bloque movido en Supabase:', err),
+      );
 
       setSelectedBlock({
         date: dateStr,
@@ -1679,7 +1745,7 @@ export default function CalendarioPage() {
     const h = parseInt(hStr, 10);
     const isCollapsedHour = mStr === '00' && !expandedHours.includes(h);
 
-    const startIdx = TIME_SLOTS.indexOf(timeStr);
+    const startIdx = getSlotIndex(timeStr);
     const endIdx = isCollapsedHour ? startIdx + 11 : startIdx;
 
     const timesToRemove = new Set<string>();
@@ -1745,7 +1811,7 @@ export default function CalendarioPage() {
     const h = parseInt(hStr, 10);
     const isCollapsed = mStr === '00' && !expandedHours.includes(h);
 
-    const startIdx = TIME_SLOTS.indexOf(editingCell.time);
+    const startIdx = getSlotIndex(editingCell.time);
     const endIdx = isCollapsed ? startIdx + 11 : startIdx;
     const targetSlots: string[] = [];
     for (let i = startIdx; i <= endIdx; i++) {
@@ -1865,7 +1931,7 @@ export default function CalendarioPage() {
 
   const generateFutureWeeks = (currentWeekStart: Date, targetYear: number) => {
     const weeks = [];
-    const maxYearLimit = new Date(2036, 11, 31, 23, 59, 59);
+    const maxYearLimit = addYears(new Date(), 1);
 
     let nextWeekStart: Date;
     const nowYear = currentWeekStart.getFullYear();
@@ -1878,10 +1944,10 @@ export default function CalendarioPage() {
       nextWeekStart = startOfWeek(new Date(targetYear, 0, 1), { weekStartsOn: 1 });
     }
 
-    const endOfTargetYear =
-      targetYear >= 2036 ? maxYearLimit : endOfYear(new Date(targetYear, 0, 1));
+    const endOfTargetYear = endOfYear(new Date(targetYear, 0, 1));
+    const effectiveLimit = isBefore(maxYearLimit, endOfTargetYear) ? maxYearLimit : endOfTargetYear;
 
-    while (nextWeekStart <= endOfTargetYear && nextWeekStart <= maxYearLimit) {
+    while (nextWeekStart <= effectiveLimit) {
       if (
         nextWeekStart.getFullYear() === targetYear ||
         addDays(nextWeekStart, 6).getFullYear() === targetYear
@@ -2000,11 +2066,27 @@ export default function CalendarioPage() {
     const end = endOfWeek(currentDate, { weekStartsOn: 1 });
     const days = eachDayOfInterval({ start, end });
 
-    const goToPrevWeek = () => setCurrentDate(subWeeks(currentDate, 1));
-    const canGoNextWeek = addWeeks(currentDate, 1).getFullYear() <= 2036;
+    const oneYearFromNow = addYears(new Date(), 1);
+    const maxAllowedWeek = endOfWeek(oneYearFromNow, { weekStartsOn: 1 });
+    const minAllowedWeek = startOfWeek(new Date(), { weekStartsOn: 1 });
+
+    const canGoPrevWeek = !isBefore(subWeeks(currentDate, 1), minAllowedWeek);
+    const goToPrevWeek = () => {
+      if (canGoPrevWeek) setCurrentDate(subWeeks(currentDate, 1));
+    };
+    const canGoNextWeek = !isAfter(addWeeks(currentDate, 1), maxAllowedWeek);
     const goToNextWeek = () => {
       if (canGoNextWeek) setCurrentDate(addWeeks(currentDate, 1));
     };
+
+    const selectedStartIdx = selectedBlock?.startTime ? getSlotIndex(selectedBlock.startTime) : -1;
+    const selectedEndIdx = selectedBlock?.endTime ? getSlotIndex(selectedBlock.endTime) : -1;
+    const draggedStartIdx = draggedTask?.originalStartTime
+      ? getSlotIndex(draggedTask.originalStartTime)
+      : -1;
+    const draggedEndIdx = draggedTask?.originalEndTime
+      ? getSlotIndex(draggedTask.originalEndTime)
+      : -1;
 
     return (
       <div className="flex flex-col h-full w-full max-w-6xl mx-auto animate-in fade-in duration-300">
@@ -2012,7 +2094,6 @@ export default function CalendarioPage() {
         <div
           className="flex-grow overflow-y-auto custom-scrollbar select-none bg-white border border-[#EAE3DC] rounded-[20px] shadow-sm relative flex flex-col"
           style={{ height: 'calc(100vh - 120px)' }}
-          onMouseLeave={() => setHoveredTimeStr(null)}
         >
           {/* 2. ENVOLTORIO STICKY UNIFICADO */}
           <div className="sticky top-0 z-[50] bg-[#FDFBF9] border-b border-[#EAE3DC] shadow-sm flex flex-col pt-4 shrink-0">
@@ -2111,7 +2192,8 @@ export default function CalendarioPage() {
                 <div className="flex items-center gap-2 bg-white border border-[#EAE3DC] rounded-xl p-1 shadow-sm">
                   <button
                     onClick={goToPrevWeek}
-                    className="p-1.5 rounded-lg hover:bg-surface-container transition-colors text-on-surface"
+                    disabled={!canGoPrevWeek}
+                    className={`p-1.5 rounded-lg transition-colors text-on-surface ${!canGoPrevWeek ? 'opacity-30 cursor-not-allowed' : 'hover:bg-surface-container'}`}
                   >
                     <ChevronLeft className="size-5" />
                   </button>
@@ -2180,7 +2262,9 @@ export default function CalendarioPage() {
                   </p>
 
                   <div className="mb-4">
-                    <label className="text-sm font-bold text-[#845326] block mb-2">{copy.yearLabel}</label>
+                    <label className="text-sm font-bold text-[#845326] block mb-2">
+                      {copy.yearLabel}
+                    </label>
                     <select
                       value={selectedWeeksYear}
                       onChange={(e) => {
@@ -2260,16 +2344,16 @@ export default function CalendarioPage() {
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#2C1F14]/40 backdrop-blur-sm animate-in fade-in duration-200">
               <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col max-h-[80vh] border border-[#EAE3DC]">
                 <div className="p-5 border-b border-[#EAE3DC] bg-[#FDFBF9]">
-                  <h3 className="text-lg font-bold text-[#433022]">
-                    {copy.replicateMonthTitle}
-                  </h3>
+                  <h3 className="text-lg font-bold text-[#433022]">{copy.replicateMonthTitle}</h3>
                   <p className="text-sm text-on-surface-variant mt-1">
                     {copy.replicateMonthDescription}
                   </p>
                 </div>
                 <div className="p-5 flex-1 overflow-y-auto space-y-4">
                   <div>
-                    <label className="text-sm font-bold text-[#845326] block mb-2">{copy.yearLabel}</label>
+                    <label className="text-sm font-bold text-[#845326] block mb-2">
+                      {copy.yearLabel}
+                    </label>
                     <select
                       value={selectedReplicateYear}
                       onChange={(e) => setSelectedReplicateYear(Number(e.target.value))}
@@ -2286,7 +2370,9 @@ export default function CalendarioPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-sm font-bold text-[#845326] block mb-2">{copy.monthLabel}</label>
+                    <label className="text-sm font-bold text-[#845326] block mb-2">
+                      {copy.monthLabel}
+                    </label>
                     <select
                       value={selectedReplicateMonth}
                       onChange={(e) => setSelectedReplicateMonth(Number(e.target.value))}
@@ -2498,7 +2584,7 @@ export default function CalendarioPage() {
                           >
                             {Array.from({ length: 12 }).map((_, i) => (
                               <option key={i} value={i}>
-                              {format(new Date(2024, i, 1), 'MMMM', { locale: dateLocale })}
+                                {format(new Date(2024, i, 1), 'MMMM', { locale: dateLocale })}
                               </option>
                             ))}
                           </select>
@@ -2585,9 +2671,7 @@ export default function CalendarioPage() {
                     <p className="text-sm font-bold text-[#2C1F14]">
                       {uploadFile ? uploadFile.name : copy.dropFile}
                     </p>
-                    <p className="text-xs text-[#845326] mt-1 font-medium">
-                      {copy.fileFormats}
-                    </p>
+                    <p className="text-xs text-[#845326] mt-1 font-medium">{copy.fileFormats}</p>
                   </div>
 
                   {uploadFile && (
@@ -2659,8 +2743,6 @@ export default function CalendarioPage() {
                 const [, minuteStr] = time.split(':');
                 const isActive = activeTimes.has(time);
 
-                const isHovered = hoveredTimeStr === time;
-
                 return (
                   <div
                     key={`time-${time}`}
@@ -2668,7 +2750,6 @@ export default function CalendarioPage() {
                       ${isHourStart ? 'min-h-[48px]' : 'min-h-[32px]'} relative flex justify-end items-center pr-3 group transition-colors cursor-default
                       ${isHourStart ? 'border-b border-[#EAE3DC]' : ''}
                       ${isHourEnd ? 'mb-3' : ''}
-                      ${isHovered ? 'bg-[#f5e5d9]/60' : ''}
                     `}
                   >
                     {isHourStart ? (
@@ -2713,30 +2794,27 @@ export default function CalendarioPage() {
                     className={`flex flex-col border-r border-[#EAE3DC] last:border-r-0 bg-[#FDFBF9] ${isPast ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     {visibleTimeSlots.map((timeStr) => {
-                      const avail = availabilities.find(
-                        (a) => a.date === dateStr && a.startTime === timeStr,
-                      );
+                      const slotIdx = getSlotIndex(timeStr);
+                      const avail = availMap.get(`${dateStr}_${timeStr}`);
                       const isEditing =
                         editingCell?.date === dateStr && editingCell?.time === timeStr;
                       const isHourStart = timeStr.endsWith(':00');
                       const isHourEnd = timeStr.endsWith(':55');
 
-                      const isHoveredRow = hoveredTimeStr === timeStr;
-
                       const isCollapsedHour =
-                        timeStr.endsWith(':00') &&
-                        !expandedHours.includes(parseInt(timeStr.split(':')[0], 10));
+                        isHourStart && !expandedHours.includes(parseInt(timeStr.split(':')[0], 10));
                       let macroAvailCount = 0;
                       let macroFirstAvail: Availability | undefined;
                       if (isCollapsedHour) {
-                        const startIdx = TIME_SLOTS.indexOf(timeStr);
+                        const startIdx = slotIdx;
                         for (let i = startIdx; i < startIdx + 12; i++) {
-                          const found = availabilities.find(
-                            (a) => a.date === dateStr && a.startTime === TIME_SLOTS[i],
-                          );
-                          if (found) {
-                            macroAvailCount++;
-                            if (!macroFirstAvail) macroFirstAvail = found;
+                          const slot = TIME_SLOTS[i];
+                          if (slot) {
+                            const found = availMap.get(`${dateStr}_${slot}`);
+                            if (found) {
+                              macroAvailCount++;
+                              if (!macroFirstAvail) macroFirstAvail = found;
+                            }
                           }
                         }
                       }
@@ -2759,8 +2837,6 @@ export default function CalendarioPage() {
                       const isOccupied = !!avail || (isCollapsedHour && macroAvailCount > 0);
                       const isDraggable = !isPast && (isTask || (isOccupied && !isGoogleEvent));
 
-                      const slotIdx = TIME_SLOTS.indexOf(timeStr);
-
                       const isSelected = Boolean(
                         selectedBlock &&
                         selectedBlock.date === dateStr &&
@@ -2768,8 +2844,10 @@ export default function CalendarioPage() {
                           effectiveAvail?.eventId === selectedBlock.eventId) ||
                           (selectedBlock.blockId &&
                             effectiveAvail?.blockId === selectedBlock.blockId) ||
-                          (slotIdx >= TIME_SLOTS.indexOf(selectedBlock.startTime) &&
-                            slotIdx < TIME_SLOTS.indexOf(selectedBlock.endTime))),
+                          (selectedStartIdx !== -1 &&
+                            selectedEndIdx !== -1 &&
+                            slotIdx >= selectedStartIdx &&
+                            slotIdx < selectedEndIdx)),
                       );
 
                       const isDropTarget =
@@ -2779,8 +2857,10 @@ export default function CalendarioPage() {
                         draggedTask.sourceDate === dateStr &&
                         ((draggedTask.eventId && effectiveAvail?.eventId === draggedTask.eventId) ||
                           (!draggedTask.eventId &&
-                            slotIdx >= TIME_SLOTS.indexOf(draggedTask.originalStartTime) &&
-                            slotIdx < TIME_SLOTS.indexOf(draggedTask.originalEndTime))),
+                            draggedStartIdx !== -1 &&
+                            draggedEndIdx !== -1 &&
+                            slotIdx >= draggedStartIdx &&
+                            slotIdx < draggedEndIdx)),
                       );
 
                       const displayLabel = effectiveAvail?.label
@@ -2793,7 +2873,6 @@ export default function CalendarioPage() {
                       return (
                         <div
                           key={`cell-${dateStr}-${timeStr}`}
-                          onMouseEnter={() => handleCellMouseEnter(dateStr, timeStr)}
                           onClick={() => handleCellClick(dateStr, dayOfWeek, timeStr, isPast)}
                           onDragOver={(e) => handleDragOver(e, dateStr, timeStr)}
                           onDragLeave={handleDragLeave}
@@ -2813,7 +2892,7 @@ export default function CalendarioPage() {
                             ${isHourStart ? 'border-b border-[#EAE3DC]' : 'border-b border-dashed border-[#EAE3DC]/40'}
                             ${isHourEnd ? 'mb-3' : ''}
                             ${isPast ? '' : isDraggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}
-                            ${isHoveredRow && !isOccupied && !isDropTarget ? 'bg-[#f5e5d9]/60' : ''}
+                            ${!isOccupied && !isDropTarget && !isPast ? 'hover:bg-[#f5e5d9]/50' : ''}
                             ${isOccupied ? `${colorTheme.bg}` : ''}
                             ${isMacroPartiallyOccupied ? `${colorTheme.bgPale} border-[1px] border-dashed ${colorTheme.border}` : ''}
                             ${isDropTarget ? 'ring-2 ring-[#845326] bg-[#845326]/20 scale-[0.98] z-20' : ''}
@@ -3116,7 +3195,9 @@ export default function CalendarioPage() {
                     });
 
                     if (res.success && res.task?.id) {
-                      router.push(`${localizedProjectHref(locale, proj.id)}?editTask=${res.task.id}`);
+                      router.push(
+                        `${localizedProjectHref(locale, proj.id)}?editTask=${res.task.id}`,
+                      );
                     } else if (res.success) {
                       router.push(localizedProjectHref(locale, proj.id));
                     } else {

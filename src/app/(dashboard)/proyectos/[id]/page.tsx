@@ -43,6 +43,7 @@ import {
   TaskRecord,
 } from '@/features/proyectos/actions/proyectoActions';
 import { useProjectDetailTour } from '@/hooks/useProjectDetailTour';
+import { hasObsceneContent } from '@/lib/moderation/clientModeration';
 import { defaultLocale, getLocaleFromPathname } from '@/lib/i18n/locale';
 import { localizedHref } from '@/lib/i18n/routes';
 
@@ -92,6 +93,12 @@ function checkScheduleConflict(
 
   const durationMin = Math.max(1, newDurationMinutes || 1);
   const newEnd = newStart + durationMin * 60 * 1000;
+  const newStartStr = newTimeStr;
+  const newEndStr = new Date(newEnd).toLocaleTimeString('es-ES', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
 
   for (const t of existingTasks) {
     if (excludeTaskId && t.id === excludeTaskId) continue;
@@ -107,7 +114,7 @@ function checkScheduleConflict(
     if (newStart === exStart) {
       return {
         hasConflict: true,
-        message: `El bloque horario seleccionado ya se encuentra ocupado por la tarea "${t.title}". Por favor, intenta utilizar otra hora o bloque disponible dentro del mismo día.`,
+        message: `Conflicto de horario: La hora seleccionada (${newStartStr}) coincide exactamente con la tarea "${t.title}". El calendario organiza el tiempo en bloques continuos de 5 en 5 minutos y no se pueden superponer tareas. Por favor, intenta utilizar otra hora o bloque disponible.`,
       };
     }
 
@@ -126,7 +133,7 @@ function checkScheduleConflict(
 
       return {
         hasConflict: true,
-        message: `El tiempo de duración entra en conflicto con la tarea "${t.title}" (${exStartTimeStr} - ${exEndTimeStr}). Por favor, intenta utilizar otra hora o bloque disponible dentro del mismo día.`,
+        message: `Conflicto de horario: La tarea requiere ${durationMin} min (de ${newStartStr} a ${newEndStr}, en bloques continuos de 5 en 5 minutos) y no se puede mover/ubicar aquí porque se solapa con la tarea "${t.title}" (${exStartTimeStr} - ${exEndTimeStr}). Por favor, intenta utilizar otra hora o bloque disponible dentro del mismo día.`,
       };
     }
   }
@@ -148,7 +155,7 @@ function checkScheduleConflict(
       if (newStart === evStart) {
         return {
           hasConflict: true,
-          message: `El bloque horario seleccionado ya se encuentra ocupado por la tarea o evento "${ev.titulo}". Por favor, intenta utilizar otra hora o bloque disponible dentro del mismo día.`,
+          message: `Conflicto de horario: La hora seleccionada (${newStartStr}) coincide exactamente con la tarea o evento "${ev.titulo}". El calendario organiza el tiempo en bloques continuos de 5 en 5 minutos y no se pueden superponer. Por favor, intenta utilizar otra hora o bloque disponible.`,
         };
       }
 
@@ -166,7 +173,7 @@ function checkScheduleConflict(
 
         return {
           hasConflict: true,
-          message: `El tiempo de duración entra en conflicto con "${ev.titulo}" (${evStartStr} - ${evEndStr}). Por favor, intenta utilizar otra hora o bloque disponible dentro del mismo día.`,
+          message: `Conflicto de horario: La tarea requiere ${durationMin} min (de ${newStartStr} a ${newEndStr}, en bloques continuos de 5 en 5 minutos) y entra en conflicto con "${ev.titulo}" (${evStartStr} - ${evEndStr}). Por favor, intenta utilizar otra hora o bloque disponible dentro del mismo día.`,
         };
       }
     }
@@ -208,7 +215,7 @@ function checkScheduleConflict(
                     : b.tipo;
           return {
             hasConflict: true,
-            message: `El tiempo de duración entra en conflicto con un bloque ocupado en tu calendario (${tipoLabel}) de ${b.hora_inicio.slice(0, 5)} a ${b.hora_fin.slice(0, 5)}. Por favor, intenta utilizar otra hora o bloque disponible.`,
+            message: `Conflicto de horario: La tarea requiere ${durationMin} min (de ${newStartStr} a ${newEndStr}, en bloques continuos de 5 en 5 minutos) y no se puede mover aquí porque el tramo se solapa con un bloque ocupado (${tipoLabel}: ${b.hora_inicio.slice(0, 5)} - ${b.hora_fin.slice(0, 5)}). Por favor, intenta utilizar otra hora o bloque disponible.`,
           };
         }
       }
@@ -256,7 +263,7 @@ function checkScheduleConflict(
                       : a.type || 'ocupado';
                 return {
                   hasConflict: true,
-                  message: `El horario entra en conflicto con "${labelDisplay}" (${a.startTime} - ${a.endTime}) en tu calendario. Por favor, intenta utilizar otra hora o bloque disponible.`,
+                  message: `Conflicto de horario: La tarea requiere ${durationMin} min (de ${newStartStr} a ${newEndStr}, en bloques continuos de 5 en 5 minutos) y entra en conflicto con "${labelDisplay}" (${a.startTime} - ${a.endTime}) en tu calendario. Por favor, intenta utilizar otra hora o bloque disponible.`,
                 };
               }
             }
@@ -345,7 +352,19 @@ export default function ProjectDetailPage({
     const file = event.target.files?.[0];
     if (!file) return;
 
+    if (hasObsceneContent(file.name)) {
+      setAiErrorMessage('No se permiten contenidos obscenos.');
+      event.target.value = '';
+      return;
+    }
+
     const extraction = await extractTextFromFile(file);
+
+    if (extraction.text && hasObsceneContent(extraction.text)) {
+      setAiErrorMessage('No se permiten contenidos obscenos.');
+      event.target.value = '';
+      return;
+    }
 
     setAiAttachedFile({
       name: file.name,
@@ -380,8 +399,17 @@ export default function ProjectDetailPage({
   const [isSubmittingTask, setIsSubmittingTask] = useState(false);
   const [taskErrorMessage, setTaskErrorMessage] = useState<string | null>(null);
 
-  // Fecha y hora de inicio para nueva tarea manual
+  // Fecha y hora de inicio para nueva tarea manual (limitado a 1 año máximo)
   const todayStr = new Date().toISOString().split('T')[0];
+  const maxTaskDateObj = new Date();
+  maxTaskDateObj.setFullYear(maxTaskDateObj.getFullYear() + 1);
+  const maxDateStr = maxTaskDateObj.toISOString().split('T')[0];
+  const maxAllowedDateStr = project?.fecha_limite
+    ? project.fecha_limite.split('T')[0] < maxDateStr
+      ? project.fecha_limite.split('T')[0]
+      : maxDateStr
+    : maxDateStr;
+
   const [taskStartDate, setTaskStartDate] = useState(todayStr);
   const [taskStartTime, setTaskStartTime] = useState('09:00');
 
@@ -516,6 +544,20 @@ export default function ProjectDetailPage({
       setAiErrorMessage(
         'Las tareas ya están asignadas a toda la duración del proyecto. Si deseas agregar más tareas, por favor modifica la fecha límite del proyecto.',
       );
+      return;
+    }
+
+    if (aiMaterialUrl && hasObsceneContent(aiMaterialUrl)) {
+      setAiErrorMessage('No se permiten contenidos obscenos.');
+      return;
+    }
+
+    if (
+      aiAttachedFile &&
+      (hasObsceneContent(aiAttachedFile.name) ||
+        (aiAttachedFile.content && hasObsceneContent(aiAttachedFile.content)))
+    ) {
+      setAiErrorMessage('No se permiten contenidos obscenos.');
       return;
     }
 
@@ -926,6 +968,20 @@ export default function ProjectDetailPage({
       }
     }
 
+    if (taskStartDate > maxDateStr) {
+      setTaskErrorMessage('El día de inicio no puede superar 1 año a partir de la fecha actual.');
+      return;
+    }
+
+    if (
+      hasObsceneContent(newTaskTitle) ||
+      hasObsceneContent(newTaskDescription) ||
+      newTaskUrls.some((u) => hasObsceneContent(u))
+    ) {
+      setTaskErrorMessage('No se permiten contenidos obscenos.');
+      return;
+    }
+
     if (liveScheduleConflict.hasConflict) {
       setTaskErrorMessage(
         liveScheduleConflict.message ||
@@ -1015,6 +1071,30 @@ export default function ProjectDetailPage({
   const handleEditTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!project || !taskToEdit || isSubmittingEdit) return;
+
+    if (project.fecha_limite) {
+      const deadlineDay = project.fecha_limite.split('T')[0];
+      if (editTaskStartDate > deadlineDay) {
+        setEditErrorMessage(
+          `El día de inicio no puede superar la fecha límite del proyecto (${deadlineDay}).`,
+        );
+        return;
+      }
+    }
+
+    if (editTaskStartDate > maxDateStr) {
+      setEditErrorMessage('El día de inicio no puede superar 1 año a partir de la fecha actual.');
+      return;
+    }
+
+    if (
+      hasObsceneContent(editTaskTitle) ||
+      hasObsceneContent(editTaskDescription) ||
+      editTaskUrls.some((u) => hasObsceneContent(u))
+    ) {
+      setEditErrorMessage('No se permiten contenidos obscenos.');
+      return;
+    }
 
     if (liveEditScheduleConflict.hasConflict) {
       setEditErrorMessage(
@@ -1692,7 +1772,7 @@ export default function ProjectDetailPage({
                       id="taskStartDate"
                       type="date"
                       min={todayStr}
-                      max={project?.fecha_limite ? project.fecha_limite.split('T')[0] : undefined}
+                      max={maxAllowedDateStr}
                       value={taskStartDate}
                       onChange={(e) => setTaskStartDate(e.target.value)}
                       className="w-full rounded-xl border-2 border-[#E8DCD1] bg-white px-3.5 py-2.5 text-on-surface focus:border-[#2C1F14] focus:outline-none transition-all text-sm"
@@ -1717,12 +1797,13 @@ export default function ProjectDetailPage({
                     />
                   </div>
                 </div>
-                {project?.fecha_limite && (
-                  <p className="mt-1.5 text-[11px] text-gray-500">
-                    * Debe estar dentro del rango hasta la fecha límite del proyecto (
-                    {project.fecha_limite.split('T')[0]}).
-                  </p>
-                )}
+                <p className="mt-1.5 text-[11px] text-gray-500">
+                  * Debe estar dentro del rango disponible (máx. 1 año: {maxAllowedDateStr}
+                  {project?.fecha_limite
+                    ? `, fecha límite del proyecto: ${project.fecha_limite.split('T')[0]}`
+                    : ''}
+                  ).
+                </p>
               </div>
 
               {/* Selector de Duración: Número + Opción Horas o Minutos */}
@@ -2104,7 +2185,7 @@ export default function ProjectDetailPage({
                       id="editTaskStartDate"
                       type="date"
                       min={todayStr}
-                      max={project?.fecha_limite ? project.fecha_limite.split('T')[0] : undefined}
+                      max={maxAllowedDateStr}
                       value={editTaskStartDate}
                       onChange={(e) => setEditTaskStartDate(e.target.value)}
                       className="w-full rounded-xl border-2 border-[#E8DCD1] bg-white px-3.5 py-2.5 text-on-surface focus:border-[#2C1F14] focus:outline-none transition-all text-sm"
@@ -2129,12 +2210,13 @@ export default function ProjectDetailPage({
                     />
                   </div>
                 </div>
-                {project?.fecha_limite && (
-                  <p className="mt-1.5 text-[11px] text-gray-500">
-                    * Debe estar dentro del rango hasta la fecha límite del proyecto (
-                    {project.fecha_limite.split('T')[0]}).
-                  </p>
-                )}
+                <p className="mt-1.5 text-[11px] text-gray-500">
+                  * Debe estar dentro del rango disponible (máx. 1 año: {maxAllowedDateStr}
+                  {project?.fecha_limite
+                    ? `, fecha límite del proyecto: ${project.fecha_limite.split('T')[0]}`
+                    : ''}
+                  ).
+                </p>
               </div>
 
               {/* Selector de Duración: Número + Opción Horas o Minutos */}

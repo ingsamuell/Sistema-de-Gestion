@@ -1,7 +1,7 @@
 {
   "messages": {
     "dangerous": "The content contains dangerous or prohibited terms related to violence or security.",
-    "obscene": "The content contains obscene, vulgar, or inappropriate language. Please maintain a professional tone."
+    "obscene": "No se permiten contenidos obscenos."
   },
   "dangerous": {
     "words": [
@@ -59,8 +59,34 @@
       "pussy",
       "bastard",
       "bastards",
-      "motherfucker"
+      "motherfucker",
+      "porn",
+      "porno",
+      "pornography",
+      "pornographic",
+      "xxx",
+      "sex",
+      "hentai",
+      "nude",
+      "nudes",
+      "naked",
+      "erotic",
+      "nsfw",
+      "onlyfans",
+      "pornhub",
+      "xvideos",
+      "boobs",
+      "penis",
+      "vagina",
+      "cum",
+      "semen",
+      "blowjob",
+      "masturbation",
+      "incest",
+      "pedophile",
+      "pedophilia",
+      "bestiality"
     ],
-    "phrases": ["son of a bitch", "piece of shit"]
+    "phrases": ["son of a bitch", "piece of shit", "xxx videos", "nude photo", "nude photos"]
   }
 }
