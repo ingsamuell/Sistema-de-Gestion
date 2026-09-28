@@ -14,7 +14,7 @@ import type { Locale } from '@/lib/i18n/locale';
 const landingContent = {
   es: {
     eyebrow: 'Tu espacio de estudio, a tu ritmo',
-    navFeatures: 'Funciones',
+    navFeatures: 'Características',
     navHowItWorks: 'Cómo funciona',
     login: 'Iniciar sesión',
     register: 'Crear cuenta',
@@ -22,7 +22,7 @@ const landingContent = {
     heroDescription:
       'Komorebi reúne tus proyectos, calendario y sesiones de enfoque en un solo espacio pensado para acompañar tu aprendizaje.',
     heroPrimary: 'Comenzar a organizarme',
-    heroSecondary: 'Explorar funciones',
+    heroSecondary: 'Explorar características',
     heroNote: 'Diseñado para estudiantes que quieren avanzar sin sentirse abrumados.',
     featureEyebrow: 'Todo lo que necesitas para avanzar',
     featureTitle: 'Una rutina de estudio que se adapta a ti',
