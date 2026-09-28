@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { ChangePasswordModal } from '@/components/profile/ChangePasswordModal';
 import { AddPasswordModal } from '@/components/profile/AddPasswordModal';
+import { DeleteAccountModal } from '@/components/profile/DeleteAccountModal';
 import { Button } from '@/components/ui/Button';
 import { getOnboardingQuestions } from '@/features/onboarding/data/questions';
 import type { OnboardingAnswersInput } from '@/features/onboarding/actions/saveOnboardingAction';
@@ -161,6 +162,10 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
           ],
           botFallback:
             'Si el bot no reconoce tu cuenta, vuelve a abrirlo desde la plataforma para generar el enlace correcto.',
+          deleteAccount: 'Eliminar cuenta',
+          deleteAccountTitle: '¿Estás seguro?',
+          deleteAccountWarning: 'Esta acción es irreversible. Se borrarán todos tus proyectos, temas e información personal de forma permanente.',
+          confirmDelete: 'Sí, eliminar mi cuenta',
         }
       : {
           personal: 'Personal space',
@@ -237,6 +242,10 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
           ],
           botFallback:
             'If the bot does not recognize your account, open it again from the platform to generate the correct link.',
+          deleteAccount: 'Delete account',
+          deleteAccountTitle: 'Are you sure?',
+          deleteAccountWarning: 'This action is irreversible. All your projects, topics, and personal information will be permanently deleted.',
+          confirmDelete: 'Yes, delete my account',
         };
   const localizedOnboardingQuestions = getOnboardingQuestions(locale);
   const spanishOnboardingQuestions = getOnboardingQuestions('es');
@@ -291,6 +300,7 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
   const [hasPassword, setHasPassword] = useState(profile.hasPassword ?? true);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
   const [isAddPasswordModalOpen, setIsAddPasswordModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   // Estados de Identidad
   const [firstName, setFirstName] = useState(profile.firstName || '');
@@ -510,6 +520,14 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
           icon={<Edit3 className="size-5" />}
           actionLabel={editingSection === 'identity' ? copy.closeEdit : copy.edit}
           onAction={() => toggleEditing('identity')}
+          extraActionNode={
+            <button
+              onClick={() => setIsDeleteModalOpen(true)}
+              className="text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-md text-sm font-medium transition-colors border border-transparent"
+            >
+              {copy.deleteAccount}
+            </button>
+          }
         >
           <AnimatePresence mode="wait">
             {editingSection === 'identity' ? (
@@ -1466,6 +1484,15 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
         </WideSection>
       </div>
 
+      <DeleteAccountModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        title={copy.deleteAccountTitle}
+        warningText={copy.deleteAccountWarning}
+        cancelText={copy.cancel}
+        confirmText={copy.confirmDelete}
+      />
+
       {/* Modal para cambiar contraseña */}
       <ChangePasswordModal
         isOpen={isChangePasswordModalOpen}
@@ -1570,6 +1597,7 @@ function WideSection({
   icon,
   actionLabel,
   onAction,
+  extraActionNode,
   children,
   id,
 }: {
@@ -1578,6 +1606,7 @@ function WideSection({
   icon: React.ReactNode;
   actionLabel?: string;
   onAction?: () => void;
+  extraActionNode?: React.ReactNode;
   children: React.ReactNode;
   id?: string;
 }) {
@@ -1603,18 +1632,21 @@ function WideSection({
             </p>
           </div>
         </div>
-        {actionLabel && onAction && (
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            className="min-h-10 w-fit gap-2 self-start cursor-pointer"
-            onClick={onAction}
-          >
-            <Edit3 className="size-3.5" />
-            {actionLabel}
-          </Button>
-        )}
+        <div className="flex items-center gap-2 self-start">
+          {extraActionNode}
+          {actionLabel && onAction && (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="min-h-10 w-fit gap-2 cursor-pointer"
+              onClick={onAction}
+            >
+              <Edit3 className="size-3.5" />
+              {actionLabel}
+            </Button>
+          )}
+        </div>
       </motion.div>
       <motion.div layout="position">{children}</motion.div>
     </motion.div>
