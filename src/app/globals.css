@@ -148,3 +148,125 @@ body {
     morph 8s ease-in-out infinite,
     glowPastel 15s alternate infinite;
 }
+
+/* Driver.js is imported by each client tour after global styles, so these
+   declarations deliberately win over its defaults regardless of load order. */
+.driver-popover {
+  --driver-popover-font-family: var(--font-sans) !important;
+  min-width: min(19rem, calc(100vw - 2rem)) !important;
+  max-width: min(23rem, calc(100vw - 2rem)) !important;
+  padding: 1.25rem !important;
+  color: var(--color-on-surface) !important;
+  background: var(--color-surface-container-lowest) !important;
+  border: 1px solid color-mix(in srgb, var(--color-outline-variant) 80%, transparent) !important;
+  border-radius: 1.25rem !important;
+  box-shadow: 0 1.25rem 3.5rem rgb(50 32 17 / 18%) !important;
+}
+
+.driver-popover .driver-popover-title {
+  padding-right: 1.75rem !important;
+  color: var(--color-primary) !important;
+  font-size: 1rem !important;
+  line-height: 1.35 !important;
+  letter-spacing: -0.01em !important;
+}
+
+.driver-popover .driver-popover-description {
+  color: var(--color-on-surface-variant) !important;
+  font-size: 0.875rem !important;
+  line-height: 1.55 !important;
+}
+
+.driver-popover .driver-popover-close-btn {
+  top: 0.65rem !important;
+  right: 0.65rem !important;
+  width: 2rem !important;
+  height: 2rem !important;
+  color: var(--color-outline) !important;
+  border-radius: 999px !important;
+}
+
+.driver-popover .driver-popover-close-btn:hover,
+.driver-popover .driver-popover-close-btn:focus-visible {
+  color: var(--color-primary) !important;
+  background: var(--color-surface-container) !important;
+  outline: none !important;
+}
+
+.driver-popover .driver-popover-footer {
+  gap: 0.75rem !important;
+  margin-top: 1.125rem !important;
+  padding-top: 0.875rem !important;
+  border-top: 1px solid color-mix(in srgb, var(--color-outline-variant) 60%, transparent) !important;
+}
+
+.driver-popover .driver-popover-progress-text {
+  color: var(--color-outline) !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+}
+
+.driver-popover .driver-popover-navigation-btns {
+  gap: 0.5rem !important;
+}
+
+.driver-popover .driver-popover-navigation-btns button + button {
+  margin-left: 0 !important;
+}
+
+.driver-popover .driver-popover-footer-btn {
+  min-height: 2.25rem !important;
+  padding: 0.5rem 0.75rem !important;
+  font-family: inherit !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  border-radius: 0.75rem !important;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease !important;
+}
+
+.driver-popover .driver-popover-prev-btn {
+  color: var(--color-primary) !important;
+  background: var(--color-surface-container-low) !important;
+  border-color: var(--color-outline-variant) !important;
+}
+
+.driver-popover .driver-popover-next-btn {
+  color: var(--color-on-primary) !important;
+  background: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0.25rem 0.65rem rgb(50 32 17 / 18%) !important;
+}
+
+.driver-popover .driver-popover-footer-btn:hover {
+  transform: translateY(-1px) !important;
+}
+
+.driver-popover .driver-popover-prev-btn:hover {
+  background: var(--color-surface-container-high) !important;
+}
+
+.driver-popover .driver-popover-next-btn:hover {
+  background: var(--color-primary-container) !important;
+}
+
+.driver-popover .driver-popover-footer-btn:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-secondary) 45%, transparent) !important;
+  outline-offset: 2px !important;
+}
+
+@media (max-width: 40rem) {
+  .driver-popover {
+    padding: 1rem !important;
+    border-radius: 1rem !important;
+  }
+
+  .driver-popover .driver-popover-footer-btn {
+    min-height: 2.5rem !important;
+    padding-inline: 0.875rem !important;
+  }
+}

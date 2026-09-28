@@ -814,11 +814,11 @@ function ChatMessage({
     const topicTitle =
       message.suggestedTopicTitle ||
       (message.contextData?.suggestedTopicTitle as string | undefined) ||
-      'Proyecto Recomendado';
+      copy.recommendedProject;
     const topicObj =
       message.suggestedTopicObjective ||
       (message.contextData?.suggestedTopicObjective as string | undefined) ||
-      'Plan de estudio propuesto por Komo IA';
+      copy.studyPlanByKomo;
     effectiveProjectLink = `/proyectos/nuevo?step=2&titulo=${encodeURIComponent(topicTitle)}&objetivo=${encodeURIComponent(topicObj)}`;
   } else if (!effectiveProjectLink && resolvedIntent === 'create_project') {
     effectiveProjectLink = '/proyectos/nuevo';
@@ -860,7 +860,7 @@ function ChatMessage({
       const projName =
         typeof res === 'string'
           ? res
-          : userProjects.find((p) => p.id === selectedProjectId)?.titulo || 'Proyecto';
+          : userProjects.find((p) => p.id === selectedProjectId)?.titulo || copy.project;
       setUpdatedProjectName(projName);
     } finally {
       setIsUpdatingProject(false);
@@ -920,25 +920,17 @@ function ChatMessage({
             <div className="mt-3.5 rounded-2xl border border-primary/20 bg-primary/[0.04] p-3 sm:p-3.5 text-left transition-all">
               <div className="flex items-center gap-1.5 mb-1 text-xs font-bold text-primary">
                 <Sparkles className="size-3.5 shrink-0 text-[#845326]" />
-                <span>
-                  {isSkipQuestions ? 'Configuración de Proyecto Lista' : 'Formulario de Proyectos'}
-                </span>
+                <span>{isSkipQuestions ? copy.projectSetupReady : copy.projectForm}</span>
               </div>
               <p className="text-[11px] text-on-surface-variant mb-2.5 leading-relaxed">
-                {isSkipQuestions
-                  ? 'Hemos omitido y prellenado las 2 primeras preguntas (Nombre y Objetivo). Ahora define tu fecha límite, prioridad y horario en el formulario.'
-                  : 'Define tu fecha límite, prioridad, dedicación diaria y materiales en el formulario interactivo para organizar tus metas.'}
+                {isSkipQuestions ? copy.prefilledProjectDescription : copy.projectFormDescription}
               </p>
               <Link
                 href={effectiveProjectLink}
                 className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-primary text-on-primary text-xs font-semibold shadow-xs hover:brightness-105 active:scale-[0.99] transition-all cursor-pointer"
               >
                 <FolderPlus className="size-3.5" />
-                <span>
-                  {isSkipQuestions
-                    ? 'Continuar en el formulario (Paso 3 de 7)'
-                    : 'Ir al formulario de proyectos'}
-                </span>
+                <span>{isSkipQuestions ? copy.continueProjectForm : copy.goToProjectForm}</span>
                 <ArrowRight className="size-3.5" />
               </Link>
             </div>
@@ -950,20 +942,20 @@ function ChatMessage({
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-1.5 text-xs font-bold text-primary">
                   <CheckCircle2 className="size-4 text-primary" />
-                  {planTitle || 'Plan de tareas estructurado'}
+                  {planTitle || copy.structuredTaskPlan}
                 </span>
                 <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
-                  {tasks.length} {tasks.length === 1 ? 'tarea' : 'tareas'}
+                  {tasks.length} {tasks.length === 1 ? copy.task : copy.tasks}
                 </span>
               </div>
 
               <div className="grid gap-2">
                 {tasks.map((task, idx) => {
-                  const title = task.title || task.titulo || `Tarea ${idx + 1}`;
+                  const title = task.title || task.titulo || `${copy.task} ${idx + 1}`;
                   const desc = task.description || task.descripcion;
                   const dur = task.duration || task.duracion;
                   const res = task.resourceUrl || task.resource_url;
-                  const resName = task.resourceName || 'Ver recurso';
+                  const resName = task.resourceName || copy.viewResource;
 
                   return (
                     <div
@@ -1007,20 +999,17 @@ function ChatMessage({
                 {updatedProjectName ? (
                   <div className="flex items-center gap-2 rounded-xl bg-status-success-bg p-2.5 text-xs font-semibold text-status-success">
                     <Check className="size-4" />
-                    <span>
-                      ¡Proyecto &quot;{updatedProjectName}&quot; actualizado con {tasks.length}{' '}
-                      nuevas tareas!
-                    </span>
+                    <span>{copy.projectUpdated(updatedProjectName, tasks.length)}</span>
                   </div>
                 ) : projectCreated ? (
                   <div className="flex items-center gap-2 rounded-xl bg-status-success-bg p-2.5 text-xs font-semibold text-status-success">
                     <Check className="size-4" />
-                    <span>¡Redirigiendo al formulario de proyectos!</span>
+                    <span>{copy.redirectingToProjectForm}</span>
                   </div>
                 ) : userProjects.length > 0 && onUpdateProject ? (
                   <div className="space-y-2 rounded-2xl border border-primary/20 bg-primary/[0.03] p-3">
                     <div className="text-xs font-semibold text-on-surface">
-                      ¿Deseas agregar estas tareas a uno de tus proyectos existentes?
+                      {copy.addTasksQuestion}
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
@@ -1031,7 +1020,7 @@ function ChatMessage({
                       >
                         {userProjects.map((p) => (
                           <option key={p.id} value={p.id}>
-                            Proyecto: {p.titulo} ({p.progreso}%)
+                            {copy.project}: {p.titulo} ({p.progreso}%)
                           </option>
                         ))}
                       </select>
@@ -1045,7 +1034,7 @@ function ChatMessage({
                         className="gap-1.5 text-xs whitespace-nowrap shrink-0 cursor-pointer"
                       >
                         <FolderPlus className="size-3.5" />
-                        <span>{isUpdatingProject ? 'Actualizando...' : 'Actualizar proyecto'}</span>
+                        <span>{isUpdatingProject ? copy.updating : copy.updateProject}</span>
                       </Button>
                     </div>
 
@@ -1056,7 +1045,7 @@ function ChatMessage({
                         disabled={isCreatingProject || isUpdatingProject}
                         className="text-[11px] font-semibold text-primary hover:underline transition-colors block text-left pt-1 cursor-pointer"
                       >
-                        O configurar como nuevo proyecto en el formulario
+                        {copy.configureAsNewProject}
                       </button>
                     )}
                   </div>
@@ -1070,7 +1059,7 @@ function ChatMessage({
                     className="w-full gap-2 text-xs cursor-pointer"
                   >
                     <FolderPlus className="size-3.5 text-primary" />
-                    <span>Configurar proyecto en el formulario</span>
+                    <span>{copy.configureProjectForm}</span>
                   </Button>
                 ) : null}
               </div>
@@ -1142,6 +1131,29 @@ function getChatCopy(locale: Locale) {
           `Cuando se conecte el servicio, podrás conversar desde ${label} sin salir de esta sección.`,
         you: 'Tú',
         typing: 'Komo está escribiendo',
+        recommendedProject: 'Proyecto recomendado',
+        studyPlanByKomo: 'Plan de estudio propuesto por Komo IA',
+        project: 'Proyecto',
+        projectSetupReady: 'Configuración del proyecto lista',
+        projectForm: 'Formulario de proyectos',
+        prefilledProjectDescription:
+          'Hemos omitido y prellenado las dos primeras preguntas (nombre y objetivo). Ahora define tu fecha límite, prioridad y horario en el formulario.',
+        projectFormDescription:
+          'Define tu fecha límite, prioridad, dedicación diaria y materiales en el formulario interactivo para organizar tus metas.',
+        continueProjectForm: 'Continuar en el formulario (paso 3 de 7)',
+        goToProjectForm: 'Ir al formulario de proyectos',
+        structuredTaskPlan: 'Plan de tareas estructurado',
+        task: 'tarea',
+        tasks: 'tareas',
+        viewResource: 'Ver recurso',
+        projectUpdated: (project: string, taskCount: number) =>
+          `¡Proyecto “${project}” actualizado con ${taskCount} ${taskCount === 1 ? 'nueva tarea' : 'nuevas tareas'}!`,
+        redirectingToProjectForm: 'Redirigiendo al formulario de proyectos',
+        addTasksQuestion: '¿Deseas agregar estas tareas a uno de tus proyectos existentes?',
+        updating: 'Actualizando...',
+        updateProject: 'Actualizar proyecto',
+        configureAsNewProject: 'O configurar como nuevo proyecto en el formulario',
+        configureProjectForm: 'Configurar proyecto en el formulario',
       }
     : {
         assistant: 'AI Assistant',
@@ -1183,6 +1195,29 @@ function getChatCopy(locale: Locale) {
           `Once the service connects, you can chat from ${label} without leaving this section.`,
         you: 'You',
         typing: 'Komo is typing',
+        recommendedProject: 'Recommended project',
+        studyPlanByKomo: 'Study plan proposed by Komo AI',
+        project: 'Project',
+        projectSetupReady: 'Project setup ready',
+        projectForm: 'Project form',
+        prefilledProjectDescription:
+          'We skipped and prefilled the first two questions (name and goal). Now set your deadline, priority, and schedule in the form.',
+        projectFormDescription:
+          'Set your deadline, priority, daily commitment, and materials in the interactive form to organize your goals.',
+        continueProjectForm: 'Continue in the form (step 3 of 7)',
+        goToProjectForm: 'Go to the project form',
+        structuredTaskPlan: 'Structured task plan',
+        task: 'task',
+        tasks: 'tasks',
+        viewResource: 'View resource',
+        projectUpdated: (project: string, taskCount: number) =>
+          `Project “${project}” updated with ${taskCount} new ${taskCount === 1 ? 'task' : 'tasks'}!`,
+        redirectingToProjectForm: 'Redirecting to the project form',
+        addTasksQuestion: 'Would you like to add these tasks to one of your existing projects?',
+        updating: 'Updating...',
+        updateProject: 'Update project',
+        configureAsNewProject: 'Or set it up as a new project in the form',
+        configureProjectForm: 'Set up project in the form',
       };
 }
 
