@@ -41,8 +41,18 @@ export const termsDocument: LegalDocument = {
       title: 'Cuenta y contenido aportado',
       paragraphs: [
         'Protege tus credenciales y no compartas tu contraseña. Los proyectos, tareas, notas, archivos y demás contenido que introduzcas siguen siendo de tu autoría o responsabilidad. Autorizas al equipo a almacenarlos y procesarlos únicamente para operar las funciones del prototipo.',
+        'El onboarding inclusivo permite indicar de forma voluntaria preferencias de estudio, apoyos, intereses y, si lo decides, una referencia general a necesidades de aprendizaje. Elegir el recorrido estándar o no indicar esa información no limita el acceso a las funciones básicas.',
       ],
-      note: 'No cargues información financiera, médica, confidencial, de terceros, credenciales ajenas ni archivos cuya pérdida pueda causarte un perjuicio relevante.',
+      note: 'No cargues información financiera, médica, clínica, confidencial, de terceros, credenciales ajenas ni archivos cuya pérdida pueda causarte un perjuicio relevante. Komorebi no solicita ni recibe diagnósticos, historiales clínicos ni documentos médicos en el onboarding inclusivo.',
+    },
+    {
+      id: 'onboarding-inclusivo',
+      title: 'Onboarding inclusivo y personalización',
+      paragraphs: [
+        'Las preferencias inclusivas se usan únicamente para adaptar el ritmo, formato y tipo de apoyo de la experiencia de estudio. No constituyen una evaluación, diagnóstico, tratamiento, recomendación médica o sustituto de profesionales de salud o educación.',
+        'La información de este recorrido se guarda solo después de una confirmación expresa. No se transmite automáticamente a servicios de inteligencia artificial; cualquier función futura que requiera usarla deberá explicarlo y pedir una acción específica antes de hacerlo.',
+        'Si respondes como familiar o cuidador, utiliza únicamente información necesaria para las preferencias de estudio y confirma que cuentas con autorización para aportarla. No incluyas datos identificables, clínicos o documentos de la persona estudiante.',
+      ],
     },
     {
       id: 'integraciones',
@@ -92,8 +102,9 @@ export const privacyDocument: LegalDocument = {
         'Proyectos, tareas, temas, fuentes, horarios, notas, archivos y métricas que tú mismo agregues.',
         'Datos técnicos básicos necesarios para mantener la sesión, detectar errores y proteger el acceso.',
         'Eventos de Google Calendar y mensajes o archivos usados en una consulta de IA, si activas esas funciones.',
+        'Preferencias voluntarias del onboarding inclusivo, como formato de aprendizaje, ritmo, intereses o apoyos que deseas considerar.',
       ],
-      note: 'No se recomienda registrar información financiera, médica, confidencial, de terceros o cualquier dato sensible dentro del prototipo.',
+      note: 'No se recomienda registrar información financiera, médica, clínica, confidencial, de terceros o cualquier dato sensible dentro del prototipo. El onboarding inclusivo no acepta diagnósticos ni adjuntos médicos.',
     },
     {
       id: 'finalidad',
@@ -109,6 +120,15 @@ export const privacyDocument: LegalDocument = {
         'Ejecutar integraciones opcionales que actives voluntariamente.',
       ],
       note: 'El proyecto no se desarrolla con fines de venta de datos ni publicidad personalizada.',
+    },
+    {
+      id: 'preferencias-sensibles',
+      title: 'Preferencias inclusivas y control de la persona usuaria',
+      paragraphs: [
+        'Algunas personas pueden considerar sensibles sus respuestas sobre atención, necesidades sensoriales o apoyos de aprendizaje. Por eso estas preguntas son voluntarias, se separan del onboarding estándar y requieren una confirmación antes de guardarse.',
+        'No solicitamos, almacenamos ni procesamos documentos de diagnóstico, informes clínicos o historiales médicos. Las preferencias guardadas no se envían automáticamente a proveedores de IA ni se usan para tomar decisiones automatizadas sobre la persona usuaria.',
+      ],
+      note: 'Puedes elegir el plan estándar, omitir opciones opcionales y solicitar la eliminación de estas preferencias al equipo durante la actividad académica.',
     },
     {
       id: 'proveedores',

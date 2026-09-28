@@ -17,6 +17,7 @@ import { headers } from 'next/headers';
 import { defaultLocale, isLocale } from '@/lib/i18n/locale';
 import { localizedHref } from '@/lib/i18n/routes';
 import InteractiveMascot from '@/components/InteractiveMascot';
+import { DashboardLanguageSwitch } from '@/components/i18n/DashboardLanguageSwitch';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const headersList = await headers();
@@ -75,6 +76,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5 md:gap-2 min-w-0 justify-end">
+                  <DashboardLanguageSwitch compact />
                   <GlobalHelpButton />
                   <div className="min-w-0">
                     <UserProfileButton initialUser={user} compact />

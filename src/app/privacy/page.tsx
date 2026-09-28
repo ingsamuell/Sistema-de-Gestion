@@ -43,7 +43,7 @@ export default function PrivacyPage() {
       badgeIcon={<ShieldCheck className="h-4 w-4" />}
       title="Aviso de privacidad académico"
       subtitle="Cómo se utiliza la información dentro de este prototipo estudiantil."
-      lastUpdated="23 de septiembre de 2026"
+      lastUpdated="27 de septiembre de 2026"
       readingTime="3 minutos de lectura"
       sections={sections}
       highlights={highlights}

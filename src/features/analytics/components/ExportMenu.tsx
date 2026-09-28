@@ -84,15 +84,16 @@ export function ExportMenu({ data, activeMetric, locale }: ExportMenuProps) {
       const aiText = result.text || copy.unavailable;
 
       if (format === 'png') {
-        await exportAsImage('exportable-chart-area', aiText, metricTitle);
+        await exportAsImage('exportable-chart-area', aiText, metricTitle, locale);
       } else if (format === 'pdf') {
-        await exportAsPDF('exportable-chart-area', aiText, metricTitle);
+        await exportAsPDF('exportable-chart-area', aiText, metricTitle, locale);
       } else if (format === 'excel') {
         await exportAsExcel(
           'exportable-chart-area',
           aiText,
           metricTitle,
           seriesData as unknown as Record<string, unknown>[],
+          locale,
         );
       }
     } catch (error) {

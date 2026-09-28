@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   format,
   addMonths,
@@ -2474,6 +2475,7 @@ export default function CalendarioPage() {
                             ${isDropTarget ? 'ring-2 ring-[#845326] bg-[#845326]/20 scale-[0.98] z-20' : ''}
                             ${isBeingDragged ? 'opacity-35 scale-95' : ''}
                             ${isSelected ? 'ring-2 ring-black ring-inset z-30 shadow-sm' : ''}
+                            ${isEditing ? 'z-[70]' : ''}
                           `}
                         >
                           {(isOccupied || isMacroPartiallyOccupied) && !isEditing && (
@@ -2561,111 +2563,115 @@ export default function CalendarioPage() {
                             </div>
                           )}
 
-                          {isEditing && !isPast && (
-                            <>
-                              <div
-                                className="fixed inset-0 z-[55]"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditingCell(null);
-                                  if (!effectiveAvail) setSelectedBlock(null);
-                                }}
-                              />
-                              <div
-                                className="absolute top-0 left-0 z-[60] bg-white p-3 border border-[#EAE3DC] rounded-xl shadow-xl flex flex-col gap-2.5 min-w-[170px]"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <div className="flex items-center justify-between pb-1 border-b border-[#EAE3DC]/60">
-                                  <span className="text-[11px] font-bold text-[#845326]">
-                                    {effectiveAvail
-                                      ? effectiveAvail.eventId
-                                        ? copy.editTask
-                                        : copy.editBlock
-                                      : copy.newBlock}
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setEditingCell(null);
-                                      if (!effectiveAvail) setSelectedBlock(null);
-                                    }}
-                                    className="text-gray-400 hover:text-gray-600 p-0.5 rounded transition-colors"
-                                  >
-                                    <X className="size-3.5" />
-                                  </button>
-                                </div>
-                                <input
-                                  autoFocus
-                                  type="text"
-                                  value={editLabel}
-                                  onChange={(e) => setEditLabel(e.target.value)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') saveEditedLabel();
-                                    if (e.key === 'Escape') {
-                                      setEditingCell(null);
-                                      if (!effectiveAvail) setSelectedBlock(null);
-                                    }
+                          {isEditing &&
+                            !isPast &&
+                            typeof document !== 'undefined' &&
+                            createPortal(
+                              <>
+                                <div
+                                  className="fixed inset-0 z-[110] bg-black/5"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingCell(null);
+                                    if (!effectiveAvail) setSelectedBlock(null);
                                   }}
-                                  maxLength={15}
-                                  className="w-full text-xs font-bold text-on-surface bg-[#FDFBF9] border border-[#EAE3DC] rounded-md p-1.5 focus:outline-none focus:border-[#845326]"
-                                  placeholder={
-                                    effectiveAvail?.eventId ? copy.taskName : copy.blockName
-                                  }
                                 />
-                                <div className="flex gap-2 justify-center flex-wrap px-1">
-                                  <button
-                                    type="button"
-                                    onClick={() => setEditType('tareas')}
-                                    className={`w-6 h-6 rounded border ${editType === 'tareas' ? 'border-[#845326] ring-2 ring-[#C8D6AF]/50' : 'border-[#EAE3DC]'} bg-[#C8D6AF] transition-transform hover:scale-110`}
-                                    title={copy.tasks}
-                                  ></button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setEditType('estudiando')}
-                                    className={`w-6 h-6 rounded border ${editType === 'estudiando' ? 'border-[#845326] ring-2 ring-[#BBD0F4]/50' : 'border-[#EAE3DC]'} bg-[#BBD0F4] transition-transform hover:scale-110`}
-                                    title={copy.studying}
-                                  ></button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setEditType('trabajo')}
-                                    className={`w-6 h-6 rounded border ${editType === 'trabajo' ? 'border-[#845326] ring-2 ring-[#F4C2BA]/50' : 'border-[#EAE3DC]'} bg-[#F4C2BA] transition-transform hover:scale-110`}
-                                    title={copy.work}
-                                  ></button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setEditType('descanso')}
-                                    className={`w-6 h-6 rounded border ${editType === 'descanso' ? 'border-[#845326] ring-2 ring-[#F9EBB2]/50' : 'border-[#EAE3DC]'} bg-[#F9EBB2] transition-transform hover:scale-110`}
-                                    title={copy.rest}
-                                  ></button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setEditType('otra_actividad')}
-                                    className={`w-6 h-6 rounded border ${editType === 'otra_actividad' ? 'border-[#845326] ring-2 ring-[#E1C6F5]/50' : 'border-[#EAE3DC]'} bg-[#E1C6F5] transition-transform hover:scale-110`}
-                                    title={copy.otherActivity}
-                                  ></button>
-                                </div>
-                                <div className="flex gap-2 pt-1">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setEditingCell(null);
-                                      if (!effectiveAvail) setSelectedBlock(null);
+                                <div
+                                  className="fixed left-1/2 top-1/2 z-[120] flex min-w-[170px] -translate-x-1/2 -translate-y-1/2 flex-col gap-2.5 rounded-xl border border-[#EAE3DC] bg-white p-3 shadow-xl"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <div className="flex items-center justify-between pb-1 border-b border-[#EAE3DC]/60">
+                                    <span className="text-[11px] font-bold text-[#845326]">
+                                      {effectiveAvail
+                                        ? effectiveAvail.eventId
+                                          ? copy.editTask
+                                          : copy.editBlock
+                                        : copy.newBlock}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setEditingCell(null);
+                                        if (!effectiveAvail) setSelectedBlock(null);
+                                      }}
+                                      className="text-gray-400 hover:text-gray-600 p-0.5 rounded transition-colors"
+                                    >
+                                      <X className="size-3.5" />
+                                    </button>
+                                  </div>
+                                  <input
+                                    autoFocus
+                                    type="text"
+                                    value={editLabel}
+                                    onChange={(e) => setEditLabel(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') saveEditedLabel();
+                                      if (e.key === 'Escape') {
+                                        setEditingCell(null);
+                                        if (!effectiveAvail) setSelectedBlock(null);
+                                      }
                                     }}
-                                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold py-1.5 rounded-lg transition-colors cursor-pointer"
-                                  >
-                                    {copy.cancel}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={saveEditedLabel}
-                                    className="flex-1 bg-[#845326] text-white text-xs font-bold py-1.5 rounded-lg hover:bg-[#6c421f] transition-colors cursor-pointer"
-                                  >
-                                    {copy.save}
-                                  </button>
+                                    maxLength={15}
+                                    className="w-full text-xs font-bold text-on-surface bg-[#FDFBF9] border border-[#EAE3DC] rounded-md p-1.5 focus:outline-none focus:border-[#845326]"
+                                    placeholder={
+                                      effectiveAvail?.eventId ? copy.taskName : copy.blockName
+                                    }
+                                  />
+                                  <div className="flex gap-2 justify-center flex-wrap px-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditType('tareas')}
+                                      className={`w-6 h-6 rounded border ${editType === 'tareas' ? 'border-[#845326] ring-2 ring-[#C8D6AF]/50' : 'border-[#EAE3DC]'} bg-[#C8D6AF] transition-transform hover:scale-110`}
+                                      title={copy.tasks}
+                                    ></button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditType('estudiando')}
+                                      className={`w-6 h-6 rounded border ${editType === 'estudiando' ? 'border-[#845326] ring-2 ring-[#BBD0F4]/50' : 'border-[#EAE3DC]'} bg-[#BBD0F4] transition-transform hover:scale-110`}
+                                      title={copy.studying}
+                                    ></button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditType('trabajo')}
+                                      className={`w-6 h-6 rounded border ${editType === 'trabajo' ? 'border-[#845326] ring-2 ring-[#F4C2BA]/50' : 'border-[#EAE3DC]'} bg-[#F4C2BA] transition-transform hover:scale-110`}
+                                      title={copy.work}
+                                    ></button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditType('descanso')}
+                                      className={`w-6 h-6 rounded border ${editType === 'descanso' ? 'border-[#845326] ring-2 ring-[#F9EBB2]/50' : 'border-[#EAE3DC]'} bg-[#F9EBB2] transition-transform hover:scale-110`}
+                                      title={copy.rest}
+                                    ></button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditType('otra_actividad')}
+                                      className={`w-6 h-6 rounded border ${editType === 'otra_actividad' ? 'border-[#845326] ring-2 ring-[#E1C6F5]/50' : 'border-[#EAE3DC]'} bg-[#E1C6F5] transition-transform hover:scale-110`}
+                                      title={copy.otherActivity}
+                                    ></button>
+                                  </div>
+                                  <div className="flex gap-2 pt-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setEditingCell(null);
+                                        if (!effectiveAvail) setSelectedBlock(null);
+                                      }}
+                                      className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold py-1.5 rounded-lg transition-colors cursor-pointer"
+                                    >
+                                      {copy.cancel}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={saveEditedLabel}
+                                      className="flex-1 bg-[#845326] text-white text-xs font-bold py-1.5 rounded-lg hover:bg-[#6c421f] transition-colors cursor-pointer"
+                                    >
+                                      {copy.save}
+                                    </button>
+                                  </div>
                                 </div>
-                              </div>
-                            </>
-                          )}
+                              </>,
+                              document.body,
+                            )}
                         </div>
                       );
                     })}
