@@ -148,6 +148,11 @@ for (let h = 0; h <= 23; h++) {
 }
 TIME_SLOTS.push('24:00');
 
+const TIME_SLOT_INDEX_MAP = new Map<string, number>(
+  TIME_SLOTS.map((slot, index) => [slot, index]),
+);
+const getSlotIndex = (slot: string): number => TIME_SLOT_INDEX_MAP.get(slot) ?? -1;
+
 const parseISODate = (dateStr: string) => {
   const [y, m, d] = dateStr.split('-').map(Number);
   return new Date(y, m - 1, d);
@@ -253,8 +258,9 @@ export default function CalendarioPage() {
   const pathname = usePathname();
   const locale = getLocaleFromPathname(pathname) ?? defaultLocale;
   const dateLocale = locale === 'es' ? es : enUS;
-  const copy =
-    locale === 'es'
+  const copy = React.useMemo(
+    () =>
+      locale === 'es'
       ? {
           back: 'Volver',
           upload: 'Subir horario (IA)',
@@ -449,7 +455,9 @@ export default function CalendarioPage() {
           blockMoved: (title: string, time: string, day: string) =>
             `${title} was moved to ${time}${day}.`,
           saveScheduleError: 'Could not save the new schedule to the server',
-        };
+        },
+    [locale],
+  );
   const router = useRouter();
   const [view, setView] = useState<'month' | 'week'>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -520,7 +528,6 @@ export default function CalendarioPage() {
   const [dragOverCell, setDragOverCell] = useState<{ date: string; time: string } | null>(null);
 
   const [expandedHours, setExpandedHours] = useState<number[]>([]);
-  const [hoveredTimeStr, setHoveredTimeStr] = useState<string | null>(null);
 
   const [showReplicateMenu, setShowReplicateMenu] = useState(false);
   const [showSpecificWeeksModal, setShowSpecificWeeksModal] = useState(false);
@@ -559,11 +566,41 @@ export default function CalendarioPage() {
     text: string;
   } | null>(null);
 
+  const availMap = React.useMemo(() => {
+    const map = new Map<string, Availability>();
+    for (let i = 0; i < availabilities.length; i++) {
+      const a = availabilities[i];
+      map.set(`${a.date}_${a.startTime}`, a);
+    }
+    return map;
+  }, [availabilities]);
+
+  const activeTimes = React.useMemo(
+    () => new Set(availabilities.map((a) => a.startTime)),
+    [availabilities],
+  );
+
+  const visibleTimeSlots = React.useMemo(() => {
+    const slots: string[] = [];
+    for (let h = 0; h <= 23; h++) {
+      const hourStr = h.toString().padStart(2, '0');
+      slots.push(`${hourStr}:00`);
+      if (expandedHours.includes(h)) {
+        for (let m = 5; m < 60; m += 5) {
+          slots.push(`${hourStr}:${m.toString().padStart(2, '0')}`);
+        }
+      }
+    }
+    return slots;
+  }, [expandedHours]);
+
   const loadCalendarEventsFromSupabase = React.useCallback(async () => {
     try {
       const res = await getCalendarDataAction();
       if (res.success) {
         const dbEvents: Availability[] = [];
+        const dbEventKeys = new Set<string>();
+
         if (res.events && res.events.length > 0) {
           res.events.forEach((ev) => {
             const startD = new Date(ev.inicio);
@@ -575,8 +612,8 @@ export default function CalendarioPage() {
             const startSlot = format(startD, 'HH:mm');
             const endSlot = format(endD, 'HH:mm');
 
-            const startIdx = TIME_SLOTS.indexOf(startSlot);
-            const endIdx = TIME_SLOTS.indexOf(endSlot);
+            const startIdx = getSlotIndex(startSlot);
+            const endIdx = getSlotIndex(endSlot);
             const fromIdx = startIdx !== -1 ? startIdx : 0;
             const toIdx =
               endIdx !== -1 && endIdx > fromIdx
@@ -597,6 +634,7 @@ export default function CalendarioPage() {
                   source: 'supabase',
                   eventId: ev.id,
                 });
+                dbEventKeys.add(`${dateStr}_${slot}`);
               }
             }
           });
@@ -610,8 +648,8 @@ export default function CalendarioPage() {
 
             const startSlot = b.startTime.slice(0, 5);
             const endSlot = b.endTime.slice(0, 5);
-            const startIdx = TIME_SLOTS.indexOf(startSlot);
-            const endIdx = TIME_SLOTS.indexOf(endSlot);
+            const startIdx = getSlotIndex(startSlot);
+            const endIdx = getSlotIndex(endSlot);
             if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) return;
 
             let normalizedType:
@@ -637,6 +675,7 @@ export default function CalendarioPage() {
                   source: 'supabase',
                   blockId,
                 });
+                dbEventKeys.add(`${b.date}_${slot}`);
               }
             }
           });
@@ -653,8 +692,8 @@ export default function CalendarioPage() {
 
             const startSlot = b.hora_inicio.slice(0, 5);
             const endSlot = b.hora_fin.slice(0, 5);
-            const startIdx = TIME_SLOTS.indexOf(startSlot);
-            const endIdx = TIME_SLOTS.indexOf(endSlot);
+            const startIdx = getSlotIndex(startSlot);
+            const endIdx = getSlotIndex(endSlot);
             if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) return;
 
             let normalizedType:
@@ -685,9 +724,9 @@ export default function CalendarioPage() {
               for (let i = startIdx; i < endIdx; i++) {
                 const slot = TIME_SLOTS[i];
                 if (slot && slot !== '24:00') {
-                  if (
-                    !dbEvents.some((ev) => ev.date === b.fecha_especifica && ev.startTime === slot)
-                  ) {
+                  const key = `${b.fecha_especifica}_${slot}`;
+                  if (!dbEventKeys.has(key)) {
+                    dbEventKeys.add(key);
                     dbEvents.push({
                       date: b.fecha_especifica,
                       dayOfWeek: dayOfWeekName,
@@ -712,7 +751,9 @@ export default function CalendarioPage() {
                   const slot = TIME_SLOTS[i];
                   if (slot && slot !== '24:00') {
                     // Evitar duplicados si hay un bloque manual superpuesto (priorizamos el manual si ya está en dbEvents)
-                    if (!dbEvents.some((ev) => ev.date === dateStr && ev.startTime === slot)) {
+                    const key = `${dateStr}_${slot}`;
+                    if (!dbEventKeys.has(key)) {
+                      dbEventKeys.add(key);
                       dbEvents.push({
                         date: dateStr,
                         dayOfWeek: dayOfWeekName,
@@ -739,7 +780,7 @@ export default function CalendarioPage() {
     } catch (err) {
       console.warn('Aviso cargando eventos de calendario:', err);
     }
-  }, [copy.otherActivity, copy.studying, copy.work, dateLocale]);
+  }, [copy, dateLocale]);
 
   const loadGoogleCalendarEvents = React.useCallback(async () => {
     try {
@@ -761,8 +802,8 @@ export default function CalendarioPage() {
           const startSlot = format(startD, 'HH:mm');
           const endSlot = format(endD, 'HH:mm');
 
-          const startIdx = TIME_SLOTS.indexOf(startSlot);
-          const endIdx = TIME_SLOTS.indexOf(endSlot);
+          const startIdx = getSlotIndex(startSlot);
+          const endIdx = getSlotIndex(endSlot);
           const fromIdx = startIdx !== -1 ? startIdx : 0;
           const toIdx =
             endIdx !== -1 && endIdx > fromIdx
@@ -778,6 +819,7 @@ export default function CalendarioPage() {
                 dayOfWeek: dayOfWeekName,
                 startTime: slot,
                 endTime: TIME_SLOTS[i + 1] || '24:00',
+
                 label: ev.summary || '(Sin título)',
                 type: 'otra_actividad',
                 source: 'google',
@@ -937,33 +979,13 @@ export default function CalendarioPage() {
       // Si falla, la cookie expirará sola; el estado local ya está limpio
     }
   };
-
-  const activeTimes = new Set(availabilities.map((a) => a.startTime));
-
   useEffect(() => {
-    localStorage.setItem('komorebi_availabilities', JSON.stringify(availabilities));
-
-    // Sincronizar bloques de disponibilidad con Supabase (consolidando franjas en bloques limpios)
-    const timer = setTimeout(() => {
-      const consolidated = consolidateAvailabilitySlots(availabilities);
-      syncAvailabilityBlocksAction(consolidated).catch((err) =>
-        console.warn('Aviso sincronizando bloques en Supabase:', err),
-      );
-    }, 800);
-
-    return () => clearTimeout(timer);
-  }, [availabilities]);
-
-  const visibleTimeSlots: string[] = [];
-  for (let h = 0; h <= 23; h++) {
-    const hourStr = h.toString().padStart(2, '0');
-    visibleTimeSlots.push(`${hourStr}:00`);
-    if (expandedHours.includes(h)) {
-      for (let m = 5; m < 60; m += 5) {
-        visibleTimeSlots.push(`${hourStr}:${m.toString().padStart(2, '0')}`);
-      }
+    try {
+      localStorage.setItem('komorebi_availabilities', JSON.stringify(availabilities));
+    } catch (e) {
+      console.warn('Aviso guardando en localStorage:', e);
     }
-  }
+  }, [availabilities]);
 
   const toggleHour = (h: number) => {
     setExpandedHours((prev) => (prev.includes(h) ? prev.filter((x) => x !== h) : [...prev, h]));
@@ -1267,18 +1289,19 @@ export default function CalendarioPage() {
   const getBlockForCell = (dateStr: string, timeStr: string, isCollapsedHour: boolean) => {
     let targetAvail: Availability | undefined;
     if (isCollapsedHour) {
-      const startIdx = TIME_SLOTS.indexOf(timeStr);
+      const startIdx = getSlotIndex(timeStr);
       for (let i = startIdx; i < startIdx + 12; i++) {
-        const found = availabilities.find(
-          (a) => a.date === dateStr && a.startTime === TIME_SLOTS[i],
-        );
-        if (found) {
-          targetAvail = found;
-          break;
+        const slot = TIME_SLOTS[i];
+        if (slot) {
+          const found = availMap.get(`${dateStr}_${slot}`);
+          if (found) {
+            targetAvail = found;
+            break;
+          }
         }
       }
     } else {
-      targetAvail = availabilities.find((a) => a.date === dateStr && a.startTime === timeStr);
+      targetAvail = availMap.get(`${dateStr}_${timeStr}`);
     }
 
     if (!targetAvail) return null;
@@ -1287,7 +1310,7 @@ export default function CalendarioPage() {
     if (targetAvail.eventId) {
       const eventSlots = availabilities
         .filter((a) => a.date === dateStr && a.eventId === targetAvail.eventId)
-        .sort((a, b) => TIME_SLOTS.indexOf(a.startTime) - TIME_SLOTS.indexOf(b.startTime));
+        .sort((a, b) => getSlotIndex(a.startTime) - getSlotIndex(b.startTime));
 
       const startTime = eventSlots[0]?.startTime || targetAvail.startTime;
       const endTime = eventSlots[eventSlots.length - 1]?.endTime || targetAvail.endTime;
@@ -1307,7 +1330,7 @@ export default function CalendarioPage() {
     if (targetAvail.blockId) {
       const blockSlots = availabilities
         .filter((a) => a.date === dateStr && a.blockId === targetAvail.blockId)
-        .sort((a, b) => TIME_SLOTS.indexOf(a.startTime) - TIME_SLOTS.indexOf(b.startTime));
+        .sort((a, b) => getSlotIndex(a.startTime) - getSlotIndex(b.startTime));
 
       const startTime = blockSlots[0]?.startTime || targetAvail.startTime;
       const endTime = blockSlots[blockSlots.length - 1]?.endTime || targetAvail.endTime;
@@ -1323,22 +1346,20 @@ export default function CalendarioPage() {
     }
 
     // Bloque manual sin blockId (buscar slots contiguos con mismo label y tipo)
-    const currentIdx = TIME_SLOTS.indexOf(targetAvail.startTime);
+    const currentIdx = getSlotIndex(targetAvail.startTime);
     let minIdx = currentIdx;
     let maxIdx = currentIdx;
 
     while (minIdx > 0) {
       const prevSlot = TIME_SLOTS[minIdx - 1];
-      const prevAvail = availabilities.find(
-        (a) =>
-          a.date === dateStr &&
-          a.startTime === prevSlot &&
-          !a.eventId &&
-          a.source !== 'google' &&
-          a.label === targetAvail.label &&
-          a.type === targetAvail.type,
-      );
-      if (prevAvail) {
+      const prevAvail = availMap.get(`${dateStr}_${prevSlot}`);
+      if (
+        prevAvail &&
+        !prevAvail.eventId &&
+        prevAvail.source !== 'google' &&
+        prevAvail.label === targetAvail.label &&
+        prevAvail.type === targetAvail.type
+      ) {
         minIdx--;
       } else {
         break;
@@ -1347,16 +1368,14 @@ export default function CalendarioPage() {
 
     while (maxIdx < TIME_SLOTS.length - 1) {
       const nextSlot = TIME_SLOTS[maxIdx + 1];
-      const nextAvail = availabilities.find(
-        (a) =>
-          a.date === dateStr &&
-          a.startTime === nextSlot &&
-          !a.eventId &&
-          a.source !== 'google' &&
-          a.label === targetAvail.label &&
-          a.type === targetAvail.type,
-      );
-      if (nextAvail) {
+      const nextAvail = availMap.get(`${dateStr}_${nextSlot}`);
+      if (
+        nextAvail &&
+        !nextAvail.eventId &&
+        nextAvail.source !== 'google' &&
+        nextAvail.label === targetAvail.label &&
+        nextAvail.type === targetAvail.type
+      ) {
         maxIdx++;
       } else {
         break;
@@ -1389,8 +1408,9 @@ export default function CalendarioPage() {
     const h = parseInt(hStr, 10);
     const isCollapsedHour = mStr === '00' && !expandedHours.includes(h);
 
-    const clickStartIdx = TIME_SLOTS.indexOf(timeStr);
+    const clickStartIdx = getSlotIndex(timeStr);
     const clickEndIdx = isCollapsedHour ? clickStartIdx + 11 : clickStartIdx;
+
 
     const block = getBlockForCell(dateStr, timeStr, isCollapsedHour);
 
@@ -1449,10 +1469,6 @@ export default function CalendarioPage() {
     setEditType('tareas');
   };
 
-  const handleCellMouseEnter = (_dateStr: string, timeStr: string) => {
-    setHoveredTimeStr(timeStr);
-  };
-
   // Manejo de Drag and Drop para reordenamiento de tareas y bloques manuales
   const handleDragStart = (
     e: React.DragEvent,
@@ -1467,8 +1483,8 @@ export default function CalendarioPage() {
     const block = getBlockForCell(dateStr, timeStr, isCollapsedHour);
     if (!block) return;
 
-    const sIdx = TIME_SLOTS.indexOf(block.startTime);
-    const eIdx = TIME_SLOTS.indexOf(block.endTime);
+    const sIdx = getSlotIndex(block.startTime);
+    const eIdx = getSlotIndex(block.endTime);
     const durationMin = Math.max(5, (eIdx - sIdx) * 5);
 
     setDraggedTask({
@@ -1533,7 +1549,7 @@ export default function CalendarioPage() {
       return;
     }
 
-    const startSlotIdx = TIME_SLOTS.indexOf(targetTimeStr);
+    const startSlotIdx = getSlotIndex(targetTimeStr);
     if (startSlotIdx === -1) {
       setDraggedTask(null);
       setDragOverCell(null);
@@ -1544,14 +1560,15 @@ export default function CalendarioPage() {
     const endSlotIdx = Math.min(TIME_SLOTS.length - 1, startSlotIdx + slotsCount);
     const newEndTimeStr = TIME_SLOTS[endSlotIdx] || '24:00';
 
+    const origStartIdx = getSlotIndex(draggedTask.originalStartTime);
+    const origEndIdx = getSlotIndex(draggedTask.originalEndTime);
+
     // Verificar colisiones con otras tareas, Google o bloques ajenos
     const isOwnSlot = (a: Availability) => {
       if (draggedTask.eventId && a.eventId === draggedTask.eventId) return true;
       if (draggedTask.isManual) {
         if (draggedTask.blockId && a.blockId && a.blockId === draggedTask.blockId) return true;
-        const aIdx = TIME_SLOTS.indexOf(a.startTime);
-        const origStartIdx = TIME_SLOTS.indexOf(draggedTask.originalStartTime);
-        const origEndIdx = TIME_SLOTS.indexOf(draggedTask.originalEndTime);
+        const aIdx = getSlotIndex(a.startTime);
         if (a.date === draggedTask.sourceDate && aIdx >= origStartIdx && aIdx < origEndIdx) {
           return true;
         }
@@ -1563,10 +1580,8 @@ export default function CalendarioPage() {
     let collisionSlot: string | null = null;
     for (let i = startSlotIdx; i < endSlotIdx; i++) {
       const slot = TIME_SLOTS[i];
-      const conflictAvail = availabilities.find(
-        (a) => a.date === dateStr && a.startTime === slot && !isOwnSlot(a),
-      );
-      if (conflictAvail) {
+      const conflictAvail = availMap.get(`${dateStr}_${slot}`);
+      if (conflictAvail && !isOwnSlot(conflictAvail)) {
         collisionTitle = conflictAvail.label
           ? conflictAvail.label.replace('📌 ', '')
           : conflictAvail.source === 'google'
@@ -1676,18 +1691,26 @@ export default function CalendarioPage() {
       }
     } else {
       // Bloque manual creado por el usuario
-      const origStartIdx = TIME_SLOTS.indexOf(draggedTask.originalStartTime);
-      const origEndIdx = TIME_SLOTS.indexOf(draggedTask.originalEndTime);
+      const origStartIdx = getSlotIndex(draggedTask.originalStartTime);
+      const origEndIdx = getSlotIndex(draggedTask.originalEndTime);
 
+      let updatedList: Availability[] = [];
       setAvailabilities((prev) => {
         const withoutOld = prev.filter((a) => {
           if (a.date !== draggedTask.sourceDate) return true;
           if (draggedTask.blockId && a.blockId === draggedTask.blockId) return false;
-          const aIdx = TIME_SLOTS.indexOf(a.startTime);
+          const aIdx = getSlotIndex(a.startTime);
           return !(aIdx >= origStartIdx && aIdx < origEndIdx);
         });
-        return [...withoutOld, ...newSlots];
+        updatedList = [...withoutOld, ...newSlots];
+        return updatedList;
       });
+
+      // Persistir inmediatamente el bloque manual movido en Supabase
+      const consolidated = consolidateAvailabilitySlots(updatedList);
+      syncAvailabilityBlocksAction(consolidated).catch((err) =>
+        console.warn('Error sincronizando bloque movido en Supabase:', err),
+      );
 
       setSelectedBlock({
         date: dateStr,
@@ -1723,7 +1746,7 @@ export default function CalendarioPage() {
     const h = parseInt(hStr, 10);
     const isCollapsedHour = mStr === '00' && !expandedHours.includes(h);
 
-    const startIdx = TIME_SLOTS.indexOf(timeStr);
+    const startIdx = getSlotIndex(timeStr);
     const endIdx = isCollapsedHour ? startIdx + 11 : startIdx;
 
     const timesToRemove = new Set<string>();
@@ -1789,7 +1812,7 @@ export default function CalendarioPage() {
     const h = parseInt(hStr, 10);
     const isCollapsed = mStr === '00' && !expandedHours.includes(h);
 
-    const startIdx = TIME_SLOTS.indexOf(editingCell.time);
+    const startIdx = getSlotIndex(editingCell.time);
     const endIdx = isCollapsed ? startIdx + 11 : startIdx;
     const targetSlots: string[] = [];
     for (let i = startIdx; i <= endIdx; i++) {
@@ -2057,13 +2080,21 @@ export default function CalendarioPage() {
       if (canGoNextWeek) setCurrentDate(addWeeks(currentDate, 1));
     };
 
+    const selectedStartIdx = selectedBlock?.startTime ? getSlotIndex(selectedBlock.startTime) : -1;
+    const selectedEndIdx = selectedBlock?.endTime ? getSlotIndex(selectedBlock.endTime) : -1;
+    const draggedStartIdx = draggedTask?.originalStartTime
+      ? getSlotIndex(draggedTask.originalStartTime)
+      : -1;
+    const draggedEndIdx = draggedTask?.originalEndTime
+      ? getSlotIndex(draggedTask.originalEndTime)
+      : -1;
+
     return (
       <div className="flex flex-col h-full w-full max-w-6xl mx-auto animate-in fade-in duration-300">
         {/* 1. CONTENEDOR MAESTRO DE SCROLL */}
         <div
           className="flex-grow overflow-y-auto custom-scrollbar select-none bg-white border border-[#EAE3DC] rounded-[20px] shadow-sm relative flex flex-col"
           style={{ height: 'calc(100vh - 120px)' }}
-          onMouseLeave={() => setHoveredTimeStr(null)}
         >
           {/* 2. ENVOLTORIO STICKY UNIFICADO */}
           <div className="sticky top-0 z-[50] bg-[#FDFBF9] border-b border-[#EAE3DC] shadow-sm flex flex-col pt-4 shrink-0">
@@ -2711,8 +2742,6 @@ export default function CalendarioPage() {
                 const [, minuteStr] = time.split(':');
                 const isActive = activeTimes.has(time);
 
-                const isHovered = hoveredTimeStr === time;
-
                 return (
                   <div
                     key={`time-${time}`}
@@ -2720,7 +2749,6 @@ export default function CalendarioPage() {
                       ${isHourStart ? 'min-h-[48px]' : 'min-h-[32px]'} relative flex justify-end items-center pr-3 group transition-colors cursor-default
                       ${isHourStart ? 'border-b border-[#EAE3DC]' : ''}
                       ${isHourEnd ? 'mb-3' : ''}
-                      ${isHovered ? 'bg-[#f5e5d9]/60' : ''}
                     `}
                   >
                     {isHourStart ? (
@@ -2765,30 +2793,28 @@ export default function CalendarioPage() {
                     className={`flex flex-col border-r border-[#EAE3DC] last:border-r-0 bg-[#FDFBF9] ${isPast ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     {visibleTimeSlots.map((timeStr) => {
-                      const avail = availabilities.find(
-                        (a) => a.date === dateStr && a.startTime === timeStr,
-                      );
+                      const slotIdx = getSlotIndex(timeStr);
+                      const avail = availMap.get(`${dateStr}_${timeStr}`);
                       const isEditing =
                         editingCell?.date === dateStr && editingCell?.time === timeStr;
                       const isHourStart = timeStr.endsWith(':00');
                       const isHourEnd = timeStr.endsWith(':55');
 
-                      const isHoveredRow = hoveredTimeStr === timeStr;
-
                       const isCollapsedHour =
-                        timeStr.endsWith(':00') &&
+                        isHourStart &&
                         !expandedHours.includes(parseInt(timeStr.split(':')[0], 10));
                       let macroAvailCount = 0;
                       let macroFirstAvail: Availability | undefined;
                       if (isCollapsedHour) {
-                        const startIdx = TIME_SLOTS.indexOf(timeStr);
+                        const startIdx = slotIdx;
                         for (let i = startIdx; i < startIdx + 12; i++) {
-                          const found = availabilities.find(
-                            (a) => a.date === dateStr && a.startTime === TIME_SLOTS[i],
-                          );
-                          if (found) {
-                            macroAvailCount++;
-                            if (!macroFirstAvail) macroFirstAvail = found;
+                          const slot = TIME_SLOTS[i];
+                          if (slot) {
+                            const found = availMap.get(`${dateStr}_${slot}`);
+                            if (found) {
+                              macroAvailCount++;
+                              if (!macroFirstAvail) macroFirstAvail = found;
+                            }
                           }
                         }
                       }
@@ -2811,28 +2837,30 @@ export default function CalendarioPage() {
                       const isOccupied = !!avail || (isCollapsedHour && macroAvailCount > 0);
                       const isDraggable = !isPast && (isTask || (isOccupied && !isGoogleEvent));
 
-                      const slotIdx = TIME_SLOTS.indexOf(timeStr);
-
                       const isSelected = Boolean(
                         selectedBlock &&
-                        selectedBlock.date === dateStr &&
-                        ((selectedBlock.eventId &&
-                          effectiveAvail?.eventId === selectedBlock.eventId) ||
-                          (selectedBlock.blockId &&
-                            effectiveAvail?.blockId === selectedBlock.blockId) ||
-                          (slotIdx >= TIME_SLOTS.indexOf(selectedBlock.startTime) &&
-                            slotIdx < TIME_SLOTS.indexOf(selectedBlock.endTime))),
+                          selectedBlock.date === dateStr &&
+                          ((selectedBlock.eventId &&
+                            effectiveAvail?.eventId === selectedBlock.eventId) ||
+                            (selectedBlock.blockId &&
+                              effectiveAvail?.blockId === selectedBlock.blockId) ||
+                            (selectedStartIdx !== -1 &&
+                              selectedEndIdx !== -1 &&
+                              slotIdx >= selectedStartIdx &&
+                              slotIdx < selectedEndIdx)),
                       );
 
                       const isDropTarget =
                         dragOverCell?.date === dateStr && dragOverCell?.time === timeStr;
                       const isBeingDragged = Boolean(
                         draggedTask &&
-                        draggedTask.sourceDate === dateStr &&
-                        ((draggedTask.eventId && effectiveAvail?.eventId === draggedTask.eventId) ||
-                          (!draggedTask.eventId &&
-                            slotIdx >= TIME_SLOTS.indexOf(draggedTask.originalStartTime) &&
-                            slotIdx < TIME_SLOTS.indexOf(draggedTask.originalEndTime))),
+                          draggedTask.sourceDate === dateStr &&
+                          ((draggedTask.eventId && effectiveAvail?.eventId === draggedTask.eventId) ||
+                            (!draggedTask.eventId &&
+                              draggedStartIdx !== -1 &&
+                              draggedEndIdx !== -1 &&
+                              slotIdx >= draggedStartIdx &&
+                              slotIdx < draggedEndIdx)),
                       );
 
                       const displayLabel = effectiveAvail?.label
@@ -2845,7 +2873,6 @@ export default function CalendarioPage() {
                       return (
                         <div
                           key={`cell-${dateStr}-${timeStr}`}
-                          onMouseEnter={() => handleCellMouseEnter(dateStr, timeStr)}
                           onClick={() => handleCellClick(dateStr, dayOfWeek, timeStr, isPast)}
                           onDragOver={(e) => handleDragOver(e, dateStr, timeStr)}
                           onDragLeave={handleDragLeave}
@@ -2865,7 +2892,7 @@ export default function CalendarioPage() {
                             ${isHourStart ? 'border-b border-[#EAE3DC]' : 'border-b border-dashed border-[#EAE3DC]/40'}
                             ${isHourEnd ? 'mb-3' : ''}
                             ${isPast ? '' : isDraggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}
-                            ${isHoveredRow && !isOccupied && !isDropTarget ? 'bg-[#f5e5d9]/60' : ''}
+                            ${!isOccupied && !isDropTarget && !isPast ? 'hover:bg-[#f5e5d9]/50' : ''}
                             ${isOccupied ? `${colorTheme.bg}` : ''}
                             ${isMacroPartiallyOccupied ? `${colorTheme.bgPale} border-[1px] border-dashed ${colorTheme.border}` : ''}
                             ${isDropTarget ? 'ring-2 ring-[#845326] bg-[#845326]/20 scale-[0.98] z-20' : ''}
