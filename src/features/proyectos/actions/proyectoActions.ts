@@ -11,6 +11,7 @@ import {
   checkProjectFeasibilityWithGemini,
 } from '@/services/ai/scheduleAiService';
 import { validateContent, validateProjectContent } from '@/lib/moderation/contentFilter';
+import { getCaracasNextNextMidnightISO } from '@/services/notifications/dateUtils';
 
 export interface CreateProjectInput {
   titulo: string;
@@ -718,38 +719,54 @@ export async function toggleTaskStatusAction(
     let updatedRacha: number;
     let updatedRachaMaxima: number;
 
+    if (!isCompleted && wasCompleted) {
+      // Ignorar silenciosamente si intentan desmarcar (el UI ya lo deshabilitó)
+      return { success: true };
+    }
+
     const { data: profile } = await db
       .from('profiles')
-      .select('racha_activa, racha_maxima')
+      .select('racha_activa, racha_maxima, racha_expira_en')
       .eq('id', user.id)
       .maybeSingle();
 
     const currentStreak = typeof profile?.racha_activa === 'number' ? profile.racha_activa : 0;
     const currentMax = typeof profile?.racha_maxima === 'number' ? profile.racha_maxima : 0;
+    const currentExpira = profile?.racha_expira_en;
+
+    const nextNextMidnight = getCaracasNextNextMidnightISO();
+    
+    // Comparar usando getTime() para evitar errores de formato en strings ISO de la base de datos
+    const currentExpiraTime = currentExpira ? new Date(currentExpira).getTime() : 0;
+    const nextMidnightTime = new Date(nextNextMidnight).getTime();
 
     if (isCompleted && !wasCompleted) {
-      // Al completar una tarea: aumenta siempre el contador de racha
-      updatedRacha = currentStreak + 1;
-      updatedRachaMaxima = Math.max(currentMax, updatedRacha);
+      // Si la fecha de expiración ya es la de mañana en la noche (nextNextMidnight),
+      // significa que ya sumó racha hoy, no aumentamos.
+      if (currentExpiraTime === nextMidnightTime) {
+        updatedRacha = currentStreak;
+        updatedRachaMaxima = currentMax;
+        
+        await db
+          .from('profiles')
+          .update({
+            racha_expira_en: nextNextMidnight,
+          })
+          .eq('id', user.id);
+      } else {
+        // Al completar la primera tarea del día: aumenta el contador de racha
+        updatedRacha = currentStreak + 1;
+        updatedRachaMaxima = Math.max(currentMax, updatedRacha);
 
-      await db
-        .from('profiles')
-        .update({
-          racha_activa: updatedRacha,
-          racha_maxima: updatedRachaMaxima,
-        })
-        .eq('id', user.id);
-    } else if (!isCompleted && wasCompleted) {
-      // Al desmarcar una tarea: decrementa la racha sin bajar de 0
-      updatedRacha = Math.max(0, currentStreak - 1);
-      updatedRachaMaxima = currentMax;
-
-      await db
-        .from('profiles')
-        .update({
-          racha_activa: updatedRacha,
-        })
-        .eq('id', user.id);
+        await db
+          .from('profiles')
+          .update({
+            racha_activa: updatedRacha,
+            racha_maxima: updatedRachaMaxima,
+            racha_expira_en: nextNextMidnight,
+          })
+          .eq('id', user.id);
+      }
     } else {
       updatedRacha = currentStreak;
       updatedRachaMaxima = currentMax;
@@ -1391,6 +1408,22 @@ export async function updateTaskAction(data: {
       };
     }
 
+    const db = supabase;
+
+    // Verificar que la tarea no esté completada
+    const { data: existingTask } = await db
+      .from('tareas')
+      .select('completado')
+      .eq('id', data.taskId)
+      .single();
+      
+    if (existingTask?.completado) {
+      return {
+        success: false,
+        error: 'No se puede editar una tarea que ya está completada.',
+      };
+    }
+
     // [VALIDACIÓN BACKEND DE CONTENIDO]: Palabras obscenas o peligrosas
     const contentValidation = validateContent(`${data.titulo} ${data.descripcion || ''}`);
     if (!contentValidation.isValid) {
@@ -1401,8 +1434,6 @@ export async function updateTaskAction(data: {
           'La tarea contiene términos obscenos o peligrosos no permitidos.',
       };
     }
-
-    const db = supabase;
 
     let parsedFechaInicio: string | null = null;
     if (data.fecha_inicio) {

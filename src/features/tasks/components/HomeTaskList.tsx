@@ -219,16 +219,16 @@ export function HomeTaskList({ initialTasks, onTaskToggled }: HomeTaskListProps)
                   <button
                     type="button"
                     onClick={() => handleToggle(task)}
-                    disabled={isTaskLoading || isPending}
+                    disabled={isTaskLoading || isPending || task.completado}
                     aria-label={
                       task.completado
-                        ? 'Marcar tarea como pendiente'
+                        ? 'Tarea completada'
                         : 'Marcar tarea como completada'
                     }
-                    className={`mt-0.5 size-6 shrink-0 rounded-lg border-2 flex items-center justify-center transition-all cursor-pointer ${
+                    className={`mt-0.5 size-6 shrink-0 rounded-lg border-2 flex items-center justify-center transition-all ${
                       task.completado
-                        ? 'bg-status-success border-status-success text-white shadow-xs'
-                        : 'border-outline hover:border-primary hover:bg-primary/5 text-transparent'
+                        ? 'bg-status-success border-status-success text-white shadow-xs cursor-default opacity-80'
+                        : 'border-outline hover:border-primary hover:bg-primary/5 text-transparent cursor-pointer'
                     } ${isTaskLoading ? 'opacity-50 cursor-wait' : ''}`}
                   >
                     <Check

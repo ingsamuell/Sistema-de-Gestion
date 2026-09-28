@@ -14,6 +14,8 @@ const extractScheduleBodySchema = z.object({
   categoria: z.enum(['trabajo', 'estudio']).optional(),
   replicarOpcion: z.enum(['mes', 'todos', 'semanas']).optional().default('todos'),
   semanasEspecificas: z.array(z.string()).optional(),
+  mesEspecifico: z.number().optional(),
+  anoEspecifico: z.number().optional(),
 });
 
 /**
@@ -46,7 +48,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { base64Data, mimeType, guardarEnDisponibilidad, categoria, replicarOpcion, semanasEspecificas } = parsed.data;
+    const { base64Data, mimeType, guardarEnDisponibilidad, categoria, replicarOpcion, semanasEspecificas, mesEspecifico, anoEspecifico } = parsed.data;
 
     // Ejecutar extracción con visión multimodal de Gemini
     const resultado = await extractScheduleFromImageWithGemini({
@@ -120,7 +122,10 @@ export async function POST(req: NextRequest) {
         let targetDates: Date[] = [];
         
         if (replicarOpcion === 'mes') {
-          targetDates = eachDayOfInterval({ start: today, end: endOfMonth(today) });
+          const targetMonth = mesEspecifico !== undefined ? mesEspecifico : today.getMonth();
+          const targetYear = anoEspecifico !== undefined ? anoEspecifico : (targetMonth < today.getMonth() ? today.getFullYear() + 1 : today.getFullYear());
+          const targetDate = new Date(targetYear, targetMonth, 1);
+          targetDates = eachDayOfInterval({ start: targetDate, end: endOfMonth(targetDate) });
         } else if (replicarOpcion === 'semanas' && semanasEspecificas) {
           semanasEspecificas.forEach(weekStartIso => {
             const weekStart = parseISO(weekStartIso);

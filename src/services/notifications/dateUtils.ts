@@ -22,6 +22,27 @@ export function getCaracasToday(): string {
 }
 
 /**
+ * Retorna el ISO timestamp de las próximas 12 AM (pasado mañana) en Caracas.
+ * Ejemplo: Si hoy es Lunes, retorna el timestamp de Miércoles 00:00:00 VET.
+ */
+export function getCaracasNextNextMidnightISO(): string {
+  const now = new Date();
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: CARACAS_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(now);
+  const y = parts.find((p) => p.type === 'year')?.value;
+  const m = parts.find((p) => p.type === 'month')?.value;
+  const d = parts.find((p) => p.type === 'day')?.value;
+
+  const caracasMidnightToday = new Date(`${y}-${m}-${d}T00:00:00.000-04:00`);
+  const nextNextMidnight = new Date(caracasMidnightToday.getTime() + 48 * 60 * 60 * 1000);
+  return nextNextMidnight.toISOString();
+}
+
+/**
  * Calcula la diferencia en minutos entre una fecha futura y el momento actual.
  * Valor positivo significa que la fecha está en el futuro.
  */

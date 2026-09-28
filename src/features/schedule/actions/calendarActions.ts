@@ -327,15 +327,29 @@ export async function syncAvailabilityBlocksAction(
     await db.from('bloques_disponibilidad').delete().eq('usuario_id', user.id).eq('origen', 'manual');
 
     if (blocks.length > 0) {
-      const inserts = blocks.map((b) => ({
-        usuario_id: user.id,
-        dia_semana: b.dia_semana ?? null,
-        fecha_especifica: b.fecha_especifica ?? null,
-        hora_inicio: b.hora_inicio.length === 5 ? `${b.hora_inicio}:00` : b.hora_inicio,
-        hora_fin: b.hora_fin.length === 5 ? `${b.hora_fin}:00` : b.hora_fin,
-        tipo: b.tipo,
-        origen: b.origen || 'manual',
-      }));
+      const inserts = blocks.map((b) => {
+        let finalTipo = b.tipo;
+        if (b.tipo === 'estudiando') finalTipo = 'estudio';
+        if (b.tipo === 'descanso') finalTipo = 'otra_actividad';
+        
+        let finalFin = b.hora_fin;
+        if (finalFin === '24:00' || finalFin === '24:00:00') finalFin = '23:59:59';
+        else if (finalFin.length === 5) finalFin = `${finalFin}:00`;
+
+        let finalInicio = b.hora_inicio;
+        if (finalInicio === '24:00' || finalInicio === '24:00:00') finalInicio = '23:59:59';
+        else if (finalInicio.length === 5) finalInicio = `${finalInicio}:00`;
+
+        return {
+          usuario_id: user.id,
+          dia_semana: b.dia_semana ?? null,
+          fecha_especifica: b.fecha_especifica ?? null,
+          hora_inicio: finalInicio,
+          hora_fin: finalFin,
+          tipo: finalTipo,
+          origen: b.origen || 'manual',
+        };
+      });
 
       const { error: insErr } = await db.from('bloques_disponibilidad').insert(inserts);
       if (insErr) {
@@ -458,5 +472,47 @@ export async function updateCalendarEventDetailsAction(input: {
   } catch (error) {
     console.error('Error en updateCalendarEventDetailsAction:', error);
     return { success: false, error: 'Error al actualizar detalles del evento' };
+  }
+}
+
+/**
+ * Guarda bloques de disponibilidad replicados en la base de datos (bloques_disponibilidad).
+ */
+export async function replicateAvailabilitiesAction(blocks: {
+  fecha_especifica: string;
+  hora_inicio: string;
+  hora_fin: string;
+  tipo: string;
+}[]) {
+  try {
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return { success: false, error: 'No autenticado' };
+    }
+
+    if (!blocks || blocks.length === 0) return { success: true };
+
+    const inserts = blocks.map(b => ({
+      usuario_id: user.id,
+      fecha_especifica: b.fecha_especifica,
+      hora_inicio: b.hora_inicio,
+      hora_fin: b.hora_fin,
+      tipo: b.tipo,
+      origen: 'manual'
+    }));
+
+    const { error } = await supabase.from('bloques_disponibilidad').insert(inserts);
+    
+    if (error) {
+      console.error('Error insertando bloques replicados:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error en replicateAvailabilitiesAction:', error);
+    return { success: false, error: error.message || 'Error desconocido' };
   }
 }
