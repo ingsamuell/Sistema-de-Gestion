@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
@@ -72,16 +72,43 @@ export function LoginForm({ locale }: { locale: Locale }) {
 
   const urlError = !isUrlErrorDismissed ? searchParams.get('error') : null;
   const urlReset = !isSuccessDismissed ? searchParams.get('reset') : null;
+  const errorDescription = !isUrlErrorDismissed ? searchParams.get('error_description') : null;
 
   const displayError =
     generalError ||
-    (urlError === 'oauth_error'
-      ? 'No se pudo iniciar sesión con Google. Por favor intenta nuevamente.'
-      : urlError === 'reset_link_expired'
-        ? 'El enlace de recuperación es inválido o ha expirado. Por favor solicita uno nuevo.'
-        : urlError === 'verification_link_expired'
-          ? 'El enlace de verificación ha expirado o es inválido. Por favor solicita uno nuevo.'
-          : null);
+    (errorDescription && errorDescription.includes('Database error saving new user')
+      ? 'Hubo un problema vinculando tu cuenta. Si acabas de eliminarla, es posible que tarde unos minutos en procesarse. Por favor, intenta de nuevo.'
+      : urlError === 'oauth_error'
+        ? 'No se pudo iniciar sesión con Google. Por favor intenta nuevamente.'
+        : urlError === 'reset_link_expired'
+          ? 'El enlace de recuperación es inválido o ha expirado. Por favor solicita uno nuevo.'
+          : urlError === 'verification_link_expired'
+            ? 'El enlace de verificación ha expirado o es inválido. Por favor solicita uno nuevo.'
+            : null);
+
+  useEffect(() => {
+    async function cleanupSession() {
+      try {
+        if (urlError || errorDescription) {
+          const supabase = createClient();
+          await supabase.auth.signOut();
+          
+          // Limpieza defensiva manual del localStorage
+          const keysToRemove = [];
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+              keysToRemove.push(key);
+            }
+          }
+          keysToRemove.forEach(key => localStorage.removeItem(key));
+        }
+      } catch (err) {
+        console.error('Error limpiando sesión defensivamente:', err);
+      }
+    }
+    cleanupSession();
+  }, [urlError, errorDescription]);
 
   const displaySuccess =
     urlReset === 'success'

@@ -77,5 +77,11 @@ export async function GET(request: Request) {
       ? 'verification_link_expired'
       : 'oauth_error';
 
-  return NextResponse.redirect(getRedirectUrl(`/login?error=${errorParam}`));
+  const errorDescription = searchParams.get('error_description');
+  let redirectUrl = `/login?error=${errorParam}`;
+  if (errorDescription) {
+    redirectUrl += `&error_description=${encodeURIComponent(errorDescription)}`;
+  }
+
+  return NextResponse.redirect(getRedirectUrl(redirectUrl));
 }

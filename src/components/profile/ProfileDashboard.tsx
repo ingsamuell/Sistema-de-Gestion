@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { ChangePasswordModal } from '@/components/profile/ChangePasswordModal';
 import { AddPasswordModal } from '@/components/profile/AddPasswordModal';
+import { DeleteAccountModal } from '@/components/profile/DeleteAccountModal';
 import { Button } from '@/components/ui/Button';
 import { onboardingQuestions } from '@/features/onboarding/data/questions';
 import type { OnboardingAnswersInput } from '@/features/onboarding/actions/saveOnboardingAction';
@@ -112,6 +113,11 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
           controlled: 'Contexto bajo tu control',
           controlledDescription:
             'La IA solo usará fuentes de Temas y Proyectos que decidas incluir.',
+          deleteAccount: 'Eliminar cuenta',
+          deleteAccountTitle: '¿Estás seguro?',
+          deleteAccountWarning: 'Esta acción es irreversible y eliminará todos tus datos, proyectos y progresos de forma permanente',
+          cancel: 'Cancelar',
+          confirmDelete: 'Sí, eliminar mi cuenta',
         }
       : {
           personal: 'Personal space',
@@ -140,6 +146,11 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
           controlled: 'Context you control',
           controlledDescription:
             'AI only uses the Topics and Projects sources you choose to include.',
+          deleteAccount: 'Delete Account',
+          deleteAccountTitle: 'Are you sure?',
+          deleteAccountWarning: 'This action is irreversible and will permanently delete all your data, projects, and progress',
+          cancel: 'Cancel',
+          confirmDelete: 'Yes, delete my account',
         };
   const [editingSection, setEditingSection] = useState<EditableSection>(null);
 
@@ -149,6 +160,7 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
   const [hasPassword, setHasPassword] = useState(profile.hasPassword ?? true);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
   const [isAddPasswordModalOpen, setIsAddPasswordModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   // Estados de Identidad
   const [firstName, setFirstName] = useState(profile.firstName || '');
@@ -352,6 +364,14 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
           icon={<Edit3 className="size-5" />}
           actionLabel={editingSection === 'identity' ? copy.closeEdit : copy.edit}
           onAction={() => toggleEditing('identity')}
+          extraActionNode={
+            <button
+              onClick={() => setIsDeleteModalOpen(true)}
+              className="text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-md text-sm font-medium transition-colors border border-transparent"
+            >
+              {copy.deleteAccount}
+            </button>
+          }
         >
           <AnimatePresence mode="wait">
             {editingSection === 'identity' ? (
@@ -1318,6 +1338,15 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
         </WideSection>
       </div>
 
+      <DeleteAccountModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        title={copy.deleteAccountTitle}
+        warningText={copy.deleteAccountWarning}
+        cancelText={copy.cancel}
+        confirmText={copy.confirmDelete}
+      />
+
       {/* Modal para cambiar contraseña */}
       <ChangePasswordModal
         isOpen={isChangePasswordModalOpen}
@@ -1422,6 +1451,7 @@ function WideSection({
   icon,
   actionLabel,
   onAction,
+  extraActionNode,
   children,
   id,
 }: {
@@ -1430,6 +1460,7 @@ function WideSection({
   icon: React.ReactNode;
   actionLabel?: string;
   onAction?: () => void;
+  extraActionNode?: React.ReactNode;
   children: React.ReactNode;
   id?: string;
 }) {
@@ -1455,18 +1486,21 @@ function WideSection({
             </p>
           </div>
         </div>
-        {actionLabel && onAction && (
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            className="min-h-10 w-fit gap-2 self-start cursor-pointer"
-            onClick={onAction}
-          >
-            <Edit3 className="size-3.5" />
-            {actionLabel}
-          </Button>
-        )}
+        <div className="flex items-center gap-2 self-start">
+          {extraActionNode}
+          {actionLabel && onAction && (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="min-h-10 w-fit gap-2 cursor-pointer"
+              onClick={onAction}
+            >
+              <Edit3 className="size-3.5" />
+              {actionLabel}
+            </Button>
+          )}
+        </div>
       </motion.div>
       <motion.div layout="position">{children}</motion.div>
     </motion.div>
