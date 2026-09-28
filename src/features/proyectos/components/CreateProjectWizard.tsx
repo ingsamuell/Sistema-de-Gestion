@@ -135,24 +135,6 @@ export function CreateProjectWizard() {
     tiempoMinimo?: string;
   } | null>(null);
 
-  // Inicializar tiempo de onboarding desde localStorage sin llamar setState en useEffect
-  const [onboardingTime] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('komorebi_onboarding_answers');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed && parsed[5]) {
-            return String(parsed[5]);
-          }
-        }
-      } catch (e) {
-        console.error('Error parsing onboarding answers', e);
-      }
-    }
-    return 'unas horas';
-  });
-
   const totalSteps = 7;
   const progressPercent = Math.round(((currentStep + 1) / totalSteps) * 100);
   const todayStr = new Date().toISOString().split('T')[0];

@@ -5,7 +5,6 @@ import { UserProfileButton } from '@/components/layout/UserProfileButton';
 import { TelegramBotWidget } from '@/components/layout/TelegramBotWidget';
 import { FolderKanban } from 'lucide-react';
 import { redirect } from 'next/navigation';
-import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 
 import { ToastProvider } from '@/components/ui/Toast';
@@ -88,7 +87,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
             {/* Asistente de Telegram disponible en todas las vistas */}
             <TelegramBotWidget username={username} />
-
           </div>
         </FocusSessionProvider>
       </ToastProvider>

@@ -58,7 +58,9 @@ export function getAppBaseUrl(requestOrigin?: string): string {
  * respetando encabezados de proxy inverso como 'x-forwarded-host' y 'x-forwarded-proto'
  * para evitar que las cookies de sesión se pierdan al redirigir entre dominios.
  */
-export function getBaseUrlFromRequest(request: Request | { headers: Headers; url?: string }): string {
+export function getBaseUrlFromRequest(
+  request: Request | { headers: Headers; url?: string },
+): string {
   try {
     const forwardedHost = request.headers.get('x-forwarded-host') || request.headers.get('host');
     const forwardedProto = request.headers.get('x-forwarded-proto') || 'https';

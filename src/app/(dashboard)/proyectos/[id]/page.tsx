@@ -969,9 +969,7 @@ export default function ProjectDetailPage({
     }
 
     if (taskStartDate > maxDateStr) {
-      setTaskErrorMessage(
-        'El día de inicio no puede superar 1 año a partir de la fecha actual.',
-      );
+      setTaskErrorMessage('El día de inicio no puede superar 1 año a partir de la fecha actual.');
       return;
     }
 
@@ -1085,9 +1083,7 @@ export default function ProjectDetailPage({
     }
 
     if (editTaskStartDate > maxDateStr) {
-      setEditErrorMessage(
-        'El día de inicio no puede superar 1 año a partir de la fecha actual.',
-      );
+      setEditErrorMessage('El día de inicio no puede superar 1 año a partir de la fecha actual.');
       return;
     }
 
@@ -1803,7 +1799,10 @@ export default function ProjectDetailPage({
                 </div>
                 <p className="mt-1.5 text-[11px] text-gray-500">
                   * Debe estar dentro del rango disponible (máx. 1 año: {maxAllowedDateStr}
-                  {project?.fecha_limite ? `, fecha límite del proyecto: ${project.fecha_limite.split('T')[0]}` : ''}).
+                  {project?.fecha_limite
+                    ? `, fecha límite del proyecto: ${project.fecha_limite.split('T')[0]}`
+                    : ''}
+                  ).
                 </p>
               </div>
 
@@ -2213,7 +2212,10 @@ export default function ProjectDetailPage({
                 </div>
                 <p className="mt-1.5 text-[11px] text-gray-500">
                   * Debe estar dentro del rango disponible (máx. 1 año: {maxAllowedDateStr}
-                  {project?.fecha_limite ? `, fecha límite del proyecto: ${project.fecha_limite.split('T')[0]}` : ''}).
+                  {project?.fecha_limite
+                    ? `, fecha límite del proyecto: ${project.fecha_limite.split('T')[0]}`
+                    : ''}
+                  ).
                 </p>
               </div>
 

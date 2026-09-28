@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -18,11 +18,20 @@ import { defaultLocale, getLocaleFromPathname } from '@/lib/i18n/locale';
 import { localizedHref } from '@/lib/i18n/routes';
 import { useTourContext } from '@/contexts/TourContext';
 
+function useIsMounted() {
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+}
+
 export function MobileNav() {
   const pathname = usePathname();
   const locale = getLocaleFromPathname(pathname) ?? defaultLocale;
   const { hasTour, startCurrentTour } = useTourContext();
   const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const isMounted = useIsMounted();
 
   useEffect(() => {
     if (!isMoreOpen) return;
@@ -161,7 +170,8 @@ export function MobileNav() {
         <button
           type="button"
           onClick={startCurrentTour}
-          disabled={!hasTour}
+          disabled={isMounted ? !hasTour : undefined}
+          suppressHydrationWarning
           aria-label={copy.help}
           className="flex min-h-12 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl py-1 text-outline transition-colors hover:text-on-surface disabled:cursor-default disabled:opacity-50"
         >

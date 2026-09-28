@@ -148,9 +148,7 @@ for (let h = 0; h <= 23; h++) {
 }
 TIME_SLOTS.push('24:00');
 
-const TIME_SLOT_INDEX_MAP = new Map<string, number>(
-  TIME_SLOTS.map((slot, index) => [slot, index]),
-);
+const TIME_SLOT_INDEX_MAP = new Map<string, number>(TIME_SLOTS.map((slot, index) => [slot, index]));
 const getSlotIndex = (slot: string): number => TIME_SLOT_INDEX_MAP.get(slot) ?? -1;
 
 const parseISODate = (dateStr: string) => {
@@ -261,201 +259,204 @@ export default function CalendarioPage() {
   const copy = React.useMemo(
     () =>
       locale === 'es'
-      ? {
-          back: 'Volver',
-          upload: 'Subir horario (IA)',
-          replicate: 'Replicar horario',
-          month: 'Replicar en un mes específico...',
-          year: 'Replicar en todos los meses',
-          specific: 'Replicar en semanas específicas...',
-          weeks: 'Semanas específicas',
-          selectWeeks: 'Selecciona a qué semanas futuras quieres copiar tu disponibilidad actual:',
-          weekOf: 'Semana del',
-          noWeeks: 'No hay semanas futuras disponibles en este año.',
-          yearLabel: 'Año',
-          monthLabel: 'Mes',
-          replicateMonthTitle: 'Replicar en un mes específico',
-          replicateMonthDescription:
-            'Selecciona el mes donde deseas replicar la disponibilidad de esta semana.',
-          replicateConfirm: 'Replicar',
-          scheduleReplication: '¿Dónde deseas replicar este horario?',
-          allMonths: 'En todos los meses (predeterminado)',
-          specificMonth: 'Solo en un mes específico',
-          chooseWeeks: 'Selecciona las semanas:',
-          fileFormats: 'PNG, JPG, WEBP o PDF (Hasta 20MB)',
-          noActiveProjects: 'No tienes proyectos activos para crear una tarea.',
-          selectProject: 'Selecciona un proyecto',
-          creatingTask: 'Creando tarea...',
-          newTask: 'Nueva tarea',
-          createTaskError: 'Error al crear la tarea',
-          cancel: 'Cancelar',
-          apply: 'Aplicar horario',
-          googleConnect: 'Conectar Google Calendar',
-          googleConnected: 'Conectado a Google',
-          googleDisconnect: 'Desconectar',
-          googleSynced: 'Google Calendar sincronizado correctamente',
-          googleDisconnected: 'Google Calendar desconectado',
-          googleConnectionError: 'Error al conectar con Google Calendar',
-          uploadTitle: 'Cargar horario con Gemini AI',
-          uploadSubtitle: 'Extrae automáticamente tus materias o turnos',
-          uploadDescription:
-            'Sube una foto, captura de pantalla (.png, .jpg) o documento PDF de tu horario escolar, universitario o laboral. La IA extraerá los días y bloques horarios para que queden reflejados en tu calendario.',
-          scheduleType: '¿Qué tipo de horario deseas agregar?',
-          workSchedule: 'De trabajo',
-          studySchedule: 'De estudio',
-          workCategory: 'Categoría: Trabajo',
-          studyCategory: 'Categoría: Estudio',
-          dropFile: 'Haz clic o arrastra tu archivo aquí',
-          remove: 'Quitar',
-          processSchedule: 'Procesar y montar horario',
-          optimizing: 'Optimizando documento/imagen...',
-          analyzing: 'Analizando horario con IA Gemini...',
-          selectFile: 'Por favor selecciona una imagen o documento PDF con tu horario.',
-          processError: 'Error al procesar el horario',
-          uploadSuccess: (count: number) =>
-            `¡Se detectaron y agregaron ${count} bloques a tu calendario con éxito!`,
-          uploadAndRescheduleSuccess: (count: number, rescheduledCount: number) =>
-            `¡Se agregaron ${count} bloques a tu horario y la IA reagendó automáticamente ${rescheduledCount} tarea(s) para evitar colisiones!`,
-          noBlocksDetected:
-            'La IA no pudo detectar bloques de horario en el documento o imagen. Asegúrate de que las horas y días sean legibles.',
-          unexpectedExtractionError: 'Error inesperado extrayendo el horario',
-          taskUpdated: 'Tarea actualizada en la base de datos',
-          changesSaved: 'Cambios guardados en la base de datos',
-          deleted: 'Bloque y categoría eliminados del calendario',
-          noAvailability: 'No hay disponibilidad marcada en esta semana para replicar.',
-          replicated: '¡Horario replicado con éxito!',
-          editTask: 'Editar tarea',
-          editBlock: 'Editar bloque',
-          newBlock: 'Nuevo bloque',
-          taskName: 'Nombre de tarea...',
-          blockName: 'Nombre / Nota...',
-          save: 'Guardar',
-          tasks: 'Tareas',
-          studying: 'Estudiando',
-          work: 'Trabajo',
-          rest: 'Descanso',
-          otherActivity: 'Otra actividad',
-          availabilityIntro:
-            'Si nos dices cuál es tu horario disponible podemos personalizar los planes de tu proyecto.',
-          uploadHint: 'Subir imagen o PDF de tu horario para que la IA lo monte automáticamente',
-          replicateHint: 'Copiar esta semana a otras fechas',
-          cannotMoveToPast: 'No se pueden mover bloques a fechas pasadas.',
-          conflict: (
-            title: string,
-            details?: {
-              taskTitle?: string;
-              duration?: number;
-              startTime?: string;
-              endTime?: string;
-              collisionSlot?: string;
-            },
-          ) =>
-            details?.taskTitle && details?.startTime && details?.endTime
-              ? `⚠️ Conflicto de horario: La tarea "${details.taskTitle}" requiere ${details.duration} min (de ${details.startTime} a ${details.endTime}, ocupando bloques continuos de 5 en 5 minutos). No se puede mover aquí porque el tramo a las ${details.collisionSlot || details.startTime} ya está ocupado por "${title}". Por favor selecciona un bloque con suficiente espacio continuo disponible.`
-              : `⚠️ Conflicto: El horario coincide con "${title}". Por favor intenta utilizar otra hora o bloque disponible.`,
-          taskScheduleUpdated: (title: string, time: string, day: string) =>
-            `¡Horario de "${title}" actualizado a ${time}${day}!`,
-          blockMoved: (title: string, time: string, day: string) =>
-            `¡${title} movido a ${time}${day}!`,
-          saveScheduleError: 'Error al persistir el nuevo horario en el servidor',
-        }
-      : {
-          back: 'Back',
-          upload: 'Upload schedule (AI)',
-          replicate: 'Copy schedule',
-          month: 'Copy to a specific month...',
-          year: 'Copy to every month',
-          specific: 'Copy to specific weeks...',
-          weeks: 'Specific weeks',
-          selectWeeks: 'Select the future weeks where you want to copy your current availability:',
-          weekOf: 'Week of',
-          noWeeks: 'There are no future weeks available this year.',
-          yearLabel: 'Year',
-          monthLabel: 'Month',
-          replicateMonthTitle: 'Copy to a specific month',
-          replicateMonthDescription: 'Choose the month where you want to copy this week’s availability.',
-          replicateConfirm: 'Copy',
-          scheduleReplication: 'Where would you like to copy this schedule?',
-          allMonths: 'Every month (default)',
-          specificMonth: 'Only in a specific month',
-          chooseWeeks: 'Select the weeks:',
-          fileFormats: 'PNG, JPG, WEBP, or PDF (up to 20 MB)',
-          noActiveProjects: 'You do not have active projects to create a task.',
-          selectProject: 'Select a project',
-          creatingTask: 'Creating task...',
-          newTask: 'New task',
-          createTaskError: 'Could not create the task',
-          cancel: 'Cancel',
-          apply: 'Apply schedule',
-          googleConnect: 'Connect Google Calendar',
-          googleConnected: 'Connected to Google',
-          googleDisconnect: 'Disconnect',
-          googleSynced: 'Google Calendar synced successfully',
-          googleDisconnected: 'Google Calendar disconnected',
-          googleConnectionError: 'Could not connect to Google Calendar',
-          uploadTitle: 'Upload schedule with Gemini AI',
-          uploadSubtitle: 'Automatically extract your classes or shifts',
-          uploadDescription:
-            'Upload a photo, screenshot (.png, .jpg), or PDF of your school, university, or work schedule. AI will extract its days and time blocks so they appear in your calendar.',
-          scheduleType: 'What kind of schedule would you like to add?',
-          workSchedule: 'Work schedule',
-          studySchedule: 'Study schedule',
-          workCategory: 'Category: Work',
-          studyCategory: 'Category: Study',
-          dropFile: 'Click or drag your file here',
-          remove: 'Remove',
-          processSchedule: 'Process and add schedule',
-          optimizing: 'Optimizing document/image...',
-          analyzing: 'Analyzing schedule with Gemini AI...',
-          selectFile: 'Please select an image or PDF document with your schedule.',
-          processError: 'Could not process the schedule',
-          uploadSuccess: (count: number) =>
-            `${count} time blocks were detected and added to your calendar successfully!`,
-          uploadAndRescheduleSuccess: (count: number, rescheduledCount: number) =>
-            `${count} time blocks were added and AI automatically rescheduled ${rescheduledCount} task(s) to avoid conflicts!`,
-          noBlocksDetected:
-            'AI could not detect schedule blocks in the document or image. Make sure the days and times are readable.',
-          unexpectedExtractionError: 'Unexpected error while extracting the schedule',
-          taskUpdated: 'Task updated in the database',
-          changesSaved: 'Changes saved in the database',
-          deleted: 'Block and category removed from the calendar',
-          noAvailability: 'There is no availability marked this week to copy.',
-          replicated: 'Schedule copied successfully!',
-          editTask: 'Edit task',
-          editBlock: 'Edit block',
-          newBlock: 'New block',
-          taskName: 'Task name...',
-          blockName: 'Name / note...',
-          save: 'Save',
-          tasks: 'Tasks',
-          studying: 'Studying',
-          work: 'Work',
-          rest: 'Rest',
-          otherActivity: 'Other activity',
-          availabilityIntro:
-            'Tell us when you are available so we can personalize your project plans.',
-          uploadHint: 'Upload an image or PDF of your schedule so AI can add it automatically',
-          replicateHint: 'Copy this week to other dates',
-          cannotMoveToPast: 'Blocks cannot be moved to past dates.',
-          conflict: (
-            title: string,
-            details?: {
-              taskTitle?: string;
-              duration?: number;
-              startTime?: string;
-              endTime?: string;
-              collisionSlot?: string;
-            },
-          ) =>
-            details?.taskTitle && details?.startTime && details?.endTime
-              ? `⚠️ Schedule conflict: The task "${details.taskTitle}" requires ${details.duration} min (from ${details.startTime} to ${details.endTime}, occupying continuous 5-minute blocks). It cannot be placed here because the slot at ${details.collisionSlot || details.startTime} is occupied by "${title}". Please choose a block with enough continuous free time.`
-              : `⚠️ Conflict: This time overlaps with "${title}". Please choose another time or available block.`,
-          taskScheduleUpdated: (title: string, time: string, day: string) =>
-            `"${title}" was rescheduled to ${time}${day}.`,
-          blockMoved: (title: string, time: string, day: string) =>
-            `${title} was moved to ${time}${day}.`,
-          saveScheduleError: 'Could not save the new schedule to the server',
-        },
+        ? {
+            back: 'Volver',
+            upload: 'Subir horario (IA)',
+            replicate: 'Replicar horario',
+            month: 'Replicar en un mes específico...',
+            year: 'Replicar en todos los meses',
+            specific: 'Replicar en semanas específicas...',
+            weeks: 'Semanas específicas',
+            selectWeeks:
+              'Selecciona a qué semanas futuras quieres copiar tu disponibilidad actual:',
+            weekOf: 'Semana del',
+            noWeeks: 'No hay semanas futuras disponibles en este año.',
+            yearLabel: 'Año',
+            monthLabel: 'Mes',
+            replicateMonthTitle: 'Replicar en un mes específico',
+            replicateMonthDescription:
+              'Selecciona el mes donde deseas replicar la disponibilidad de esta semana.',
+            replicateConfirm: 'Replicar',
+            scheduleReplication: '¿Dónde deseas replicar este horario?',
+            allMonths: 'En todos los meses (predeterminado)',
+            specificMonth: 'Solo en un mes específico',
+            chooseWeeks: 'Selecciona las semanas:',
+            fileFormats: 'PNG, JPG, WEBP o PDF (Hasta 20MB)',
+            noActiveProjects: 'No tienes proyectos activos para crear una tarea.',
+            selectProject: 'Selecciona un proyecto',
+            creatingTask: 'Creando tarea...',
+            newTask: 'Nueva tarea',
+            createTaskError: 'Error al crear la tarea',
+            cancel: 'Cancelar',
+            apply: 'Aplicar horario',
+            googleConnect: 'Conectar Google Calendar',
+            googleConnected: 'Conectado a Google',
+            googleDisconnect: 'Desconectar',
+            googleSynced: 'Google Calendar sincronizado correctamente',
+            googleDisconnected: 'Google Calendar desconectado',
+            googleConnectionError: 'Error al conectar con Google Calendar',
+            uploadTitle: 'Cargar horario con Gemini AI',
+            uploadSubtitle: 'Extrae automáticamente tus materias o turnos',
+            uploadDescription:
+              'Sube una foto, captura de pantalla (.png, .jpg) o documento PDF de tu horario escolar, universitario o laboral. La IA extraerá los días y bloques horarios para que queden reflejados en tu calendario.',
+            scheduleType: '¿Qué tipo de horario deseas agregar?',
+            workSchedule: 'De trabajo',
+            studySchedule: 'De estudio',
+            workCategory: 'Categoría: Trabajo',
+            studyCategory: 'Categoría: Estudio',
+            dropFile: 'Haz clic o arrastra tu archivo aquí',
+            remove: 'Quitar',
+            processSchedule: 'Procesar y montar horario',
+            optimizing: 'Optimizando documento/imagen...',
+            analyzing: 'Analizando horario con IA Gemini...',
+            selectFile: 'Por favor selecciona una imagen o documento PDF con tu horario.',
+            processError: 'Error al procesar el horario',
+            uploadSuccess: (count: number) =>
+              `¡Se detectaron y agregaron ${count} bloques a tu calendario con éxito!`,
+            uploadAndRescheduleSuccess: (count: number, rescheduledCount: number) =>
+              `¡Se agregaron ${count} bloques a tu horario y la IA reagendó automáticamente ${rescheduledCount} tarea(s) para evitar colisiones!`,
+            noBlocksDetected:
+              'La IA no pudo detectar bloques de horario en el documento o imagen. Asegúrate de que las horas y días sean legibles.',
+            unexpectedExtractionError: 'Error inesperado extrayendo el horario',
+            taskUpdated: 'Tarea actualizada en la base de datos',
+            changesSaved: 'Cambios guardados en la base de datos',
+            deleted: 'Bloque y categoría eliminados del calendario',
+            noAvailability: 'No hay disponibilidad marcada en esta semana para replicar.',
+            replicated: '¡Horario replicado con éxito!',
+            editTask: 'Editar tarea',
+            editBlock: 'Editar bloque',
+            newBlock: 'Nuevo bloque',
+            taskName: 'Nombre de tarea...',
+            blockName: 'Nombre / Nota...',
+            save: 'Guardar',
+            tasks: 'Tareas',
+            studying: 'Estudiando',
+            work: 'Trabajo',
+            rest: 'Descanso',
+            otherActivity: 'Otra actividad',
+            availabilityIntro:
+              'Si nos dices cuál es tu horario disponible podemos personalizar los planes de tu proyecto.',
+            uploadHint: 'Subir imagen o PDF de tu horario para que la IA lo monte automáticamente',
+            replicateHint: 'Copiar esta semana a otras fechas',
+            cannotMoveToPast: 'No se pueden mover bloques a fechas pasadas.',
+            conflict: (
+              title: string,
+              details?: {
+                taskTitle?: string;
+                duration?: number;
+                startTime?: string;
+                endTime?: string;
+                collisionSlot?: string;
+              },
+            ) =>
+              details?.taskTitle && details?.startTime && details?.endTime
+                ? `⚠️ Conflicto de horario: La tarea "${details.taskTitle}" requiere ${details.duration} min (de ${details.startTime} a ${details.endTime}, ocupando bloques continuos de 5 en 5 minutos). No se puede mover aquí porque el tramo a las ${details.collisionSlot || details.startTime} ya está ocupado por "${title}". Por favor selecciona un bloque con suficiente espacio continuo disponible.`
+                : `⚠️ Conflicto: El horario coincide con "${title}". Por favor intenta utilizar otra hora o bloque disponible.`,
+            taskScheduleUpdated: (title: string, time: string, day: string) =>
+              `¡Horario de "${title}" actualizado a ${time}${day}!`,
+            blockMoved: (title: string, time: string, day: string) =>
+              `¡${title} movido a ${time}${day}!`,
+            saveScheduleError: 'Error al persistir el nuevo horario en el servidor',
+          }
+        : {
+            back: 'Back',
+            upload: 'Upload schedule (AI)',
+            replicate: 'Copy schedule',
+            month: 'Copy to a specific month...',
+            year: 'Copy to every month',
+            specific: 'Copy to specific weeks...',
+            weeks: 'Specific weeks',
+            selectWeeks:
+              'Select the future weeks where you want to copy your current availability:',
+            weekOf: 'Week of',
+            noWeeks: 'There are no future weeks available this year.',
+            yearLabel: 'Year',
+            monthLabel: 'Month',
+            replicateMonthTitle: 'Copy to a specific month',
+            replicateMonthDescription:
+              'Choose the month where you want to copy this week’s availability.',
+            replicateConfirm: 'Copy',
+            scheduleReplication: 'Where would you like to copy this schedule?',
+            allMonths: 'Every month (default)',
+            specificMonth: 'Only in a specific month',
+            chooseWeeks: 'Select the weeks:',
+            fileFormats: 'PNG, JPG, WEBP, or PDF (up to 20 MB)',
+            noActiveProjects: 'You do not have active projects to create a task.',
+            selectProject: 'Select a project',
+            creatingTask: 'Creating task...',
+            newTask: 'New task',
+            createTaskError: 'Could not create the task',
+            cancel: 'Cancel',
+            apply: 'Apply schedule',
+            googleConnect: 'Connect Google Calendar',
+            googleConnected: 'Connected to Google',
+            googleDisconnect: 'Disconnect',
+            googleSynced: 'Google Calendar synced successfully',
+            googleDisconnected: 'Google Calendar disconnected',
+            googleConnectionError: 'Could not connect to Google Calendar',
+            uploadTitle: 'Upload schedule with Gemini AI',
+            uploadSubtitle: 'Automatically extract your classes or shifts',
+            uploadDescription:
+              'Upload a photo, screenshot (.png, .jpg), or PDF of your school, university, or work schedule. AI will extract its days and time blocks so they appear in your calendar.',
+            scheduleType: 'What kind of schedule would you like to add?',
+            workSchedule: 'Work schedule',
+            studySchedule: 'Study schedule',
+            workCategory: 'Category: Work',
+            studyCategory: 'Category: Study',
+            dropFile: 'Click or drag your file here',
+            remove: 'Remove',
+            processSchedule: 'Process and add schedule',
+            optimizing: 'Optimizing document/image...',
+            analyzing: 'Analyzing schedule with Gemini AI...',
+            selectFile: 'Please select an image or PDF document with your schedule.',
+            processError: 'Could not process the schedule',
+            uploadSuccess: (count: number) =>
+              `${count} time blocks were detected and added to your calendar successfully!`,
+            uploadAndRescheduleSuccess: (count: number, rescheduledCount: number) =>
+              `${count} time blocks were added and AI automatically rescheduled ${rescheduledCount} task(s) to avoid conflicts!`,
+            noBlocksDetected:
+              'AI could not detect schedule blocks in the document or image. Make sure the days and times are readable.',
+            unexpectedExtractionError: 'Unexpected error while extracting the schedule',
+            taskUpdated: 'Task updated in the database',
+            changesSaved: 'Changes saved in the database',
+            deleted: 'Block and category removed from the calendar',
+            noAvailability: 'There is no availability marked this week to copy.',
+            replicated: 'Schedule copied successfully!',
+            editTask: 'Edit task',
+            editBlock: 'Edit block',
+            newBlock: 'New block',
+            taskName: 'Task name...',
+            blockName: 'Name / note...',
+            save: 'Save',
+            tasks: 'Tasks',
+            studying: 'Studying',
+            work: 'Work',
+            rest: 'Rest',
+            otherActivity: 'Other activity',
+            availabilityIntro:
+              'Tell us when you are available so we can personalize your project plans.',
+            uploadHint: 'Upload an image or PDF of your schedule so AI can add it automatically',
+            replicateHint: 'Copy this week to other dates',
+            cannotMoveToPast: 'Blocks cannot be moved to past dates.',
+            conflict: (
+              title: string,
+              details?: {
+                taskTitle?: string;
+                duration?: number;
+                startTime?: string;
+                endTime?: string;
+                collisionSlot?: string;
+              },
+            ) =>
+              details?.taskTitle && details?.startTime && details?.endTime
+                ? `⚠️ Schedule conflict: The task "${details.taskTitle}" requires ${details.duration} min (from ${details.startTime} to ${details.endTime}, occupying continuous 5-minute blocks). It cannot be placed here because the slot at ${details.collisionSlot || details.startTime} is occupied by "${title}". Please choose a block with enough continuous free time.`
+                : `⚠️ Conflict: This time overlaps with "${title}". Please choose another time or available block.`,
+            taskScheduleUpdated: (title: string, time: string, day: string) =>
+              `"${title}" was rescheduled to ${time}${day}.`,
+            blockMoved: (title: string, time: string, day: string) =>
+              `${title} was moved to ${time}${day}.`,
+            saveScheduleError: 'Could not save the new schedule to the server',
+          },
     [locale],
   );
   const router = useRouter();
@@ -1257,7 +1258,6 @@ export default function CalendarioPage() {
       }
 
       if (data.bloques && data.bloques.length > 0) {
-
         // Recargar eventos de Supabase para reflejar de inmediato tareas reagendadas por IA
         await loadCalendarEventsFromSupabase();
 
@@ -1410,7 +1410,6 @@ export default function CalendarioPage() {
 
     const clickStartIdx = getSlotIndex(timeStr);
     const clickEndIdx = isCollapsedHour ? clickStartIdx + 11 : clickStartIdx;
-
 
     const block = getBlockForCell(dateStr, timeStr, isCollapsedHour);
 
@@ -2263,7 +2262,9 @@ export default function CalendarioPage() {
                   </p>
 
                   <div className="mb-4">
-                    <label className="text-sm font-bold text-[#845326] block mb-2">{copy.yearLabel}</label>
+                    <label className="text-sm font-bold text-[#845326] block mb-2">
+                      {copy.yearLabel}
+                    </label>
                     <select
                       value={selectedWeeksYear}
                       onChange={(e) => {
@@ -2343,16 +2344,16 @@ export default function CalendarioPage() {
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#2C1F14]/40 backdrop-blur-sm animate-in fade-in duration-200">
               <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col max-h-[80vh] border border-[#EAE3DC]">
                 <div className="p-5 border-b border-[#EAE3DC] bg-[#FDFBF9]">
-                  <h3 className="text-lg font-bold text-[#433022]">
-                    {copy.replicateMonthTitle}
-                  </h3>
+                  <h3 className="text-lg font-bold text-[#433022]">{copy.replicateMonthTitle}</h3>
                   <p className="text-sm text-on-surface-variant mt-1">
                     {copy.replicateMonthDescription}
                   </p>
                 </div>
                 <div className="p-5 flex-1 overflow-y-auto space-y-4">
                   <div>
-                    <label className="text-sm font-bold text-[#845326] block mb-2">{copy.yearLabel}</label>
+                    <label className="text-sm font-bold text-[#845326] block mb-2">
+                      {copy.yearLabel}
+                    </label>
                     <select
                       value={selectedReplicateYear}
                       onChange={(e) => setSelectedReplicateYear(Number(e.target.value))}
@@ -2369,7 +2370,9 @@ export default function CalendarioPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-sm font-bold text-[#845326] block mb-2">{copy.monthLabel}</label>
+                    <label className="text-sm font-bold text-[#845326] block mb-2">
+                      {copy.monthLabel}
+                    </label>
                     <select
                       value={selectedReplicateMonth}
                       onChange={(e) => setSelectedReplicateMonth(Number(e.target.value))}
@@ -2581,7 +2584,7 @@ export default function CalendarioPage() {
                           >
                             {Array.from({ length: 12 }).map((_, i) => (
                               <option key={i} value={i}>
-                              {format(new Date(2024, i, 1), 'MMMM', { locale: dateLocale })}
+                                {format(new Date(2024, i, 1), 'MMMM', { locale: dateLocale })}
                               </option>
                             ))}
                           </select>
@@ -2668,9 +2671,7 @@ export default function CalendarioPage() {
                     <p className="text-sm font-bold text-[#2C1F14]">
                       {uploadFile ? uploadFile.name : copy.dropFile}
                     </p>
-                    <p className="text-xs text-[#845326] mt-1 font-medium">
-                      {copy.fileFormats}
-                    </p>
+                    <p className="text-xs text-[#845326] mt-1 font-medium">{copy.fileFormats}</p>
                   </div>
 
                   {uploadFile && (
@@ -2801,8 +2802,7 @@ export default function CalendarioPage() {
                       const isHourEnd = timeStr.endsWith(':55');
 
                       const isCollapsedHour =
-                        isHourStart &&
-                        !expandedHours.includes(parseInt(timeStr.split(':')[0], 10));
+                        isHourStart && !expandedHours.includes(parseInt(timeStr.split(':')[0], 10));
                       let macroAvailCount = 0;
                       let macroFirstAvail: Availability | undefined;
                       if (isCollapsedHour) {
@@ -2839,28 +2839,28 @@ export default function CalendarioPage() {
 
                       const isSelected = Boolean(
                         selectedBlock &&
-                          selectedBlock.date === dateStr &&
-                          ((selectedBlock.eventId &&
-                            effectiveAvail?.eventId === selectedBlock.eventId) ||
-                            (selectedBlock.blockId &&
-                              effectiveAvail?.blockId === selectedBlock.blockId) ||
-                            (selectedStartIdx !== -1 &&
-                              selectedEndIdx !== -1 &&
-                              slotIdx >= selectedStartIdx &&
-                              slotIdx < selectedEndIdx)),
+                        selectedBlock.date === dateStr &&
+                        ((selectedBlock.eventId &&
+                          effectiveAvail?.eventId === selectedBlock.eventId) ||
+                          (selectedBlock.blockId &&
+                            effectiveAvail?.blockId === selectedBlock.blockId) ||
+                          (selectedStartIdx !== -1 &&
+                            selectedEndIdx !== -1 &&
+                            slotIdx >= selectedStartIdx &&
+                            slotIdx < selectedEndIdx)),
                       );
 
                       const isDropTarget =
                         dragOverCell?.date === dateStr && dragOverCell?.time === timeStr;
                       const isBeingDragged = Boolean(
                         draggedTask &&
-                          draggedTask.sourceDate === dateStr &&
-                          ((draggedTask.eventId && effectiveAvail?.eventId === draggedTask.eventId) ||
-                            (!draggedTask.eventId &&
-                              draggedStartIdx !== -1 &&
-                              draggedEndIdx !== -1 &&
-                              slotIdx >= draggedStartIdx &&
-                              slotIdx < draggedEndIdx)),
+                        draggedTask.sourceDate === dateStr &&
+                        ((draggedTask.eventId && effectiveAvail?.eventId === draggedTask.eventId) ||
+                          (!draggedTask.eventId &&
+                            draggedStartIdx !== -1 &&
+                            draggedEndIdx !== -1 &&
+                            slotIdx >= draggedStartIdx &&
+                            slotIdx < draggedEndIdx)),
                       );
 
                       const displayLabel = effectiveAvail?.label
@@ -3195,7 +3195,9 @@ export default function CalendarioPage() {
                     });
 
                     if (res.success && res.task?.id) {
-                      router.push(`${localizedProjectHref(locale, proj.id)}?editTask=${res.task.id}`);
+                      router.push(
+                        `${localizedProjectHref(locale, proj.id)}?editTask=${res.task.id}`,
+                      );
                     } else if (res.success) {
                       router.push(localizedProjectHref(locale, proj.id));
                     } else {

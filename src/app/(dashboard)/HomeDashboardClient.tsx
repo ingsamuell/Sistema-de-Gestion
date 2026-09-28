@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, Variants } from 'framer-motion';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -66,88 +66,92 @@ export function HomeDashboardClient({
 }: HomeDashboardClientProps) {
   const pathname = usePathname();
   const locale = getLocaleFromPathname(pathname) ?? defaultLocale;
-  const copy =
-    locale === 'es'
-      ? {
-          morning: '¡Buenos días',
-          afternoon: '¡Buenas tardes',
-          evening: '¡Buenas noches',
-          noTasks:
-            'No tienes tareas pendientes próximas. Disfruta tu tiempo libre o explora nuevos temas.',
-          oneTask: 'Tienes 1 tarea pendiente en tu lista. Concéntrate y avanza a tu ritmo.',
-          manyTasks: (count: number) =>
-            `Tienes ${count} tareas pendientes en tu lista. Respeta tus ritmos y tiempos de descanso.`,
-          center: 'Tu centro de operaciones académico',
-          centerDescription:
-            'Sincroniza tus eventos en tiempo real con Google Calendar, organiza bloques de estudio y gestiona proyectos con IA integrada.',
-          viewCalendar: 'Ver calendario',
-          streakTip: 'Días consecutivos marcando tareas como completadas',
-          streak: 'Racha',
-          day: 'día',
-          days: 'días',
-          habit: 'Hábito consolidado',
-          weekTip: 'Horas acumuladas de estudio o trabajo durante esta semana',
-          week: 'Esta semana',
-          activity: 'Actividad de L a D',
-          progressTip: 'Tareas terminadas hoy en relación a lo planificado para el día',
-          progress: 'Progreso hoy',
-          completed: 'completado',
-          noAssigned: 'Sin tareas asignadas',
-          paceTip: 'Tasa global de éxito: total de tareas completadas de tu cuenta',
-          pace: 'Ritmo global',
-          compliance: 'Tasa de cumplimiento',
-          today: 'Tareas de hoy',
-          noneToday: 'No tienes tareas pendientes para hoy.',
-          pending: (count: number) => `${count} pendientes por abordar`,
-          viewAll: 'Ver todas',
-          noTime: 'Sin hora',
-          noProject: 'Sin proyecto',
-          priority: 'Prioritario',
-          next: 'Siguiente turno',
-          start: 'Iniciar tarea',
-          clear: '¡Todo al día! Has completado tus tareas o no tienes nada programado para hoy.',
-          dateFormat: "EEEE, d 'de' MMMM 'de' yyyy",
-        }
-      : {
-          morning: 'Good morning',
-          afternoon: 'Good afternoon',
-          evening: 'Good evening',
-          noTasks: 'You have no upcoming tasks. Enjoy your free time or explore new topics.',
-          oneTask: 'You have 1 pending task on your list. Focus and move forward at your own pace.',
-          manyTasks: (count: number) =>
-            `You have ${count} pending tasks on your list. Respect your rhythms and rest time.`,
-          center: 'Your academic operations center',
-          centerDescription:
-            'Sync your events with Google Calendar in real time, organize study blocks, and manage projects with integrated AI.',
-          viewCalendar: 'View calendar',
-          streakTip: 'Consecutive days marking tasks as completed',
-          streak: 'Streak',
-          day: 'day',
-          days: 'days',
-          habit: 'Habit built',
-          weekTip: 'Accumulated study or work hours this week',
-          week: 'This week',
-          activity: 'Activity Mon–Sun',
-          progressTip: 'Tasks completed today compared with what was planned',
-          progress: 'Today’s progress',
-          completed: 'completed',
-          noAssigned: 'No tasks assigned',
-          paceTip: 'Overall completion rate for tasks in your account',
-          pace: 'Overall pace',
-          compliance: 'Completion rate',
-          today: 'Today’s tasks',
-          noneToday: 'You have no pending tasks for today.',
-          pending: (count: number) => `${count} pending to tackle`,
-          viewAll: 'View all',
-          noTime: 'No time',
-          noProject: 'No project',
-          priority: 'Priority',
-          next: 'Next up',
-          start: 'Start task',
-          clear:
-            'All caught up! You have completed your tasks or have nothing scheduled for today.',
-          dateFormat: 'EEEE, MMMM d, yyyy',
-        };
+  const copy = useMemo(
+    () =>
+      locale === 'es'
+        ? {
+            morning: '¡Buenos días',
+            afternoon: '¡Buenas tardes',
+            evening: '¡Buenas noches',
+            noTasks:
+              'No tienes tareas pendientes próximas. Disfruta tu tiempo libre o explora nuevos temas.',
+            oneTask: 'Tienes 1 tarea pendiente en tu lista. Concéntrate y avanza a tu ritmo.',
+            manyTasks: (count: number) =>
+              `Tienes ${count} tareas pendientes en tu lista. Respeta tus ritmos y tiempos de descanso.`,
+            center: 'Tu centro de operaciones académico',
+            centerDescription:
+              'Sincroniza tus eventos en tiempo real con Google Calendar, organiza bloques de estudio y gestiona proyectos con IA integrada.',
+            viewCalendar: 'Ver calendario',
+            streakTip: 'Días consecutivos marcando tareas como completadas',
+            streak: 'Racha',
+            day: 'día',
+            days: 'días',
+            habit: 'Hábito consolidado',
+            weekTip: 'Horas acumuladas de estudio o trabajo durante esta semana',
+            week: 'Esta semana',
+            activity: 'Actividad de L a D',
+            progressTip: 'Tareas terminadas hoy en relación a lo planificado para el día',
+            progress: 'Progreso hoy',
+            completed: 'completado',
+            noAssigned: 'Sin tareas asignadas',
+            paceTip: 'Tasa global de éxito: total de tareas completadas de tu cuenta',
+            pace: 'Ritmo global',
+            compliance: 'Tasa de cumplimiento',
+            today: 'Tareas de hoy',
+            noneToday: 'No tienes tareas pendientes para hoy.',
+            pending: (count: number) => `${count} pendientes por abordar`,
+            viewAll: 'Ver todas',
+            noTime: 'Sin hora',
+            noProject: 'Sin proyecto',
+            priority: 'Prioritario',
+            next: 'Siguiente turno',
+            start: 'Iniciar tarea',
+            clear: '¡Todo al día! Has completado tus tareas o no tienes nada programado para hoy.',
+            dateFormat: "EEEE, d 'de' MMMM 'de' yyyy",
+          }
+        : {
+            morning: 'Good morning',
+            afternoon: 'Good afternoon',
+            evening: 'Good evening',
+            noTasks: 'You have no upcoming tasks. Enjoy your free time or explore new topics.',
+            oneTask:
+              'You have 1 pending task on your list. Focus and move forward at your own pace.',
+            manyTasks: (count: number) =>
+              `You have ${count} pending tasks on your list. Respect your rhythms and rest time.`,
+            center: 'Your academic operations center',
+            centerDescription:
+              'Sync your events with Google Calendar in real time, organize study blocks, and manage projects with integrated AI.',
+            viewCalendar: 'View calendar',
+            streakTip: 'Consecutive days marking tasks as completed',
+            streak: 'Streak',
+            day: 'day',
+            days: 'days',
+            habit: 'Habit built',
+            weekTip: 'Accumulated study or work hours this week',
+            week: 'This week',
+            activity: 'Activity Mon–Sun',
+            progressTip: 'Tasks completed today compared with what was planned',
+            progress: 'Today’s progress',
+            completed: 'completed',
+            noAssigned: 'No tasks assigned',
+            paceTip: 'Overall completion rate for tasks in your account',
+            pace: 'Overall pace',
+            compliance: 'Completion rate',
+            today: 'Today’s tasks',
+            noneToday: 'You have no pending tasks for today.',
+            pending: (count: number) => `${count} pending to tackle`,
+            viewAll: 'View all',
+            noTime: 'No time',
+            noProject: 'No project',
+            priority: 'Priority',
+            next: 'Next up',
+            start: 'Start task',
+            clear:
+              'All caught up! You have completed your tasks or have nothing scheduled for today.',
+            dateFormat: 'EEEE, MMMM d, yyyy',
+          },
+    [locale],
+  );
   const [greeting, setGreeting] = useState('¡Buenos días');
   const [currentDate, setCurrentDate] = useState('');
 
