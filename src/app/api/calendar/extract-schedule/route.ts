@@ -5,12 +5,17 @@ import {
   rescheduleConflictingCalendarTasksWithGemini,
 } from '@/services/ai/scheduleAiService';
 import { z } from 'zod';
+import { eachDayOfInterval, endOfMonth, parseISO, format, addDays } from 'date-fns';
 
 const extractScheduleBodySchema = z.object({
   base64Data: z.string().min(1, 'El contenido base64 es requerido'),
   mimeType: z.string().min(1, 'El mimeType es requerido'),
   guardarEnDisponibilidad: z.boolean().optional().default(true),
   categoria: z.enum(['trabajo', 'estudio']).optional(),
+  replicarOpcion: z.enum(['mes', 'todos', 'semanas']).optional().default('todos'),
+  semanasEspecificas: z.array(z.string()).optional(),
+  mesEspecifico: z.number().optional(),
+  anoEspecifico: z.number().optional(),
 });
 
 /**
@@ -43,7 +48,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { base64Data, mimeType, guardarEnDisponibilidad, categoria } = parsed.data;
+    const {
+      base64Data,
+      mimeType,
+      guardarEnDisponibilidad,
+      categoria,
+      replicarOpcion,
+      semanasEspecificas,
+      mesEspecifico,
+      anoEspecifico,
+    } = parsed.data;
 
     // Ejecutar extracción con visión multimodal de Gemini
     const resultado = await extractScheduleFromImageWithGemini({
@@ -61,14 +75,94 @@ export async function POST(req: NextRequest) {
     let reagendamientoResult = null;
 
     if (guardarEnDisponibilidad && bloquesConCategoria.length > 0) {
-      const inserts = bloquesConCategoria.map((b) => ({
-        usuario_id: user.id,
-        dia_semana: b.dia_semana,
-        hora_inicio: b.hora_inicio,
-        hora_fin: b.hora_fin,
-        tipo: b.tipo,
-        origen: 'extraido_ia' as const,
-      }));
+      // 1. Eliminar bloques previos de estudio y trabajo en bloques_disponibilidad
+      const { error: deleteDispErr } = await supabase
+        .from('bloques_disponibilidad')
+        .delete()
+        .eq('usuario_id', user.id)
+        .in('tipo', ['estudio', 'trabajo', 'estudiando']);
+
+      if (deleteDispErr) {
+        console.warn('Advertencia eliminando bloques de bloques_disponibilidad:', deleteDispErr);
+      }
+
+      // 2. Eliminar bloques previos de estudio y trabajo en calendar_availability
+      try {
+        const { data: calData } = await supabase
+          .from('calendar_availability')
+          .select('availability')
+          .eq('user_id', user.id)
+          .single();
+
+        if (calData?.availability?.blocks) {
+          const newBlocks = calData.availability.blocks.filter(
+            (b: { type?: string }) =>
+              b.type !== 'estudio' && b.type !== 'trabajo' && b.type !== 'estudiando',
+          );
+          await supabase
+            .from('calendar_availability')
+            .update({ availability: { blocks: newBlocks } })
+            .eq('user_id', user.id);
+        }
+      } catch (calErr) {
+        console.warn('Advertencia limpiando calendar_availability:', calErr);
+      }
+
+      let inserts: {
+        usuario_id: string;
+        dia_semana?: number;
+        fecha_especifica?: string;
+        hora_inicio: string;
+        hora_fin: string;
+        tipo: string;
+        origen: 'extraido_ia';
+      }[] = [];
+
+      if (replicarOpcion === 'todos') {
+        inserts = bloquesConCategoria.map((b) => ({
+          usuario_id: user.id,
+          dia_semana: b.dia_semana,
+          hora_inicio: b.hora_inicio,
+          hora_fin: b.hora_fin,
+          tipo: b.tipo,
+          origen: 'extraido_ia',
+        }));
+      } else {
+        const today = new Date();
+        let targetDates: Date[] = [];
+
+        if (replicarOpcion === 'mes') {
+          const targetMonth = mesEspecifico !== undefined ? mesEspecifico : today.getMonth();
+          const targetYear =
+            anoEspecifico !== undefined
+              ? anoEspecifico
+              : targetMonth < today.getMonth()
+                ? today.getFullYear() + 1
+                : today.getFullYear();
+          const targetDate = new Date(targetYear, targetMonth, 1);
+          targetDates = eachDayOfInterval({ start: targetDate, end: endOfMonth(targetDate) });
+        } else if (replicarOpcion === 'semanas' && semanasEspecificas) {
+          semanasEspecificas.forEach((weekStartIso) => {
+            const weekStart = parseISO(weekStartIso);
+            const weekDates = eachDayOfInterval({ start: weekStart, end: addDays(weekStart, 6) });
+            targetDates.push(...weekDates);
+          });
+        }
+
+        bloquesConCategoria.forEach((b) => {
+          const matchingDates = targetDates.filter((d) => d.getDay() === b.dia_semana);
+          matchingDates.forEach((d) => {
+            inserts.push({
+              usuario_id: user.id,
+              fecha_especifica: format(d, 'yyyy-MM-dd'),
+              hora_inicio: b.hora_inicio,
+              hora_fin: b.hora_fin,
+              tipo: b.tipo,
+              origen: 'extraido_ia',
+            });
+          });
+        });
+      }
 
       const { error: insertErr } = await supabase.from('bloques_disponibilidad').insert(inserts);
 

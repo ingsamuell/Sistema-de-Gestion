@@ -157,16 +157,16 @@ export function TaskItemCard({
       <div className="flex-shrink-0 pt-1">
         <button
           onClick={handleToggle}
-          disabled={isUpdating}
+          disabled={isUpdating || isCompleted}
           className={`
-            w-7 h-7 rounded-md flex items-center justify-center transition-colors border-2 cursor-pointer
+            w-7 h-7 rounded-md flex items-center justify-center transition-colors border-2
             ${
               isCompleted
-                ? 'bg-[#845326] border-[#845326] text-white'
-                : 'border-[#d2c4bb] bg-transparent hover:border-[#845326]'
+                ? 'bg-[#845326] border-[#845326] text-white cursor-default opacity-80'
+                : 'border-[#d2c4bb] bg-transparent hover:border-[#845326] cursor-pointer'
             }
           `}
-          aria-label={isCompleted ? 'Marcar como incompleta' : 'Marcar como completa'}
+          aria-label={isCompleted ? 'Tarea completada' : 'Marcar como completa'}
         >
           {isCompleted && <Check className="size-4" strokeWidth={3} />}
         </button>
@@ -318,10 +318,15 @@ export function TaskItemCard({
             <button
               type="button"
               onClick={() => onEditTask(task)}
-              className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#f5e5d9] hover:bg-[#E8DCD1] text-[#845326] hover:text-[#433022] px-3.5 py-1.5 text-xs font-bold border border-[#dccbbd]/80 shadow-xs hover:shadow-sm transition-all hover:-translate-y-0.5 active:scale-95 cursor-pointer"
-              title="Editar tarea"
+              disabled={isCompleted}
+              className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold border transition-all ${
+                isCompleted
+                  ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-60'
+                  : 'bg-[#f5e5d9] hover:bg-[#E8DCD1] text-[#845326] hover:text-[#433022] border-[#dccbbd]/80 shadow-xs hover:shadow-sm hover:-translate-y-0.5 active:scale-95 cursor-pointer'
+              }`}
+              title={isCompleted ? 'No se puede editar una tarea completada' : 'Editar tarea'}
             >
-              <Pencil className="size-3.5 text-[#845326]" />
+              <Pencil className={`size-3.5 ${isCompleted ? 'text-gray-400' : 'text-[#845326]'}`} />
               <span>Editar tarea</span>
             </button>
           )}

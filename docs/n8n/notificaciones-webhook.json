@@ -1,0 +1,64 @@
+{
+  "name": "notificaciones-webhook",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "task-completed",
+        "options": {}
+      },
+      "id": "webhook-supabase-trigger",
+      "name": "Webhook Supabase (task-completed)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 200],
+      "webhookId": "task-completed-supabase-webhook"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.APP_URL || 'http://localhost:3000' }}/webhooks/task-completed",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.WEBHOOK_SECRET || 'webhook_secret_aula_2026' }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body || $json) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "http-forward-backend",
+      "name": "HTTP Forward to Backend /webhooks/task-completed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 200]
+    }
+  ],
+  "connections": {
+    "Webhook Supabase (task-completed)": {
+      "main": [
+        [
+          {
+            "node": "HTTP Forward to Backend /webhooks/task-completed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

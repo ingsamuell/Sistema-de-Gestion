@@ -495,6 +495,19 @@ export default function ProjectDetailPage({
     setEditErrorMessage(null);
   };
 
+  useEffect(() => {
+    const editTaskId = searchParams.get('editTask');
+    if (editTaskId && project && !taskToEdit) {
+      const task = project.tasks.find((t) => t.id === editTaskId);
+      if (task) {
+        setTimeout(() => handleOpenEditModal(task), 0);
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, project, taskToEdit]);
+
   const handleGenerateTasksWithAI = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!project || isGeneratingWithAI) return;

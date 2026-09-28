@@ -96,6 +96,7 @@ export async function updateSession(request: NextRequest) {
   const isPasswordResetRoute =
     localizedPathname.startsWith('/restablecer-contrasena') ||
     localizedPathname.startsWith('/reset-password');
+  const isPublicServiceRoute = pathname.startsWith('/jobs/') || pathname.startsWith('/webhooks/');
   const isPublicRoute =
     localizedPathname === '/' ||
     localizedPathname.startsWith('/validar-certificado') ||
@@ -130,6 +131,7 @@ export async function updateSession(request: NextRequest) {
     !isAuthRoute &&
     !isAuthCallback &&
     !isApiRoute &&
+    !isPublicServiceRoute &&
     !isPasswordResetRoute &&
     !isPublicRoute &&
     !isServerAction
@@ -152,6 +154,7 @@ export async function updateSession(request: NextRequest) {
     !localizedPathname.startsWith('/verify-email') &&
     !isAuthCallback &&
     !isApiRoute &&
+    !isPublicServiceRoute &&
     !isServerAction
   ) {
     const url = request.nextUrl.clone();
