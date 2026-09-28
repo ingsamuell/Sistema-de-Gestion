@@ -13,6 +13,8 @@ import { localizedHref } from '@/lib/i18n/routes';
 interface UserProfileButtonProps {
   initialUser?: User | null;
   compact?: boolean;
+  minimal?: boolean;
+  showLogout?: boolean;
 }
 
 interface ProfileOverride {
@@ -21,7 +23,12 @@ interface ProfileOverride {
   avatarUrl?: string;
 }
 
-export function UserProfileButton({ initialUser, compact = false }: UserProfileButtonProps) {
+export function UserProfileButton({
+  initialUser,
+  compact = false,
+  minimal = false,
+  showLogout = false,
+}: UserProfileButtonProps) {
   const router = useRouter();
   const pathname = usePathname();
   const locale = getLocaleFromPathname(pathname) ?? defaultLocale;
@@ -159,6 +166,41 @@ export function UserProfileButton({ initialUser, compact = false }: UserProfileB
     router.push(localizedHref(locale, 'login'));
     router.refresh();
   };
+
+  if (minimal) {
+    return (
+      <div className="flex items-center gap-1">
+        <Link
+          href={localizedHref(locale, 'profile')}
+          aria-label={locale === 'es' ? 'Abrir perfil' : 'Open profile'}
+          className="flex size-9 items-center justify-center overflow-hidden rounded-full border border-outline-variant/30 bg-surface-container transition-colors hover:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+        >
+          {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={avatarUrl} alt="" className="size-full object-cover" />
+          ) : (
+            <span className="text-xs font-bold text-primary select-none">{initials}</span>
+          )}
+        </Link>
+        {showLogout && (
+          <button
+            type="button"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            title={locale === 'es' ? 'Cerrar sesión' : 'Log out'}
+            aria-label={locale === 'es' ? 'Cerrar sesión' : 'Log out'}
+            className="rounded-lg p-1.5 text-outline transition-colors hover:bg-error/10 hover:text-error"
+          >
+            {isLoggingOut ? (
+              <Loader2 className="size-4 animate-spin text-outline" />
+            ) : (
+              <LogOut className="size-4" />
+            )}
+          </button>
+        )}
+      </div>
+    );
+  }
 
   if (compact) {
     return (

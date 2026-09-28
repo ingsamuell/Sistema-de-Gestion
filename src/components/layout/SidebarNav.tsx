@@ -16,9 +16,9 @@ import {
   getProjectsAction,
   type ProjectRecord,
 } from '@/features/proyectos/actions/proyectoActions';
-import { useTourContext } from '@/contexts/TourContext';
 import { defaultLocale, getLocaleFromPathname } from '@/lib/i18n/locale';
 import { localizedHref, localizedProjectHref } from '@/lib/i18n/routes';
+import { useTourContext } from '@/contexts/TourContext';
 
 export function SidebarNav() {
   const pathname = usePathname();
@@ -178,8 +178,9 @@ export function SidebarNav() {
 
       {hasTour && (
         <button
+          type="button"
           onClick={startCurrentTour}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-on-surface hover:bg-surface-container mt-2"
+          className="mt-2 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-on-surface transition-colors hover:bg-surface-container"
         >
           <div className="text-outline">
             <HelpCircle className="size-5" />

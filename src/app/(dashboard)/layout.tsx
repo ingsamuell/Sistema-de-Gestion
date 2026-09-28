@@ -12,7 +12,6 @@ import { ToastProvider } from '@/components/ui/Toast';
 import { FocusSessionProvider } from '@/contexts/FocusSessionContext';
 import { TourProvider } from '@/contexts/TourContext';
 import { GlobalFocusBar } from '@/components/study/GlobalFocusBar';
-import { GlobalHelpButton } from '@/components/layout/GlobalHelpButton';
 import { headers } from 'next/headers';
 import { defaultLocale, isLocale } from '@/lib/i18n/locale';
 import { localizedHref } from '@/lib/i18n/routes';
@@ -61,26 +60,18 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
             <div className="flex-1 flex flex-col min-w-0">
               {/* Barra superior visible únicamente en móviles */}
-              <header className="md:hidden flex items-center justify-between px-4 py-3 border-b border-outline-variant/30 bg-surface sticky top-0 z-40">
-                <div className="flex items-center gap-2.5 shrink-0">
+              <header className="md:hidden flex items-center justify-between px-3 py-2.5 border-b border-outline-variant/30 bg-surface sticky top-0 z-40">
+                <div className="flex items-center gap-2 shrink-0">
                   <div className="bg-primary/10 p-1.5 rounded-lg text-primary">
                     <FolderKanban className="size-4" />
                   </div>
-                  <div>
-                    <h2 className="font-bold text-primary tracking-tight text-sm leading-none">
-                      Komorebi
-                    </h2>
-                    <p className="text-[9px] uppercase font-semibold text-accent-amber tracking-wider">
-                      Study Studio
-                    </p>
-                  </div>
+                  <h2 className="font-bold text-primary tracking-tight text-sm leading-none">
+                    Komorebi
+                  </h2>
                 </div>
-                <div className="flex items-center gap-1.5 md:gap-2 min-w-0 justify-end">
+                <div className="flex items-center gap-2 justify-end">
                   <DashboardLanguageSwitch compact />
-                  <GlobalHelpButton />
-                  <div className="min-w-0">
-                    <UserProfileButton initialUser={user} compact />
-                  </div>
+                  <UserProfileButton initialUser={user} minimal showLogout />
                 </div>
               </header>
 
