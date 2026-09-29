@@ -579,6 +579,7 @@ export default function ProjectDetailPage({
           description: t.descripcion || '',
           duration: t.duracion,
           startDate: t.fecha_inicio || undefined,
+          fechaLimite: t.fecha_limite || undefined,
           resourceUrl: t.resources || t.url_recomendada || null,
           isCompleted: Boolean(t.completado),
         }));
@@ -647,6 +648,7 @@ export default function ProjectDetailPage({
               description: t.descripcion || '',
               duration: t.duracion,
               startDate: t.fecha_inicio || null,
+              fechaLimite: t.fecha_limite || null,
               resourceUrl: t.resources || t.recurso_url || t.material_url || null,
               isCompleted: Boolean(t.completado),
               quizAprobado: Boolean(t.quiz_aprobado),
@@ -1027,6 +1029,7 @@ export default function ProjectDetailPage({
           description: res.task.descripcion || '',
           duration: res.task.duracion,
           startDate: res.task.fecha_inicio || fullStartDateTime,
+          fechaLimite: res.task.fecha_limite || null,
           resourceUrl:
             (res.task as TaskRecord & { resources?: string }).resources || combinedUrls || null,
           isCompleted: false,
@@ -1142,6 +1145,7 @@ export default function ProjectDetailPage({
           description: res.task.descripcion || '',
           duration: res.task.duracion,
           startDate: res.task.fecha_inicio || fullStartDateTime,
+          fechaLimite: res.task.fecha_limite || null,
           resourceUrl:
             (res.task as TaskRecord & { resources?: string }).resources || combinedUrls || null,
           isCompleted: taskToEdit.isCompleted,

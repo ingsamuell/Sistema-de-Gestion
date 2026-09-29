@@ -21,6 +21,7 @@ export interface UpcomingTask {
   duracion: number | null;
   prioridad: string | null;
   fecha_inicio: string | null;
+  fecha_limite?: string | null;
   project_titulo: string | null;
   id_proyecto: string;
 }

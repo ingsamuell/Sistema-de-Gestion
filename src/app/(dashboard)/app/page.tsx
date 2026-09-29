@@ -74,7 +74,7 @@ export default async function HomePage() {
     const { data: allTareas } = await supabase
       .from('tareas')
       .select(
-        'id, titulo, duracion, prioridad, fecha_inicio, id_proyecto, completado, completed_at',
+        'id, titulo, duracion, prioridad, fecha_inicio, fecha_limite, id_proyecto, completado, completed_at',
       )
       .in('id_proyecto', projectIds);
 
@@ -118,6 +118,7 @@ export default async function HomePage() {
           duracion: t.duracion,
           prioridad: t.prioridad,
           fecha_inicio: t.fecha_inicio,
+          fecha_limite: t.fecha_limite || null,
           project_titulo: project?.titulo || null,
           id_proyecto: t.id_proyecto,
         };
