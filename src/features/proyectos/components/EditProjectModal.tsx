@@ -38,7 +38,7 @@ export function EditProjectModal({ isOpen, onClose, project, onSuccess }: EditPr
           objective: 'Descripción u objetivo',
           objectiveHint: 'Describe la meta final de este proyecto...',
           deadline: 'Fecha límite',
-          deadlineHint: `Límite permitido hasta 10 años desde el año actual`,
+          deadlineHint: 'Límite permitido hasta 1 año desde hoy',
           cancel: 'Cancelar',
           saving: 'Guardando...',
           save: 'Guardar Cambios',
@@ -56,17 +56,17 @@ export function EditProjectModal({ isOpen, onClose, project, onSuccess }: EditPr
           objective: 'Description or objective',
           objectiveHint: 'Describe this project’s final goal...',
           deadline: 'Deadline',
-          deadlineHint: 'Deadline allowed up to 10 years from the current year',
+          deadlineHint: 'Deadline allowed up to 1 year from today',
           cancel: 'Cancel',
           saving: 'Saving...',
           save: 'Save changes',
           updateError: 'Could not update the project.',
           connectionError: 'Unexpected error connecting to the server.',
         };
-  const currentYear = new Date().getFullYear();
-  const maxYear = currentYear + 10;
+  const maxDate = new Date();
+  maxDate.setFullYear(maxDate.getFullYear() + 1);
   const todayStr = new Date().toISOString().split('T')[0];
-  const maxDateStr = `${maxYear}-12-31`;
+  const maxDateStr = maxDate.toISOString().split('T')[0];
 
   const initialDateStr = project.fecha_limite ? project.fecha_limite.split('T')[0] : '';
 
@@ -206,7 +206,7 @@ export function EditProjectModal({ isOpen, onClose, project, onSuccess }: EditPr
             </div>
             <p className="mt-1 text-xs text-[#845326]/80 font-medium flex items-center gap-1">
               <Calendar className="size-3" />
-              {copy.deadlineHint} ({maxYear}).
+              {copy.deadlineHint} ({maxDateStr}).
             </p>
           </div>
 

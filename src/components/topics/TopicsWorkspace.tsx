@@ -46,6 +46,7 @@ import { TopicModal } from './TopicModal';
 import { NoteModal } from './NoteModal';
 import { LinkProjectModal } from './LinkProjectModal';
 import { useTopicsTour } from '@/hooks/useTopicsTour';
+import { hasObsceneContent } from '@/lib/moderation/clientModeration';
 import { defaultLocale, getLocaleFromPathname } from '@/lib/i18n/locale';
 
 const statusCopy: Record<SourceStatus, { label: string; className: string }> = {
@@ -233,6 +234,9 @@ export function TopicsWorkspace() {
 
   // --- CRUD DE TEMAS ---
   async function handleCreateTopic(title: string, description: string) {
+    if (hasObsceneContent(title) || hasObsceneContent(description)) {
+      throw new Error('No se permiten contenidos obscenos.');
+    }
     const res = await createTopicAction({ title, description });
     if (res.success && res.data) {
       const created = res.data;
@@ -248,6 +252,9 @@ export function TopicsWorkspace() {
 
   async function handleUpdateTopic(title: string, description: string) {
     if (!selectedTopic) return;
+    if (hasObsceneContent(title) || hasObsceneContent(description)) {
+      throw new Error('No se permiten contenidos obscenos.');
+    }
     const res = await updateTopicAction({
       id: selectedTopic.id,
       title,
@@ -292,6 +299,11 @@ export function TopicsWorkspace() {
   // --- NOTA PRINCIPAL ---
   async function saveNote() {
     if (!selectedTopic) return;
+    if (hasObsceneContent(note)) {
+      setNoteError('No se permiten contenidos obscenos.');
+      toast.error('No se permiten contenidos obscenos.');
+      return;
+    }
     setSavingNote(true);
     setNoteError(null);
     try {
@@ -322,6 +334,10 @@ export function TopicsWorkspace() {
   // --- GESTIÓN DE FUENTES ---
   async function handleCreateNoteSource(title: string, content: string) {
     if (!selectedTopic) return;
+    if (hasObsceneContent(title) || hasObsceneContent(content)) {
+      toast.error('No se permiten contenidos obscenos.');
+      throw new Error('No se permiten contenidos obscenos.');
+    }
     const res = await createNoteSourceAction({
       topicId: selectedTopic.id,
       title,
@@ -346,6 +362,11 @@ export function TopicsWorkspace() {
     if (!selectedTopic) return;
     const cleanUrl = linkValue.trim();
     if (!cleanUrl) return;
+
+    if (hasObsceneContent(cleanUrl)) {
+      toast.error('No se permiten contenidos obscenos.');
+      return;
+    }
 
     try {
       const res = await createLinkSourceAction({
@@ -393,6 +414,11 @@ export function TopicsWorkspace() {
       }
 
       for (const file of files) {
+        if (hasObsceneContent(file.name)) {
+          toast.error('No se permiten contenidos obscenos.');
+          continue;
+        }
+
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
         const filePath = `${user.id}/${selectedTopic.id}/${Date.now()}_${safeName}`;
 

@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useTransition } from 'react';
+import React, { useState, useTransition } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, AlertTriangle, X } from 'lucide-react';
+import { Loader2, AlertTriangle, X, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { deleteUserAccountAction } from '@/features/profile/actions/deleteUserAccountAction';
-import { useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { defaultLocale, getLocaleFromPathname } from '@/lib/i18n/locale';
+import { localizedHref } from '@/lib/i18n/routes';
 
 interface DeleteAccountModalProps {
   isOpen: boolean;
@@ -25,27 +27,40 @@ export function DeleteAccountModal({
   cancelText,
   confirmText,
 }: DeleteAccountModalProps) {
-  const router = useRouter();
+  const pathname = usePathname();
+  const locale = getLocaleFromPathname(pathname) ?? defaultLocale;
   const [isDeleting, startDeleting] = useTransition();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   async function handleDelete() {
+    setErrorMessage(null);
     startDeleting(async () => {
       const res = await deleteUserAccountAction();
-      
+
       if (!res.success) {
-        // You could use a toast here if there's a toast system
-        alert(res.error || 'Ocurrió un error al eliminar la cuenta');
+        setErrorMessage(res.error || 'Ocurrió un error al eliminar la cuenta');
         return;
       }
 
       // Cerrar sesión en el cliente
-      const supabase = createClient();
-      await supabase.auth.signOut();
-      
-      // Redirigir a inicio/login
-      router.push('/');
+      try {
+        const supabase = createClient();
+        await supabase.auth.signOut();
+      } catch (err) {
+        console.warn('Error cerrando sesión cliente:', err);
+      }
+
+      // Redirigir a login con recarga limpia
+      window.location.href = localizedHref(locale, 'login');
     });
   }
+
+  const handleClose = () => {
+    if (!isDeleting) {
+      setErrorMessage(null);
+      onClose();
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -55,7 +70,7 @@ export function DeleteAccountModal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={!isDeleting ? onClose : undefined}
+            onClick={handleClose}
             className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
           />
           <motion.div
@@ -67,7 +82,7 @@ export function DeleteAccountModal({
             <div className="relative overflow-hidden rounded-3xl border border-outline-variant/60 bg-surface-container-lowest p-6 shadow-2xl">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleClose}
                 disabled={isDeleting}
                 className="absolute right-4 top-4 rounded-full p-2 text-on-surface-variant transition-colors hover:bg-surface-container-low focus:outline-none disabled:opacity-50"
               >
@@ -75,32 +90,46 @@ export function DeleteAccountModal({
               </button>
 
               <div className="flex flex-col items-center text-center">
-                <div className="mb-4 flex size-12 items-center justify-center rounded-full bg-status-error/10 text-status-error">
+                <div className="mb-4 flex size-12 items-center justify-center rounded-full bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-400">
                   <AlertTriangle className="size-6" />
                 </div>
                 <h2 className="text-xl font-bold text-on-surface">{title}</h2>
-                <p className="mt-2 text-sm text-on-surface-variant">
+                <p className="mt-2 text-sm text-on-surface-variant leading-relaxed">
                   {warningText}
                 </p>
+
+                {errorMessage && (
+                  <p
+                    role="alert"
+                    className="mt-4 w-full rounded-xl border border-red-200 bg-red-50/80 px-3 py-2.5 text-xs font-medium text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-400 text-left"
+                  >
+                    {errorMessage}
+                  </p>
+                )}
 
                 <div className="mt-6 flex justify-end gap-3 w-full">
                   <Button
                     type="button"
                     variant="secondary"
-                    onClick={onClose}
+                    onClick={handleClose}
                     disabled={isDeleting}
+                    className="cursor-pointer"
                   >
                     {cancelText}
                   </Button>
-                  <button
+                  <Button
                     type="button"
-                    className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:pointer-events-none"
                     onClick={handleDelete}
                     disabled={isDeleting}
+                    className="bg-red-600 hover:bg-red-700 text-white min-h-10 gap-2 border-transparent cursor-pointer shadow-sm"
                   >
-                    {isDeleting ? <Loader2 className="size-4 animate-spin" /> : null}
+                    {isDeleting ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="size-4" />
+                    )}
                     {isDeleting ? 'Eliminando...' : confirmText}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>

@@ -673,6 +673,7 @@ DATOS DEL PROYECTO:
 - Tiempo disponible diario del usuario: ${minutosDiarios} minutos por día.
 ${project.material_url ? `- Material o recurso suministrado: ${project.material_url}` : ''}${filePart}${existingTasksPrompt}
 ${userAiContext.perfilTexto ? `\n${userAiContext.perfilTexto}` : ''}
+${userAiContext.preferenciasInclusivasTexto ? `\n${userAiContext.preferenciasInclusivasTexto}` : ''}
 ${userAiContext.temasTexto ? `\n${userAiContext.temasTexto}` : ''}
 HORARIOS OCUPADOS DEL USUARIO (¡PROHIBIDO ASIGNAR TAREAS EN ESTAS FRANJAS!):
 ${disponibilidadDesc}
@@ -702,7 +703,13 @@ DIRECTRICES ADICIONALES:
    - Si el perfil define una metodología de aprendizaje preferida (ej. Pomodoro, práctica intensiva, proyectos paso a paso), adapta la secuencia y dinámica de las sesiones a esa metodología.
    - Toma en cuenta su situación laboral y retos o dificultades declaradas para que el plan sea alcanzable.
 7. INCORPORACIÓN DE TEMAS, NOTAS PRINCIPALES Y FUENTES AUTORIZADAS:
-   - Si el usuario tiene temas vinculados a este proyecto o fuentes autorizadas en su biblioteca de Temas, úsalas como guía temática y documental central para estructurar las tareas.`;
+   - Si el usuario tiene temas vinculados a este proyecto o fuentes autorizadas en su biblioteca de Temas, úsalas como guía temática y documental central para estructurar las tareas.
+8. ADAPTACIÓN A PREFERENCIAS INCLUSIVAS Y DE APRENDIZAJE:
+   - Si el usuario cuenta con preferencias inclusivas (ritmo, obstáculos de estudio, tiempo de atención, formato de aprendizaje, estilo de IA o intereses):
+     * Ritmo y micro-pasos: Si prefiere bloques breves (5 a 10 min o 15 a 20 min) o pausas frecuentes, estructura las tareas para que se cumplan en micro-pasos digeribles, evitando saturación cognitiva.
+     * Estilo pedagógico e intereses: Si prefiere estilo con retos/misiones o analogías, enmarca los títulos y descripciones acordemente (ej. "Misión 1: ...", "Reto: ..."), vinculando con sus temas de interés cuando sea pertinente.
+     * Formatos y recursos recomendados: Prioriza recursos y enlaces acordes al formato preferido del estudiante (videos cortos, infografías, resúmenes con viñetas o audios).
+     * Mitigación de barreras: Ante retos como saber por dónde empezar o frustración rápida, proporciona un paso 1 trivial e indicaciones paso a paso directas y concisas.`;
 
     const projectTasksSchema = {
       type: Type.OBJECT,
@@ -835,6 +842,9 @@ DIRECTRICES ADICIONALES:
         t.hora_inicio && /^\d{2}:\d{2}$/.test(t.hora_inicio) ? t.hora_inicio : '09:00';
       const horaFin = t.hora_fin && /^\d{2}:\d{2}$/.test(t.hora_fin) ? t.hora_fin : '10:00';
       const fechaInicioIso = new Date(`${assignedDate}T${horaInicio}:00`).toISOString();
+      const fechaLimiteIso = new Date(
+        new Date(fechaInicioIso).getTime() + duracion * 60 * 1000,
+      ).toISOString();
 
       return {
         id: taskId,
@@ -844,6 +854,7 @@ DIRECTRICES ADICIONALES:
         duracion,
         completado: false,
         fecha_inicio: fechaInicioIso,
+        fecha_limite: fechaLimiteIso,
         prioridad: t.prioridad || prioridad,
         resources: t.url_recomendada || project.material_url || null,
         fecha: assignedDate,
@@ -852,22 +863,38 @@ DIRECTRICES ADICIONALES:
       };
     });
 
-    const { data: insertedTasks, error: insertTasksErr } = await db
+    const tasksToInsertPayload = tasksToInsert.map((t) => ({
+      id: t.id,
+      id_proyecto: t.id_proyecto,
+      titulo: t.titulo,
+      descripcion: t.descripcion,
+      duracion: t.duracion,
+      completado: t.completado,
+      fecha_inicio: t.fecha_inicio,
+      fecha_limite: t.fecha_limite,
+      prioridad: t.prioridad,
+      resources: t.resources,
+      metodo_estudio: null,
+    }));
+
+    let { data: insertedTasks, error: insertTasksErr } = await db
       .from('tareas')
-      .insert(
-        tasksToInsert.map((t) => ({
-          id: t.id,
-          id_proyecto: t.id_proyecto,
-          titulo: t.titulo,
-          descripcion: t.descripcion,
-          duracion: t.duracion,
-          completado: t.completado,
-          fecha_inicio: t.fecha_inicio,
-          prioridad: t.prioridad,
-          resources: t.resources,
-        })),
-      )
+      .insert(tasksToInsertPayload)
       .select();
+
+    if (
+      insertTasksErr &&
+      (insertTasksErr.message?.includes('fecha_limite') || insertTasksErr.code === '42703')
+    ) {
+      const fallbackPayload = tasksToInsertPayload.map((t) => {
+        const item = { ...t };
+        delete (item as Record<string, unknown>).fecha_limite;
+        return item;
+      });
+      const retry = await db.from('tareas').insert(fallbackPayload).select();
+      insertedTasks = retry.data;
+      insertTasksErr = retry.error;
+    }
 
     if (insertTasksErr) {
       console.error('Error al insertar tareas generadas por Gemini:', insertTasksErr);
@@ -1076,8 +1103,12 @@ export async function checkProjectFeasibilityWithGemini(
   if (params.usuario_id) {
     try {
       const userContext = await getUserAiContext({ userId: params.usuario_id });
-      if (userContext.perfilTexto) {
-        userProfileContext = `\n${userContext.perfilTexto}`;
+      const contextBlocks = [
+        userContext.perfilTexto,
+        userContext.preferenciasInclusivasTexto,
+      ].filter(Boolean);
+      if (contextBlocks.length > 0) {
+        userProfileContext = `\n${contextBlocks.join('\n\n')}`;
       }
     } catch {
       // Omitir si no se puede cargar el contexto
@@ -1472,14 +1503,25 @@ export async function rescheduleConflictingCalendarTasksWithGemini(
         .eq('id', conf.ev.id)
         .eq('usuario_id', usuarioId);
 
-      // Si tiene tarea_id, actualizar fecha_inicio en tareas
+      // Si tiene tarea_id, actualizar fecha_inicio y fecha_limite en tareas
       if (conf.ev.tarea_id) {
-        await db
+        const updateTaskPayload: Record<string, unknown> = {
+          fecha_inicio: startIso,
+          fecha_limite: endIso,
+        };
+        const { error: updErr } = await db
           .from('tareas')
-          .update({
-            fecha_inicio: startIso,
-          })
+          .update(updateTaskPayload)
           .eq('id', conf.ev.tarea_id);
+
+        if (updErr && (updErr.message?.includes('fecha_limite') || updErr.code === '42703')) {
+          await db
+            .from('tareas')
+            .update({
+              fecha_inicio: startIso,
+            })
+            .eq('id', conf.ev.tarea_id);
+        }
       }
 
       // Si tiene proyecto_id, actualizar cronograma activo si existe

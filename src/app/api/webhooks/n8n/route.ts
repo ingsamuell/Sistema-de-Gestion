@@ -95,13 +95,19 @@ export async function POST(request: Request) {
   // Consultar perfil de aprendizaje y temas/fuentes autorizadas del usuario
   let userAiContextText = '';
   let perfilUsuarioData: unknown = null;
+  let preferenciasInclusivasData: unknown = null;
   let temasContextData: unknown = [];
   try {
     const userAiContext = await getUserAiContext({ userId: auth.user.id });
-    userAiContextText = [userAiContext.perfilTexto, userAiContext.temasTexto]
+    userAiContextText = [
+      userAiContext.perfilTexto,
+      userAiContext.preferenciasInclusivasTexto,
+      userAiContext.temasTexto,
+    ]
       .filter(Boolean)
       .join('\n\n');
     perfilUsuarioData = userAiContext.perfilRaw;
+    preferenciasInclusivasData = userAiContext.preferenciasInclusivasRaw;
     temasContextData = userAiContext.temasRaw;
   } catch (err) {
     console.warn('Error al cargar perfil y temas para contexto de Komo:', err);
@@ -155,6 +161,7 @@ export async function POST(request: Request) {
         locale: parsed.data.locale,
         proyectos: userProjects,
         perfil_usuario: perfilUsuarioData,
+        preferencias_inclusivas: preferenciasInclusivasData,
         temas_y_fuentes: temasContextData,
         archivo: parsed.data.archivo,
         contexto: parsed.data.contexto,

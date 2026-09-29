@@ -5,6 +5,7 @@ export interface TaskTimeRecord {
   id_proyecto: string;
   titulo?: string;
   fecha_inicio?: string | null;
+  fecha_limite?: string | null;
   duracion?: number | null; // duración en minutos
   completado?: boolean | null;
 }
@@ -19,18 +20,27 @@ export interface StreakEvaluationResult {
 
 /**
  * Calcula si una tarea individual está vencida respecto al momento actual.
- * Una tarea se considera vencida si tiene fecha_inicio programada, duracion,
- * NO está completada, y la hora actual supera (fecha_inicio + duracion).
+ * Una tarea se considera vencida si tiene fecha_limite o fecha_inicio programada, duracion,
+ * NO está completada, y la hora actual supera la fecha límite (fecha_inicio + duracion).
  */
 export function isTaskOverdue(
   task: {
     fecha_inicio?: string | null;
+    fecha_limite?: string | null;
     duracion?: number | null;
     completado?: boolean | null;
   },
   referenceTime = Date.now(),
 ): boolean {
   if (task.completado) return false;
+
+  if (task.fecha_limite) {
+    const limitTime = new Date(task.fecha_limite).getTime();
+    if (!Number.isNaN(limitTime)) {
+      return referenceTime > limitTime;
+    }
+  }
+
   if (!task.fecha_inicio) return false;
 
   const startTime = new Date(task.fecha_inicio).getTime();
@@ -53,6 +63,7 @@ export function isTaskOverdue(
 export function getTaskTimeStatus(
   task: {
     fecha_inicio?: string | null;
+    fecha_limite?: string | null;
     duracion?: number | null;
     completado?: boolean | null;
   },
@@ -65,7 +76,14 @@ export function getTaskTimeStatus(
   if (Number.isNaN(startTime)) return 'flexible';
 
   const durationMinutes = Math.max(1, Number(task.duracion) || 0);
-  const endTime = startTime + durationMinutes * 60 * 1000;
+  let endTime = startTime + durationMinutes * 60 * 1000;
+
+  if (task.fecha_limite) {
+    const limitTime = new Date(task.fecha_limite).getTime();
+    if (!Number.isNaN(limitTime)) {
+      endTime = limitTime;
+    }
+  }
 
   if (referenceTime > endTime) return 'overdue';
   if (referenceTime >= startTime && referenceTime <= endTime) return 'in_progress';

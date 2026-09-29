@@ -68,7 +68,9 @@ export async function getCalendarDataAction() {
       if (projectIds.length > 0) {
         const { data: tareasList } = await db
           .from('tareas')
-          .select('id, id_proyecto, titulo, descripcion, fecha_inicio, duracion, completado')
+          .select(
+            'id, id_proyecto, titulo, descripcion, fecha_inicio, fecha_limite, duracion, completado',
+          )
           .in('id_proyecto', projectIds)
           .eq('completado', false)
           .not('fecha_inicio', 'is', null);
@@ -87,7 +89,9 @@ export async function getCalendarDataAction() {
             if (isNaN(startD.getTime())) continue;
 
             const durMin = Math.max(15, Number(t.duracion) || 30);
-            const endD = new Date(startD.getTime() + durMin * 60 * 1000);
+            const endD = t.fecha_limite
+              ? new Date(t.fecha_limite)
+              : new Date(startD.getTime() + durMin * 60 * 1000);
             const newEvent: CalendarEventItem = {
               id: crypto.randomUUID(),
               usuario_id: user.id,
@@ -271,13 +275,29 @@ export async function updateCalendarEventScheduleAction(input: {
       const endMs = new Date(input.fin).getTime();
       const durationMin = Math.max(5, Math.round((endMs - startMs) / (60 * 1000)));
 
-      await db
+      const updateTaskPayload: Record<string, unknown> = {
+        fecha_inicio: input.inicio,
+        duracion: durationMin,
+        fecha_limite: input.fin,
+      };
+
+      const { error: updTaskErr } = await db
         .from('tareas')
-        .update({
-          fecha_inicio: input.inicio,
-          duracion: durationMin,
-        })
+        .update(updateTaskPayload)
         .eq('id', existingEvent.tarea_id);
+
+      if (
+        updTaskErr &&
+        (updTaskErr.message?.includes('fecha_limite') || updTaskErr.code === '42703')
+      ) {
+        await db
+          .from('tareas')
+          .update({
+            fecha_inicio: input.inicio,
+            duracion: durationMin,
+          })
+          .eq('id', existingEvent.tarea_id);
+      }
     }
 
     revalidatePath('/calendario');

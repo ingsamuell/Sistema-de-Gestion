@@ -4,7 +4,7 @@ import {
   exchangeCodeForTokens,
   encryptTokens,
   decryptTokens,
-  getAppBaseUrl,
+  getBaseUrlFromRequest,
   GCAL_COOKIE_NAME,
   type GoogleCalendarTokens,
 } from '@/lib/google-calendar';
@@ -33,8 +33,8 @@ function getSafeReturnPath(state: string | null): string {
  *    -> Intercambia el código por tokens, guarda la cookie segura y redirige a /calendario.
  */
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url);
-  const baseUrl = getAppBaseUrl(origin);
+  const { searchParams } = new URL(request.url);
+  const baseUrl = getBaseUrlFromRequest(request);
   const action = searchParams.get('action');
   const code = searchParams.get('code');
   const error = searchParams.get('error');
@@ -102,10 +102,10 @@ export async function GET(request: NextRequest) {
       let tokens: GoogleCalendarTokens;
       try {
         // Primero intentamos intercambiar usando esta misma ruta como redirect_uri
-        tokens = await exchangeCodeForTokens(code, `${baseUrl}/api/auth/google`);
+        tokens = await exchangeCodeForTokens(code, `${baseUrl}/api/auth/google`, baseUrl);
       } catch {
         // Fallback al redirect_uri por defecto configurado (/api/calendar/callback)
-        tokens = await exchangeCodeForTokens(code);
+        tokens = await exchangeCodeForTokens(code, undefined, baseUrl);
       }
 
       // Cifrado AES-256-GCM para almacenamiento seguro de tokens en cookie
@@ -174,7 +174,7 @@ export async function GET(request: NextRequest) {
     const customRedirect = searchParams.get('redirect_uri') || undefined;
 
     // Generar la URL de Google OAuth2 con los permisos requeridos
-    const authUrl = getGoogleAuthUrl(returnTo, customRedirect);
+    const authUrl = getGoogleAuthUrl(returnTo, customRedirect, baseUrl);
 
     if (isJsonRequest) {
       return NextResponse.json({
@@ -252,7 +252,8 @@ export async function POST(request: NextRequest) {
 
     // Intercambiar código por tokens directamente
     if (code) {
-      const tokens = await exchangeCodeForTokens(code, redirect_uri);
+      const baseUrl = getBaseUrlFromRequest(request);
+      const tokens = await exchangeCodeForTokens(code, redirect_uri, baseUrl);
       const encryptedTokens = encryptTokens(tokens);
 
       const response = NextResponse.json({
@@ -275,7 +276,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Obtener URL de consentimiento
-    const authUrl = getGoogleAuthUrl(returnTo || '/calendario', redirect_uri);
+    const baseUrl = getBaseUrlFromRequest(request);
+    const authUrl = getGoogleAuthUrl(returnTo || '/calendario', redirect_uri, baseUrl);
     return NextResponse.json({
       success: true,
       url: authUrl,

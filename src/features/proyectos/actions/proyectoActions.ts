@@ -10,6 +10,7 @@ import {
 } from '@/services/ai/scheduleAiService';
 import { validateContent, validateProjectContent } from '@/lib/moderation/contentFilter';
 import { getCaracasNextNextMidnightISO } from '@/services/notifications/dateUtils';
+import { calculateTaskDeadline } from '@/lib/utils/taskUtils';
 
 export interface CreateProjectInput {
   titulo: string;
@@ -192,12 +193,12 @@ export async function updateProjectAction(input: UpdateProjectInput) {
         };
       }
 
-      const maxYear = today.getFullYear() + 10;
-      const maxDate = new Date(`${maxYear}-12-31T23:59:59`);
+      const maxDate = new Date(today);
+      maxDate.setFullYear(maxDate.getFullYear() + 1);
       if (selected > maxDate) {
         return {
           success: false,
-          error: `La fecha límite no puede superar los 10 años desde el año actual (${maxYear}).`,
+          error: 'La fecha límite no puede superar 1 año desde la fecha actual.',
         };
       }
 
@@ -295,12 +296,23 @@ export async function createProjectAction(input: CreateProjectInput) {
           error: 'La fecha límite no puede ser anterior al día de creación.',
         };
       }
-      const maxYear = today.getFullYear() + 10;
-      const maxDate = new Date(`${maxYear}-12-31T23:59:59`);
+      const maxDate = new Date(today);
+      maxDate.setFullYear(maxDate.getFullYear() + 1);
       if (selected > maxDate) {
         return {
           success: false,
-          error: `La fecha límite no puede superar los 10 años desde el año actual (${maxYear}).`,
+          error: 'La fecha límite no puede superar 1 año desde la fecha actual.',
+        };
+      }
+    }
+
+    // Validar material_url (archivos y URLs) por contenido obsceno
+    if (input.material_url) {
+      const matValidation = validateContent(input.material_url);
+      if (!matValidation.isValid) {
+        return {
+          success: false,
+          error: 'No se permiten contenidos obscenos.',
         };
       }
     }
@@ -523,7 +535,7 @@ export async function getProjectsAction() {
 
     const { data: taskRows, error: tasksError } = await supabase
       .from('tareas')
-      .select('id, id_proyecto, titulo, duracion, completado')
+      .select('id, id_proyecto, titulo, duracion, completado, fecha_inicio, fecha_limite')
       .in('id_proyecto', projectIds);
 
     if (tasksError) {
@@ -912,6 +924,15 @@ export async function createTaskAction(data: {
         };
       }
 
+      const maxTaskDate = new Date(today);
+      maxTaskDate.setFullYear(maxTaskDate.getFullYear() + 1);
+      if (startDateTime > maxTaskDate) {
+        return {
+          success: false,
+          error: 'El día de inicio no puede superar 1 año desde la fecha de hoy.',
+        };
+      }
+
       if (projectRecord?.fecha_limite) {
         const deadlineDay = projectRecord.fecha_limite.split('T')[0];
         const [deadY, deadM, deadD] = deadlineDay.split('-').map(Number);
@@ -944,6 +965,17 @@ export async function createTaskAction(data: {
         .in('id_proyecto', userProjIds.length > 0 ? userProjIds : [data.projectId])
         .not('fecha_inicio', 'is', null);
 
+      const newStartStr = new Date(newStart).toLocaleTimeString('es-ES', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+      const newEndStr = new Date(newEnd).toLocaleTimeString('es-ES', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+
       if (existingTasks && existingTasks.length > 0) {
         for (const existing of existingTasks) {
           if (!existing.fecha_inicio) continue;
@@ -957,7 +989,7 @@ export async function createTaskAction(data: {
           if (newStart === exStart) {
             return {
               success: false,
-              error: `El bloque horario seleccionado ya se encuentra ocupado por la tarea "${existing.titulo}". Por favor, intenta utilizar otra hora o bloque disponible dentro del mismo día.`,
+              error: `Conflicto de horario: La hora seleccionada (${newStartStr}) coincide exactamente con el inicio de la tarea "${existing.titulo}". Las tareas se gestionan en bloques continuos de 5 en 5 minutos y no se pueden superponer. Por favor, intenta utilizar otra hora o bloque disponible.`,
             };
           }
 
@@ -975,7 +1007,7 @@ export async function createTaskAction(data: {
             });
             return {
               success: false,
-              error: `El tiempo de duración entra en conflicto con la tarea "${existing.titulo}" (${exStartStr} - ${exEndStr}). Por favor, intenta utilizar otra hora o bloque disponible dentro del mismo día.`,
+              error: `Conflicto de horario: La tarea requiere ${newDurationMinutes} min (de ${newStartStr} a ${newEndStr}, en bloques continuos de 5 en 5 minutos) y entra en conflicto con la tarea "${existing.titulo}" (${exStartStr} - ${exEndStr}). Por favor, selecciona un horario con suficiente espacio continuo disponible dentro del mismo día.`,
             };
           }
         }
@@ -1008,7 +1040,7 @@ export async function createTaskAction(data: {
             });
             return {
               success: false,
-              error: `El horario seleccionado entra en conflicto con el evento o tarea "${ev.titulo}" (${evStartStr} - ${evEndStr}) en tu calendario. Por favor, intenta utilizar otra hora o bloque disponible.`,
+              error: `Conflicto de horario: La tarea requiere ${newDurationMinutes} min (de ${newStartStr} a ${newEndStr}, en bloques de 5 en 5 min) y entra en conflicto con el evento o tarea "${ev.titulo}" (${evStartStr} - ${evEndStr}) en tu calendario. Por favor, selecciona otro bloque disponible.`,
             };
           }
         }
@@ -1057,7 +1089,7 @@ export async function createTaskAction(data: {
                           : busy.tipo;
               return {
                 success: false,
-                error: `El horario entra en conflicto con un bloque ocupado en tu calendario (${tipoLabel}) de ${busy.hora_inicio.slice(0, 5)} a ${busy.hora_fin.slice(0, 5)}. Por favor, intenta utilizar otra hora o bloque disponible.`,
+                error: `Conflicto de horario: La tarea requiere ${newDurationMinutes} min (de ${newStartStr} a ${newEndStr}, en bloques continuos de 5 min) y entra en conflicto con un bloque ocupado en tu calendario (${tipoLabel} de ${busy.hora_inicio.slice(0, 5)} a ${busy.hora_fin.slice(0, 5)}). Por favor, intenta utilizar otra hora o bloque disponible.`,
               };
             }
           }
@@ -1067,21 +1099,38 @@ export async function createTaskAction(data: {
 
     const newTaskId = crypto.randomUUID();
 
-    const { data: task, error: insertError } = await db
+    const finalDuracion = Math.round(Number(data.duracion)) || 0;
+    const computedFechaLimite = calculateTaskDeadline(parsedFechaInicio, finalDuracion);
+
+    const insertPayload: Record<string, unknown> = {
+      id: newTaskId,
+      id_proyecto: data.projectId,
+      titulo: data.titulo.trim(),
+      duracion: finalDuracion,
+      completado: false,
+      descripcion: data.descripcion?.trim() || null,
+      prioridad: data.prioridad || null,
+      fecha_inicio: parsedFechaInicio,
+      fecha_limite: computedFechaLimite,
+      resources: data.resources?.trim() || null,
+      metodo_estudio: null,
+    };
+
+    let { data: task, error: insertError } = await db
       .from('tareas')
-      .insert({
-        id: newTaskId,
-        id_proyecto: data.projectId,
-        titulo: data.titulo.trim(),
-        duracion: Math.round(Number(data.duracion)) || 0,
-        completado: false,
-        descripcion: data.descripcion?.trim() || null,
-        prioridad: data.prioridad || null,
-        fecha_inicio: parsedFechaInicio,
-        resources: data.resources?.trim() || null,
-      })
+      .insert(insertPayload)
       .select()
       .single();
+
+    if (
+      insertError &&
+      (insertError.message?.includes('fecha_limite') || insertError.code === '42703')
+    ) {
+      delete insertPayload.fecha_limite;
+      const retry = await db.from('tareas').insert(insertPayload).select().single();
+      task = retry.data;
+      insertError = retry.error;
+    }
 
     if (insertError) {
       console.error('Error insertando en tareas:', insertError);
@@ -1466,6 +1515,15 @@ export async function updateTaskAction(data: {
         };
       }
 
+      const maxTaskDate = new Date(today);
+      maxTaskDate.setFullYear(maxTaskDate.getFullYear() + 1);
+      if (startDateTime > maxTaskDate) {
+        return {
+          success: false,
+          error: 'El día de inicio no puede superar 1 año desde la fecha de hoy.',
+        };
+      }
+
       // Validar contra la fecha límite del proyecto
       const { data: projectRecord } = await db
         .from('projects')
@@ -1493,6 +1551,16 @@ export async function updateTaskAction(data: {
       const newStart = new Date(parsedFechaInicio).getTime();
       const newDurationMinutes = Math.max(1, Math.round(Number(data.duracion)) || 1);
       const newEnd = newStart + newDurationMinutes * 60 * 1000;
+      const newStartStr = new Date(newStart).toLocaleTimeString('es-ES', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+      const newEndStr = new Date(newEnd).toLocaleTimeString('es-ES', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
 
       // Obtener todos los proyectos del usuario para verificar colisiones en todo su calendario
       const { data: userProjects } = await db.from('projects').select('id').eq('user_id', user.id);
@@ -1518,7 +1586,7 @@ export async function updateTaskAction(data: {
           if (newStart === exStart) {
             return {
               success: false,
-              error: `El bloque horario seleccionado ya se encuentra ocupado por la tarea "${existing.titulo}". Por favor, intenta utilizar otra hora o bloque disponible dentro del mismo día.`,
+              error: `Conflicto de horario: La hora seleccionada (${newStartStr}) coincide exactamente con el inicio de la tarea "${existing.titulo}". Las tareas se organizan en bloques continuos de 5 en 5 minutos y no se pueden superponer. Por favor, intenta utilizar otra hora o bloque disponible.`,
             };
           }
 
@@ -1536,7 +1604,7 @@ export async function updateTaskAction(data: {
             });
             return {
               success: false,
-              error: `El tiempo de duración entra en conflicto con la tarea "${existing.titulo}" (${exStartStr} - ${exEndStr}). Por favor, intenta utilizar otra hora o bloque disponible dentro del mismo día.`,
+              error: `Conflicto de horario: La tarea requiere ${newDurationMinutes} min (de ${newStartStr} a ${newEndStr}, en bloques continuos de 5 en 5 minutos) y entra en conflicto con la tarea "${existing.titulo}" (${exStartStr} - ${exEndStr}). Por favor, selecciona un horario con suficiente espacio continuo disponible dentro del mismo día.`,
             };
           }
         }
@@ -1570,7 +1638,7 @@ export async function updateTaskAction(data: {
             });
             return {
               success: false,
-              error: `El horario seleccionado entra en conflicto con el evento o tarea "${ev.titulo}" (${evStartStr} - ${evEndStr}) en tu calendario. Por favor, intenta utilizar otra hora o bloque disponible.`,
+              error: `Conflicto de horario: La tarea requiere ${newDurationMinutes} min (de ${newStartStr} a ${newEndStr}, en bloques de 5 en 5 min) y entra en conflicto con el evento o tarea "${ev.titulo}" (${evStartStr} - ${evEndStr}) en tu calendario. Por favor, selecciona otro bloque disponible.`,
             };
           }
         }
@@ -1619,7 +1687,7 @@ export async function updateTaskAction(data: {
                           : busy.tipo;
               return {
                 success: false,
-                error: `El horario entra en conflicto con un bloque ocupado en tu calendario (${tipoLabel}) de ${busy.hora_inicio.slice(0, 5)} a ${busy.hora_fin.slice(0, 5)}. Por favor, intenta utilizar otra hora o bloque disponible.`,
+                error: `Conflicto de horario: La tarea requiere ${newDurationMinutes} min (de ${newStartStr} a ${newEndStr}, en bloques continuos de 5 min) y entra en conflicto con un bloque ocupado en tu calendario (${tipoLabel} de ${busy.hora_inicio.slice(0, 5)} a ${busy.hora_fin.slice(0, 5)}). Por favor, intenta utilizar otra hora o bloque disponible.`,
               };
             }
           }
@@ -1627,20 +1695,42 @@ export async function updateTaskAction(data: {
       }
     }
 
-    const { data: updatedTask, error: updateError } = await db
+    const finalDuracion = Math.round(Number(data.duracion)) || 0;
+    const computedFechaLimite = calculateTaskDeadline(parsedFechaInicio, finalDuracion);
+
+    const updatePayload: Record<string, unknown> = {
+      titulo: data.titulo.trim(),
+      duracion: finalDuracion,
+      descripcion: data.descripcion?.trim() || null,
+      prioridad: data.prioridad || null,
+      fecha_inicio: parsedFechaInicio,
+      fecha_limite: computedFechaLimite,
+      resources: data.resources?.trim() || null,
+    };
+
+    let { data: updatedTask, error: updateError } = await db
       .from('tareas')
-      .update({
-        titulo: data.titulo.trim(),
-        duracion: Math.round(Number(data.duracion)) || 0,
-        descripcion: data.descripcion?.trim() || null,
-        prioridad: data.prioridad || null,
-        fecha_inicio: parsedFechaInicio,
-        resources: data.resources?.trim() || null,
-      })
+      .update(updatePayload)
       .eq('id', data.taskId)
       .eq('id_proyecto', data.projectId)
       .select()
       .single();
+
+    if (
+      updateError &&
+      (updateError.message?.includes('fecha_limite') || updateError.code === '42703')
+    ) {
+      delete updatePayload.fecha_limite;
+      const retry = await db
+        .from('tareas')
+        .update(updatePayload)
+        .eq('id', data.taskId)
+        .eq('id_proyecto', data.projectId)
+        .select()
+        .single();
+      updatedTask = retry.data;
+      updateError = retry.error;
+    }
 
     if (updateError) {
       console.error('Error actualizando tarea:', updateError);
@@ -2074,6 +2164,61 @@ export async function saveTaskStudyFeedbackAction(input: {
   } catch (error: unknown) {
     console.error('Error en saveTaskStudyFeedbackAction:', error);
     const msg = error instanceof Error ? error.message : 'Error inesperado al guardar feedback.';
+    return { success: false, error: msg };
+  }
+}
+
+/**
+ * saveTaskStartTechniqueAction
+ * Guarda en la base de datos la técnica de estudio seleccionada por el usuario
+ * al momento de iniciar la tarea (ej. 'Regla 50/10', 'Técnica Pomodoro', etc.).
+ */
+export async function saveTaskStartTechniqueAction(input: {
+  taskId: string;
+  metodoEstudio: string;
+  projectId?: string;
+}) {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return { success: false, error: 'No se encontró una sesión activa.' };
+    }
+
+    if (!input.taskId || !input.metodoEstudio) {
+      return { success: false, error: 'Datos insuficientes para registrar la técnica.' };
+    }
+
+    const adminDb = getAdminClient();
+    const db = adminDb || supabase;
+
+    const { error: updateError } = await db
+      .from('tareas')
+      .update({ metodo_estudio: input.metodoEstudio.trim() })
+      .eq('id', input.taskId);
+
+    if (updateError) {
+      console.warn(
+        '[saveTaskStartTechniqueAction] Error guardando técnica de estudio:',
+        updateError.message,
+      );
+      return { success: false, error: updateError.message };
+    }
+
+    if (input.projectId) {
+      revalidatePath(`/proyectos/${input.projectId}`);
+    }
+    revalidatePath('/app');
+    revalidatePath('/proyectos');
+
+    return { success: true };
+  } catch (error: unknown) {
+    console.error('Error en saveTaskStartTechniqueAction:', error);
+    const msg = error instanceof Error ? error.message : 'Error inesperado.';
     return { success: false, error: msg };
   }
 }

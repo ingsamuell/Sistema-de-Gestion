@@ -2,7 +2,12 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { type EmailOtpType } from '@supabase/supabase-js';
 
-import { encryptTokens, GCAL_COOKIE_NAME, type GoogleCalendarTokens } from '@/lib/google-calendar';
+import {
+  encryptTokens,
+  exchangeCodeForTokens,
+  GCAL_COOKIE_NAME,
+  type GoogleCalendarTokens,
+} from '@/lib/google-calendar';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -55,6 +60,34 @@ export async function GET(request: Request) {
       }
 
       return response;
+    } else {
+      // Fallback de resiliencia: Si el usuario o consola de Google redirigió a /api/auth/callback para Google Calendar
+      try {
+        const baseUrl = getRedirectUrl('');
+        const gcalTokens = await exchangeCodeForTokens(
+          code,
+          getRedirectUrl('/api/auth/callback'),
+          baseUrl,
+        );
+        if (gcalTokens?.access_token) {
+          const encryptedTokens = encryptTokens(gcalTokens);
+          const response = NextResponse.redirect(
+            getRedirectUrl('/calendario?calendar_connected=true&gcal_success=true'),
+          );
+          response.cookies.set({
+            name: GCAL_COOKIE_NAME,
+            value: encryptedTokens,
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            path: '/',
+            maxAge: 30 * 24 * 60 * 60,
+          });
+          return response;
+        }
+      } catch {
+        // Continuar con el manejo normal de error si no era un código de Google Calendar
+      }
     }
   }
 

@@ -24,6 +24,7 @@ export interface Task {
   duration: string | number;
   timeSlot?: string;
   startDate?: string | null;
+  fechaLimite?: string | null;
   resourceUrl?: string | null;
   resourceName?: string;
   isCompleted: boolean;
@@ -242,6 +243,7 @@ export function TaskItemCard({
         )}
 
         {/* Metadatos: Inicio y Tiempo de duración */}
+        {/* Metadatos: Inicio, Límite y Tiempo de duración */}
         <div className="flex flex-wrap items-center gap-3 mt-2">
           {/* Fecha de inicio */}
           <div className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-on-surface-variant bg-[#FDFBF9] px-2.5 py-1 rounded-lg border border-[#E8DCD1]/60">
@@ -255,6 +257,32 @@ export function TaskItemCard({
                   : copy.notScheduled}
             </span>
           </div>
+
+          {/* Fecha límite (hora inicio + duración) */}
+          {(task.fechaLimite || (task.startDate && task.duration)) && (
+            <div
+              className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-on-surface-variant bg-[#FDFBF9] px-2.5 py-1 rounded-lg border border-[#E8DCD1]/60"
+              title="Fecha límite de la tarea (hora inicio + duración)"
+            >
+              <Clock className="size-3.5 text-amber-700" />
+              <span>
+                límite:{' '}
+                {formatStartDate(
+                  task.fechaLimite ||
+                    (task.startDate
+                      ? new Date(
+                          new Date(task.startDate).getTime() +
+                            (typeof task.duration === 'number'
+                              ? task.duration
+                              : parseInt(String(task.duration).replace(/\D+/g, ''), 10) || 30) *
+                              60 *
+                              1000,
+                        ).toISOString()
+                      : null),
+                )}
+              </span>
+            </div>
+          )}
 
           {/* Tiempo de duración */}
           <div className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-on-surface-variant">
@@ -430,6 +458,20 @@ export function TaskItemCard({
         onClose={() => setShowFocusModal(false)}
         taskId={task.id}
         taskTitle={task.title}
+        projectId={projectId}
+        onTechniqueSelected={(techName) => {
+          onUpdateFeedback?.(task.id, {
+            metodoEstudio: techName,
+            tiempoEmpleado:
+              typeof task.tiempoEmpleado === 'number'
+                ? task.tiempoEmpleado
+                : typeof task.duration === 'number'
+                  ? task.duration
+                  : 30,
+            tecnicaSirvio: task.tecnicaSirvio ?? true,
+            tecnicaPreferida: techName,
+          });
+        }}
       />
 
       <TaskCompletedDetailModal

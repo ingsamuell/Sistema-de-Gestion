@@ -186,9 +186,16 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error('Error en POST /api/calendar/extract-schedule:', error);
+    const errMessage = error instanceof Error ? error.message : String(error);
+    const isObscene =
+      /safety|sexual|obscen|inapropiad|porn|explicit/i.test(errMessage) ||
+      errMessage.includes('No se permiten contenidos obscenos');
+
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : 'Error procesando horario con IA',
+        error: isObscene
+          ? 'No se permiten contenidos obscenos.'
+          : errMessage || 'Error procesando horario con IA',
       },
       { status: 500 },
     );

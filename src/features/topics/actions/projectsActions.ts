@@ -281,6 +281,7 @@ export async function createProjectWithMilestonesAction(
         titulo: title,
         completado: false,
         duracion: 30,
+        metodo_estudio: null,
       }));
 
       await supabase.from('tareas').insert(milestoneRows);

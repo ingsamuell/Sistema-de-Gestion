@@ -92,7 +92,7 @@ export function LoginForm({ locale }: { locale: Locale }) {
         if (urlError || errorDescription) {
           const supabase = createClient();
           await supabase.auth.signOut();
-          
+
           // Limpieza defensiva manual del localStorage
           const keysToRemove = [];
           for (let i = 0; i < localStorage.length; i++) {
@@ -101,7 +101,7 @@ export function LoginForm({ locale }: { locale: Locale }) {
               keysToRemove.push(key);
             }
           }
-          keysToRemove.forEach(key => localStorage.removeItem(key));
+          keysToRemove.forEach((key) => localStorage.removeItem(key));
         }
       } catch (err) {
         console.error('Error limpiando sesión defensivamente:', err);
