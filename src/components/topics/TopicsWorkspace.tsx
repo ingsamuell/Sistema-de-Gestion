@@ -61,6 +61,8 @@ export function TopicsWorkspace() {
     locale === 'es'
       ? {
           title: 'Temas de estudio',
+          personalLibrary: 'Biblioteca personal',
+          loadingLibrary: 'Cargando biblioteca de temas...',
           intro:
             'Reúne notas y fuentes que luego podrás activar como contexto para la IA o vincular a un proyecto.',
           newTopic: 'Nuevo tema',
@@ -112,6 +114,8 @@ export function TopicsWorkspace() {
         }
       : {
           title: 'Study topics',
+          personalLibrary: 'Personal library',
+          loadingLibrary: 'Loading study topics library...',
           intro:
             'Bring together notes and sources you can later enable as AI context or link to a project.',
           newTopic: 'New topic',
@@ -529,7 +533,7 @@ export function TopicsWorkspace() {
       <div className="flex min-h-[50vh] items-center justify-center">
         <div className="flex flex-col items-center gap-3 text-primary">
           <Loader2 className="size-8 animate-spin" />
-          <p className="text-sm font-semibold">Cargando biblioteca de temas...</p>
+          <p className="text-sm font-semibold">{copy.loadingLibrary}</p>
         </div>
       </div>
     );
@@ -544,9 +548,9 @@ export function TopicsWorkspace() {
             <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-on-primary">
               <BookOpen className="size-4" />
             </span>
-            Biblioteca personal
+            {copy.personalLibrary}
           </div>
-          <h1 className="text-3xl font-bold tracking-tight md:text-4xl">Temas</h1>
+          <h1 className="text-3xl font-bold tracking-tight md:text-4xl">{copy.title}</h1>
           <p className="mt-2 max-w-2xl text-on-surface-variant">{copy.intro}</p>
         </div>
         <Button

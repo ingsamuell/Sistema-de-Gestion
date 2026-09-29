@@ -154,7 +154,11 @@ export function AnalyticsDashboard({ data }: { data: AnalyticsDashboardData }) {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.15em] text-accent-amber">
-                {data.requestedPeriod.label}
+                {formatRequestedPeriod(
+                  data.requestedPeriod.startsOn,
+                  data.requestedPeriod.endsOn,
+                  locale,
+                )}
               </p>
               <h2 className="mt-1 text-xl font-bold text-on-surface">{copy.observe}</h2>
             </div>
@@ -226,7 +230,7 @@ export function AnalyticsDashboard({ data }: { data: AnalyticsDashboardData }) {
           </div>
 
           <p className="mb-4 text-sm leading-relaxed text-on-surface-variant">
-            {availability.message}
+            {getAvailabilityMessage(activeMetric, data, locale)}
           </p>
           {availability.available ? (
             <>
@@ -237,17 +241,20 @@ export function AnalyticsDashboard({ data }: { data: AnalyticsDashboardData }) {
                 id="exportable-chart-area"
                 className="overflow-x-auto bg-surface-container-lowest p-2 rounded-xl"
               >
-                <MetricChart metric={activeMetric} data={data} />
+                <MetricChart metric={activeMetric} data={data} locale={locale} />
               </div>
             </>
           ) : (
             <div id="exportable-chart-area">
-              <EmptyMetric message={availability.message} title={copy.noData} />
+              <EmptyMetric
+                message={getAvailabilityMessage(activeMetric, data, locale)}
+                title={copy.noData}
+              />
             </div>
           )}
           {data.messages.length > 0 && (
             <ul className="mt-5 space-y-2 text-sm leading-relaxed text-on-surface-variant">
-              {data.messages.map((message) => (
+              {getDataMessages(data, locale).map((message) => (
                 <li key={message}>• {message}</li>
               ))}
             </ul>
@@ -267,7 +274,7 @@ export function AnalyticsDashboard({ data }: { data: AnalyticsDashboardData }) {
             <div>
               <p className="text-sm font-bold text-primary">{copy.meaning}</p>
               <p className="mt-1 text-sm leading-relaxed text-on-surface-variant">
-                {availability.message}
+                {getAvailabilityMessage(activeMetric, data, locale)}
               </p>
             </div>
           </div>
@@ -332,20 +339,109 @@ function getMetricPresentation(
 function MetricChart({
   metric,
   data,
+  locale,
 }: {
   metric: AnalyticsMetricId;
   data: AnalyticsDashboardData;
+  locale: Locale;
 }) {
   if (metric === 'workload') {
-    return <WorkloadChart data={data.series.workload} />;
+    return <WorkloadChart data={data.series.workload} locale={locale} />;
   }
   if (metric === 'progress') {
-    return <ProgressChart data={data.series.progress} />;
+    return <ProgressChart data={data.series.progress} locale={locale} />;
   }
   if (metric === 'priorities') {
-    return <PrioritiesChart data={data.series.priorities} />;
+    return <PrioritiesChart data={data.series.priorities} locale={locale} />;
   }
-  return <DeadlinesTimeline data={data.series.deadlines} />;
+  return <DeadlinesTimeline data={data.series.deadlines} locale={locale} />;
+}
+
+function formatRequestedPeriod(startsOn: string, endsOn: string, locale: Locale) {
+  const formatter = new Intl.DateTimeFormat(locale === 'es' ? 'es-VE' : 'en-US', {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  });
+  const start = formatter.format(new Date(`${startsOn}T12:00:00Z`));
+  const end = formatter.format(new Date(`${endsOn}T12:00:00Z`));
+  return locale === 'es' ? `Semana del ${start} al ${end}` : `Week of ${start} to ${end}`;
+}
+
+function getAvailabilityMessage(
+  metric: AnalyticsMetricId,
+  data: AnalyticsDashboardData,
+  locale: Locale,
+) {
+  const available = data.availability[metric].available;
+  const hasTasks = data.summary.totalTasks > 0;
+  const messages =
+    locale === 'es'
+      ? {
+          workload: available
+            ? 'Basada en tareas con fecha de inicio dentro de esta semana.'
+            : hasTasks
+              ? 'Aún no hay tareas programadas para esta semana.'
+              : 'Elabora tareas con una fecha de inicio para ver tu carga semanal.',
+          progress: available
+            ? 'Derivado de tareas completadas sobre el total de cada proyecto.'
+            : 'El avance estará disponible cuando tus proyectos tengan tareas.',
+          priorities: available
+            ? 'Basada en la prioridad asignada a cada proyecto.'
+            : 'Crea un proyecto para ver la distribución de prioridades.',
+          deadlines: available
+            ? 'Basada en las fechas límite registradas en tus proyectos.'
+            : 'Añade una fecha límite a un proyecto para ver próximas entregas.',
+        }
+      : {
+          workload: available
+            ? 'Based on tasks with a start date during this week.'
+            : hasTasks
+              ? 'There are no tasks scheduled for this week yet.'
+              : 'Add tasks with a start date to see your weekly workload.',
+          progress: available
+            ? 'Calculated from completed tasks out of each project’s total tasks.'
+            : 'Progress will be available once your projects have tasks.',
+          priorities: available
+            ? 'Based on the priority assigned to each project.'
+            : 'Create a project to see your priority distribution.',
+          deadlines: available
+            ? 'Based on the deadlines recorded in your projects.'
+            : 'Add a deadline to a project to see upcoming due dates.',
+        };
+  return messages[metric];
+}
+
+function getDataMessages(data: AnalyticsDashboardData, locale: Locale) {
+  const unscheduled = Number(
+    data.messages.find((message) => message.includes('fecha de inicio'))?.match(/^\d+/)?.[0] ?? 0,
+  );
+  const projectsWithoutTasks = data.series.progress.filter(
+    (project) => project.totalTasks === 0,
+  ).length;
+  const projectsWithoutDeadlines = data.messages.some((message) =>
+    message.includes('fecha límite'),
+  );
+  const messages: string[] = [];
+  if (unscheduled > 0)
+    messages.push(
+      locale === 'es'
+        ? `${unscheduled} tarea(s) no tienen fecha de inicio y no se incluyen en la carga semanal.`
+        : `${unscheduled} task(s) have no start date and are not included in the weekly workload.`,
+    );
+  if (projectsWithoutTasks > 0)
+    messages.push(
+      locale === 'es'
+        ? `${projectsWithoutTasks} proyecto(s) no tienen tareas; su avance aún no puede derivarse.`
+        : `${projectsWithoutTasks} project(s) have no tasks, so their progress cannot be calculated yet.`,
+    );
+  if (projectsWithoutDeadlines)
+    messages.push(
+      locale === 'es'
+        ? 'Los proyectos sin fecha límite no aparecen en Entregas próximas.'
+        : 'Projects without a deadline do not appear in Upcoming deadlines.',
+    );
+  return messages;
 }
 
 function EmptyMetric({ message, title }: { message: string; title: string }) {

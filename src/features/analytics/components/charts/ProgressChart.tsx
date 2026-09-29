@@ -10,6 +10,7 @@ import {
   Cell,
   CartesianGrid,
 } from 'recharts';
+import type { Locale } from '@/lib/i18n/locale';
 
 interface ProgressChartProps {
   data: Array<{
@@ -19,14 +20,16 @@ interface ProgressChartProps {
     completedTasks: number;
     totalTasks: number;
   }>;
+  locale: Locale;
 }
 
-export function ProgressChart({ data }: ProgressChartProps) {
+export function ProgressChart({ data, locale }: ProgressChartProps) {
+  const copy =
+    locale === 'es'
+      ? { aria: 'Progreso por proyecto', complete: 'completado', tasks: 'tareas' }
+      : { aria: 'Progress by project', complete: 'complete', tasks: 'tasks' };
   return (
-    <div
-      className="h-[400px] w-full pt-4 min-w-[34rem] sm:min-w-0"
-      aria-label="Progreso por proyecto"
-    >
+    <div className="h-[400px] w-full pt-4 min-w-[34rem] sm:min-w-0" aria-label={copy.aria}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={data}
@@ -65,10 +68,10 @@ export function ProgressChart({ data }: ProgressChartProps) {
                     <p className="font-bold text-on-surface mb-1">{data.name}</p>
                     <div className="flex items-center gap-3">
                       <span className="font-semibold" style={{ color: 'var(--color-secondary)' }}>
-                        {data.value}% completado
+                        {data.value}% {copy.complete}
                       </span>
                       <span className="text-on-surface-variant text-xs font-medium">
-                        ({data.completedTasks}/{data.totalTasks} tareas)
+                        ({data.completedTasks}/{data.totalTasks} {copy.tasks})
                       </span>
                     </div>
                   </div>
