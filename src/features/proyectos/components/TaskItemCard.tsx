@@ -262,11 +262,15 @@ export function TaskItemCard({
           {(task.fechaLimite || (task.startDate && task.duration)) && (
             <div
               className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-on-surface-variant bg-[#FDFBF9] px-2.5 py-1 rounded-lg border border-[#E8DCD1]/60"
-              title="Fecha límite de la tarea (hora inicio + duración)"
+              title={
+                locale === 'es'
+                  ? 'Fecha límite de la tarea (hora inicio + duración)'
+                  : 'Task deadline (start time + duration)'
+              }
             >
               <Clock className="size-3.5 text-amber-700" />
               <span>
-                límite:{' '}
+                {locale === 'es' ? 'límite' : 'deadline'}:{' '}
                 {formatStartDate(
                   task.fechaLimite ||
                     (task.startDate
@@ -279,6 +283,7 @@ export function TaskItemCard({
                               1000,
                         ).toISOString()
                       : null),
+                  locale,
                 )}
               </span>
             </div>
