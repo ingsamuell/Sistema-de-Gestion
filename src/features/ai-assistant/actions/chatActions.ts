@@ -374,6 +374,7 @@ export async function createProjectFromAITasksAction(params: {
           completado: false,
           resources: taskRes,
           prioridad: 'Prioritario',
+          metodo_estudio: null,
         };
       });
 
@@ -449,6 +450,7 @@ export async function addTasksToExistingProjectAction(params: {
           completado: false,
           resources: taskRes,
           prioridad: 'Prioritario',
+          metodo_estudio: null,
         };
       });
 
