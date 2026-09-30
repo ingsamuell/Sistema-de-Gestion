@@ -15,6 +15,7 @@ import {
 import { TechniqueSelectionModal } from '@/components/study/TechniqueSelectionModal';
 import { TaskCompletedDetailModal } from '@/features/proyectos/components/TaskCompletedDetailModal';
 import { useFocusSession } from '@/contexts/FocusSessionContext';
+import type { Locale } from '@/lib/i18n/locale';
 
 export interface Task {
   id: string;
@@ -23,6 +24,7 @@ export interface Task {
   duration: string | number;
   timeSlot?: string;
   startDate?: string | null;
+  fechaLimite?: string | null;
   resourceUrl?: string | null;
   resourceName?: string;
   isCompleted: boolean;
@@ -38,6 +40,7 @@ interface TaskItemCardProps {
   projectId?: string;
   projectName: string;
   projectPriority: string;
+  locale?: Locale;
   userPreferredTechnique?: string | null;
   onToggleComplete: (id: string, newStatus: boolean) => void;
   onDeleteTask?: (id: string) => void;
@@ -54,17 +57,17 @@ interface TaskItemCardProps {
   ) => void;
 }
 
-function formatStartDate(dateStr?: string | null): string {
-  if (!dateStr) return 'Por definir';
+function formatStartDate(dateStr: string | null | undefined, locale: Locale): string {
+  if (!dateStr) return locale === 'es' ? 'Por definir' : 'Not scheduled';
   try {
     const d = new Date(dateStr);
     if (isNaN(d.getTime())) return dateStr;
-    const dateFormatted = d.toLocaleDateString('es-ES', {
+    const dateFormatted = d.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
     });
-    const timeFormatted = d.toLocaleTimeString('es-ES', {
+    const timeFormatted = d.toLocaleTimeString(locale === 'es' ? 'es-ES' : 'en-US', {
       hour: '2-digit',
       minute: '2-digit',
       hour12: false,
@@ -103,6 +106,7 @@ export function TaskItemCard({
   projectId,
   projectName,
   projectPriority,
+  locale = 'es',
   userPreferredTechnique,
   onToggleComplete,
   onDeleteTask,
@@ -139,6 +143,38 @@ export function TaskItemCard({
   };
 
   const formattedDuration = formatDuration(task.duration);
+  const copy =
+    locale === 'es'
+      ? {
+          start: 'inicio',
+          notScheduled: 'Por definir',
+          resources: 'Recursos',
+          completed: 'Tarea completada',
+          markComplete: 'Marcar como completa',
+          quizPassed: 'Quiz aprobado',
+          takeQuiz: 'Realizar quiz',
+          completeFirst: 'Completa la tarea primero',
+          edit: 'Editar tarea',
+          delete: 'Eliminar tarea',
+          seeMore: 'Ver más',
+          inSession: 'En sesión...',
+          startTask: 'Iniciar tarea',
+        }
+      : {
+          start: 'starts',
+          notScheduled: 'Not scheduled',
+          resources: 'Resources',
+          completed: 'Task completed',
+          markComplete: 'Mark as complete',
+          quizPassed: 'Quiz passed',
+          takeQuiz: 'Take quiz',
+          completeFirst: 'Complete the task first',
+          edit: 'Edit task',
+          delete: 'Delete task',
+          seeMore: 'See details',
+          inSession: 'In session...',
+          startTask: 'Start task',
+        };
   const recommendedUrls = extractUrls(task.resourceUrl);
 
   return (
@@ -166,7 +202,7 @@ export function TaskItemCard({
                 : 'border-[#d2c4bb] bg-transparent hover:border-[#845326] cursor-pointer'
             }
           `}
-          aria-label={isCompleted ? 'Tarea completada' : 'Marcar como completa'}
+          aria-label={isCompleted ? copy.completed : copy.markComplete}
         >
           {isCompleted && <Check className="size-4" strokeWidth={3} />}
         </button>
@@ -207,19 +243,51 @@ export function TaskItemCard({
         )}
 
         {/* Metadatos: Inicio y Tiempo de duración */}
+        {/* Metadatos: Inicio, Límite y Tiempo de duración */}
         <div className="flex flex-wrap items-center gap-3 mt-2">
           {/* Fecha de inicio */}
           <div className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-on-surface-variant bg-[#FDFBF9] px-2.5 py-1 rounded-lg border border-[#E8DCD1]/60">
             <Calendar className="size-3.5 text-[#845326]" />
             <span>
-              inicio:{' '}
+              {copy.start}:{' '}
               {task.startDate
-                ? formatStartDate(task.startDate)
+                ? formatStartDate(task.startDate, locale)
                 : task.timeSlot && task.timeSlot !== 'Hito de estudio'
                   ? task.timeSlot
-                  : 'Por definir'}
+                  : copy.notScheduled}
             </span>
           </div>
+
+          {/* Fecha límite (hora inicio + duración) */}
+          {(task.fechaLimite || (task.startDate && task.duration)) && (
+            <div
+              className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-on-surface-variant bg-[#FDFBF9] px-2.5 py-1 rounded-lg border border-[#E8DCD1]/60"
+              title={
+                locale === 'es'
+                  ? 'Fecha límite de la tarea (hora inicio + duración)'
+                  : 'Task deadline (start time + duration)'
+              }
+            >
+              <Clock className="size-3.5 text-amber-700" />
+              <span>
+                {locale === 'es' ? 'límite' : 'deadline'}:{' '}
+                {formatStartDate(
+                  task.fechaLimite ||
+                    (task.startDate
+                      ? new Date(
+                          new Date(task.startDate).getTime() +
+                            (typeof task.duration === 'number'
+                              ? task.duration
+                              : parseInt(String(task.duration).replace(/\D+/g, ''), 10) || 30) *
+                              60 *
+                              1000,
+                        ).toISOString()
+                      : null),
+                  locale,
+                )}
+              </span>
+            </div>
+          )}
 
           {/* Tiempo de duración */}
           <div className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-on-surface-variant">
@@ -232,7 +300,7 @@ export function TaskItemCard({
         {recommendedUrls.length > 0 && (
           <div className="flex flex-wrap items-center gap-2 mt-2 pt-1.5 border-t border-[#E8DCD1]/50">
             <span className="text-[11px] font-bold text-[#845326]/80 uppercase tracking-wider">
-              Recursos:
+              {copy.resources}:
             </span>
             {recommendedUrls.map((url, idx) => {
               const label = url
@@ -288,23 +356,23 @@ export function TaskItemCard({
               {task.quizAprobado ? (
                 <>
                   <Check className="size-3.5" strokeWidth={3} />
-                  Quiz Aprobado
+                  {copy.quizPassed}
                 </>
               ) : !isCompleted ? (
                 <>
                   <Lock className="size-3.5" />
-                  Realizar Quiz
+                  {copy.takeQuiz}
                 </>
               ) : (
                 <>
                   <Award className="size-3.5" />
-                  Realizar Quiz
+                  {copy.takeQuiz}
                 </>
               )}
             </button>
             {!isCompleted && !task.quizAprobado && (
               <span className="text-[11px] font-medium text-[#A8988B] select-none">
-                (Completa la tarea primero)
+                ({copy.completeFirst})
               </span>
             )}
           </div>
@@ -324,18 +392,24 @@ export function TaskItemCard({
                   ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-60'
                   : 'bg-[#f5e5d9] hover:bg-[#E8DCD1] text-[#845326] hover:text-[#433022] border-[#dccbbd]/80 shadow-xs hover:shadow-sm hover:-translate-y-0.5 active:scale-95 cursor-pointer'
               }`}
-              title={isCompleted ? 'No se puede editar una tarea completada' : 'Editar tarea'}
+              title={
+                isCompleted
+                  ? locale === 'es'
+                    ? 'No se puede editar una tarea completada'
+                    : 'A completed task cannot be edited'
+                  : copy.edit
+              }
             >
               <Pencil className={`size-3.5 ${isCompleted ? 'text-gray-400' : 'text-[#845326]'}`} />
-              <span>Editar tarea</span>
+              <span>{copy.edit}</span>
             </button>
           )}
           {onDeleteTask && (
             <button
               onClick={() => onDeleteTask(task.id)}
               className="w-10 h-8 sm:w-auto sm:px-3 flex items-center justify-center rounded-xl bg-red-50 text-red-500 hover:bg-red-100 transition-colors border border-red-100 cursor-pointer active:scale-90"
-              aria-label="Eliminar tarea"
-              title="Eliminar tarea"
+              aria-label={copy.delete}
+              title={copy.delete}
             >
               <Trash2 className="size-4" />
             </button>
@@ -349,7 +423,7 @@ export function TaskItemCard({
               onClick={() => setShowCompletedModal(true)}
               className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-on-surface px-5 py-2.5 text-sm font-bold text-surface transition-transform hover:scale-105 hover:bg-[#333] active:scale-95 cursor-pointer shadow-xs"
             >
-              <span>Ver más</span>
+              <span>{copy.seeMore}</span>
             </button>
           ) : isThisTaskActive ? (
             <button
@@ -359,7 +433,7 @@ export function TaskItemCard({
               className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-amber-600 text-white px-5 py-2.5 text-sm font-bold shadow-xs cursor-not-allowed opacity-95 animate-pulse"
             >
               <Clock className="size-4 animate-spin text-white" />
-              <span>En sesión...</span>
+              <span>{copy.inSession}</span>
             </button>
           ) : isAnotherTaskActive ? (
             <button
@@ -369,7 +443,7 @@ export function TaskItemCard({
               className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-[#E8DCD1] text-gray-400 px-5 py-2.5 text-sm font-bold opacity-60 cursor-not-allowed shadow-none"
             >
               <Play className="size-4 opacity-40" fill="currentColor" />
-              <span>Iniciar tarea</span>
+              <span>{copy.startTask}</span>
             </button>
           ) : (
             <button
@@ -377,7 +451,7 @@ export function TaskItemCard({
               onClick={() => setShowFocusModal(true)}
               className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-on-surface px-5 py-2.5 text-sm font-bold text-surface transition-transform hover:scale-105 hover:bg-[#333] active:scale-95 cursor-pointer shadow-xs"
             >
-              <span>Iniciar tarea</span>
+              <span>{copy.startTask}</span>
               <Play className="size-4" fill="currentColor" />
             </button>
           )}
@@ -390,6 +464,20 @@ export function TaskItemCard({
         taskId={task.id}
         taskTitle={task.title}
         taskDuration={typeof task.duration === 'number' ? task.duration : parseInt(String(task.duration).replace(/\D/g, '')) || 0}
+        projectId={projectId}
+        onTechniqueSelected={(techName) => {
+          onUpdateFeedback?.(task.id, {
+            metodoEstudio: techName,
+            tiempoEmpleado:
+              typeof task.tiempoEmpleado === 'number'
+                ? task.tiempoEmpleado
+                : typeof task.duration === 'number'
+                  ? task.duration
+                  : 30,
+            tecnicaSirvio: task.tecnicaSirvio ?? true,
+            tecnicaPreferida: techName,
+          });
+        }}
       />
 
       <TaskCompletedDetailModal

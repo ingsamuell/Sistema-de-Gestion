@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
+import type { Locale } from '@/lib/i18n/locale';
 
 interface DeadlinesTimelineProps {
   data: Array<{
@@ -11,11 +12,62 @@ interface DeadlinesTimelineProps {
     state: string;
     tone: 'urgent' | 'attention' | 'onTime';
   }>;
+  locale: Locale;
 }
 
-export function DeadlinesTimeline({ data }: DeadlinesTimelineProps) {
+export function DeadlinesTimeline({ data, locale }: DeadlinesTimelineProps) {
+  const copy =
+    locale === 'es'
+      ? {
+          aria: 'Próximas fechas límite',
+          overdue: 'Vencida',
+          today: 'Hoy',
+          attention: 'Atención',
+          upcoming: 'Próxima',
+          onTime: 'A tiempo',
+        }
+      : {
+          aria: 'Upcoming deadlines',
+          overdue: 'Overdue',
+          today: 'Today',
+          attention: 'Attention',
+          upcoming: 'Upcoming',
+          onTime: 'On track',
+        };
+  const formatDate = (date: string) =>
+    new Intl.DateTimeFormat(locale === 'es' ? 'es-VE' : 'en-US', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'UTC',
+    }).format(new Date(`${date}T12:00:00Z`));
+  const relative = (deadline: DeadlinesTimelineProps['data'][number]) => {
+    const today = new Date();
+    const due = new Date(`${deadline.dueDate}T12:00:00`);
+    const days = Math.round(
+      (due.getTime() -
+        new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12).getTime()) /
+        86_400_000,
+    );
+    if (days < 0)
+      return locale === 'es' ? `Venció hace ${Math.abs(days)} d` : `${Math.abs(days)}d overdue`;
+    if (days === 0) return copy.today;
+    if (days === 1) return locale === 'es' ? 'Mañana' : 'Tomorrow';
+    if (days <= 7) return locale === 'es' ? `En ${days} días` : `In ${days} days`;
+    return formatDate(deadline.dueDate);
+  };
+  const state = (deadline: DeadlinesTimelineProps['data'][number]) =>
+    deadline.tone === 'urgent'
+      ? deadline.relativeLabel === 'Hoy'
+        ? copy.today
+        : copy.overdue
+      : deadline.tone === 'attention'
+        ? deadline.relativeLabel === 'Mañana'
+          ? copy.attention
+          : copy.upcoming
+        : copy.onTime;
   return (
-    <ol className="min-w-0 space-y-4 pt-2" aria-label="Próximas fechas límite">
+    <ol className="min-w-0 space-y-4 pt-2" aria-label={copy.aria}>
       {data.map((deadline, index) => (
         <li key={deadline.projectId} className="grid grid-cols-[1rem_minmax(0,1fr)] gap-4 group">
           <div className="relative flex items-center justify-center" aria-hidden="true">
@@ -40,8 +92,10 @@ export function DeadlinesTimeline({ data }: DeadlinesTimelineProps) {
             <div className="min-w-0">
               <p className="break-words font-semibold text-on-surface">{deadline.name}</p>
               <p className="mt-0.5 text-sm font-medium text-on-surface-variant flex items-center gap-1">
-                {deadline.relativeLabel}
-                <span className="text-xs opacity-60 font-normal">({deadline.dueDate})</span>
+                {relative(deadline)}
+                <span className="text-xs opacity-60 font-normal">
+                  ({formatDate(deadline.dueDate)})
+                </span>
               </p>
             </div>
             <span
@@ -54,7 +108,7 @@ export function DeadlinesTimeline({ data }: DeadlinesTimelineProps) {
                     : 'bg-status-success-bg text-status-success',
               )}
             >
-              {deadline.state}
+              {state(deadline)}
             </span>
           </div>
         </li>

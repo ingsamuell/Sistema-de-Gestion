@@ -8,12 +8,16 @@ import { useFocusSession } from '@/contexts/FocusSessionContext';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 
+import { saveTaskStartTechniqueAction } from '@/features/proyectos/actions/proyectoActions';
+
 interface TechniqueSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
   taskId?: string;
   taskTitle?: string;
   taskDuration?: number;
+  projectId?: string;
+  onTechniqueSelected?: (techniqueName: string) => void;
 }
 
 export function TechniqueSelectionModal({
@@ -22,10 +26,26 @@ export function TechniqueSelectionModal({
   taskId,
   taskTitle,
   taskDuration,
+  projectId,
+  onTechniqueSelected,
 }: TechniqueSelectionModalProps) {
   const { startSession } = useFocusSession();
 
   const handleStart = (techniqueId: string) => {
+    const tech = STUDY_TECHNIQUES.find((t) => t.id === techniqueId);
+    const techName = tech?.name || techniqueId;
+
+    if (taskId) {
+      saveTaskStartTechniqueAction({
+        taskId,
+        metodoEstudio: techName,
+        projectId,
+      }).catch((err) => {
+        console.warn('Aviso guardando técnica de estudio seleccionada:', err);
+      });
+      onTechniqueSelected?.(techName);
+    }
+
     startSession(techniqueId, taskId, taskTitle);
     onClose();
   };

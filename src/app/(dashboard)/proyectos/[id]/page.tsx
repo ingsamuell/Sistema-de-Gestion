@@ -292,6 +292,83 @@ export default function ProjectDetailPage({
   const router = useRouter();
   const pathname = usePathname();
   const locale = getLocaleFromPathname(pathname) ?? defaultLocale;
+  const copy =
+    locale === 'es'
+      ? {
+          notFound: 'Proyecto no encontrado',
+          notFoundDescription: 'No se pudo encontrar el proyecto especificado.',
+          back: 'Volver a Proyectos',
+          completed: 'Completado',
+          editProject: 'Editar Proyecto',
+          deadline: 'Fecha límite',
+          projectProgress: 'Progreso del proyecto',
+          taskCount: 'Nro. de Tareas',
+          completedTasks: 'Realizadas',
+          certificationProgress: 'Progreso de Certificación',
+          certificateIssued: '¡Certificado emitido!',
+          certificationHint: 'Aprueba los micro-quizzes de cada tarea para certificarte.',
+          officialCertificate: 'Ver Certificado Oficial',
+          completedCertificate: '¡Proyecto completado! Ver Certificado Oficial',
+          previewCertificate: 'Ver vista previa del Certificado',
+          actionPlan: 'Plan de Acción',
+          noTasks: 'Aún no hay tareas registradas',
+          noTasksDescription:
+            'Puedes generar tu plan de estudio automáticamente con la IA de n8n o agregar tareas de forma manual.',
+          addTask: 'Agregar Tarea',
+          generateAiTask: 'Generar tarea con IA',
+          deleteProject: 'Eliminar Proyecto',
+          newTask: 'Nueva Tarea',
+          taskTitle: 'Título de la tarea',
+          taskExample: 'Ej. Revisar vocabulario o hacer ejercicio 1',
+          optionalDescription: 'Descripción (opcional)',
+          startDateTime: 'Fecha y hora de inicio',
+          cancel: 'Cancelar',
+          saving: 'Guardando...',
+          saveTask: 'Guardar Tarea',
+          editTask: 'Editar Tarea',
+          saveChanges: 'Guardar Cambios',
+          deleteProjectQuestion: '¿Eliminar proyecto?',
+          deleteTaskQuestion: '¿Eliminar tarea?',
+          closeNotice: 'Cerrar aviso',
+          mascotAlt: 'Mascota del proyecto',
+        }
+      : {
+          notFound: 'Project not found',
+          notFoundDescription: 'We could not find the requested project.',
+          back: 'Back to projects',
+          completed: 'Completed',
+          editProject: 'Edit project',
+          deadline: 'Deadline',
+          projectProgress: 'Project progress',
+          taskCount: 'Task count',
+          completedTasks: 'Completed',
+          certificationProgress: 'Certification progress',
+          certificateIssued: 'Certificate issued!',
+          certificationHint: 'Pass each task’s micro-quizzes to earn your certificate.',
+          officialCertificate: 'View official certificate',
+          completedCertificate: 'Project complete! View official certificate',
+          previewCertificate: 'Preview certificate',
+          actionPlan: 'Action plan',
+          noTasks: 'There are no tasks yet',
+          noTasksDescription: 'You can generate your study plan with n8n AI or add tasks manually.',
+          addTask: 'Add task',
+          generateAiTask: 'Generate task with AI',
+          deleteProject: 'Delete project',
+          newTask: 'New task',
+          taskTitle: 'Task title',
+          taskExample: 'For example, review vocabulary or complete exercise 1',
+          optionalDescription: 'Description (optional)',
+          startDateTime: 'Start date and time',
+          cancel: 'Cancel',
+          saving: 'Saving...',
+          saveTask: 'Save task',
+          editTask: 'Edit task',
+          saveChanges: 'Save changes',
+          deleteProjectQuestion: 'Delete project?',
+          deleteTaskQuestion: 'Delete task?',
+          closeNotice: 'Close notice',
+          mascotAlt: 'Project mascot',
+        };
   const searchParams = useSearchParams();
   const [project, setProject] = useState<ProjectDetailState | null>(null);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEventItem[]>([]);
@@ -579,6 +656,7 @@ export default function ProjectDetailPage({
           description: t.descripcion || '',
           duration: t.duracion,
           startDate: t.fecha_inicio || undefined,
+          fechaLimite: t.fecha_limite || undefined,
           resourceUrl: t.resources || t.url_recomendada || null,
           isCompleted: Boolean(t.completado),
         }));
@@ -647,6 +725,7 @@ export default function ProjectDetailPage({
               description: t.descripcion || '',
               duration: t.duracion,
               startDate: t.fecha_inicio || null,
+              fechaLimite: t.fecha_limite || null,
               resourceUrl: t.resources || t.recurso_url || t.material_url || null,
               isCompleted: Boolean(t.completado),
               quizAprobado: Boolean(t.quiz_aprobado),
@@ -1027,6 +1106,7 @@ export default function ProjectDetailPage({
           description: res.task.descripcion || '',
           duration: res.task.duracion,
           startDate: res.task.fecha_inicio || fullStartDateTime,
+          fechaLimite: res.task.fecha_limite || null,
           resourceUrl:
             (res.task as TaskRecord & { resources?: string }).resources || combinedUrls || null,
           isCompleted: false,
@@ -1142,6 +1222,7 @@ export default function ProjectDetailPage({
           description: res.task.descripcion || '',
           duration: res.task.duracion,
           startDate: res.task.fecha_inicio || fullStartDateTime,
+          fechaLimite: res.task.fecha_limite || null,
           resourceUrl:
             (res.task as TaskRecord & { resources?: string }).resources || combinedUrls || null,
           isCompleted: taskToEdit.isCompleted,
@@ -1189,16 +1270,14 @@ export default function ProjectDetailPage({
   if (!project) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6">
-        <h2 className="text-xl font-bold text-on-surface mb-2">Proyecto no encontrado</h2>
-        <p className="text-sm text-on-surface-variant mb-6">
-          No se pudo encontrar el proyecto especificado.
-        </p>
+        <h2 className="text-xl font-bold text-on-surface mb-2">{copy.notFound}</h2>
+        <p className="text-sm text-on-surface-variant mb-6">{copy.notFoundDescription}</p>
         <Link
           href={localizedHref(locale, 'projects')}
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#f5e5d9] text-[#845326] font-bold text-sm hover:bg-[#E8DCD1] transition-colors"
         >
           <ArrowLeft className="size-4" />
-          Volver a Proyectos
+          {copy.back}
         </Link>
       </div>
     );
@@ -1255,7 +1334,7 @@ export default function ProjectDetailPage({
           className="inline-flex items-center gap-2 text-sm font-bold text-[#845326] hover:text-[#433022] bg-[#f5e5d9]/60 hover:bg-[#f5e5d9] px-3.5 py-1.5 rounded-full transition-all"
         >
           <ArrowLeft className="size-4" />
-          <span>Volver a Proyectos</span>
+          <span>{copy.back}</span>
         </Link>
       </div>
 
@@ -1336,7 +1415,7 @@ export default function ProjectDetailPage({
             {project.completado && (
               <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-emerald-600 text-white shadow-sm">
                 <Check className="size-3.5" strokeWidth={3} />
-                Completado
+                {copy.completed}
               </span>
             )}
             <span
@@ -1356,7 +1435,7 @@ export default function ProjectDetailPage({
           <div className="relative w-40 h-40 sm:w-48 sm:h-48 translate-y-4">
             <Image
               src={`/images/mascot/${project.cuteImage}.png`}
-              alt="Mascota del proyecto"
+              alt={copy.mascotAlt}
               fill
               className="object-contain drop-shadow-md"
               priority
@@ -1385,7 +1464,7 @@ export default function ProjectDetailPage({
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-[#E8DCD1] bg-white hover:bg-[#FAF8F5] text-xs sm:text-sm font-bold text-[#845326] transition-all shadow-xs cursor-pointer shrink-0 self-start hover:-translate-y-0.5 active:scale-95"
             >
               <Pencil className="size-3.5" />
-              <span>Editar Proyecto</span>
+              <span>{copy.editProject}</span>
             </button>
           </div>
 
@@ -1394,13 +1473,18 @@ export default function ProjectDetailPage({
             <div className="mb-6 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#FAF8F5] border border-[#E8DCD1] text-xs sm:text-sm text-[#845326] font-semibold">
               <Calendar className="size-4 text-[#845326]" />
               <span>
-                Fecha límite:{' '}
+                {copy.deadline}:{' '}
                 <span className="font-bold text-[#2C1F14]">
                   {(() => {
                     try {
                       const dPart = project.fecha_limite.split('T')[0];
                       const [y, m, d] = dPart.split('-');
-                      return `${d}/${m}/${y}`;
+                      return new Intl.DateTimeFormat(locale === 'es' ? 'es-VE' : 'en-US', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        timeZone: 'UTC',
+                      }).format(new Date(`${y}-${m}-${d}T12:00:00Z`));
                     } catch {
                       return project.fecha_limite.slice(0, 10);
                     }
@@ -1412,11 +1496,11 @@ export default function ProjectDetailPage({
 
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-3">
             <div>
-              <p className="text-sm font-bold text-on-surface-variant">Progreso del proyecto</p>
+              <p className="text-sm font-bold text-on-surface-variant">{copy.projectProgress}</p>
               <div className="text-sm text-on-surface-variant mt-1">
-                Nro. de Tareas: <span className="font-bold text-on-surface">{totalTasks}</span>
+                {copy.taskCount}: <span className="font-bold text-on-surface">{totalTasks}</span>
                 <span className="mx-2">•</span>
-                Realizadas:{' '}
+                {copy.completedTasks}:{' '}
                 <span className="font-bold text-on-surface">
                   {completedTasks}/{totalTasks}
                 </span>
@@ -1435,11 +1519,11 @@ export default function ProjectDetailPage({
 
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-3 mt-6">
             <div>
-              <p className="text-sm font-bold text-on-surface-variant">Progreso de Certificación</p>
+              <p className="text-sm font-bold text-on-surface-variant">
+                {copy.certificationProgress}
+              </p>
               <div className="text-xs text-on-surface-variant mt-1 max-w-xs">
-                {certStatus.issued
-                  ? '¡Certificado emitido!'
-                  : 'Aprueba los micro-quizzes de cada tarea para certificarte.'}
+                {certStatus.issued ? copy.certificateIssued : copy.certificationHint}
               </div>
             </div>
             <div className="text-2xl font-black text-status-success">
@@ -1471,7 +1555,7 @@ export default function ProjectDetailPage({
               className="text-xs font-bold text-status-success underline hover:text-emerald-700 transition-colors mt-2 cursor-pointer inline-flex items-center gap-1.5"
             >
               <Award className="size-3.5" />
-              <span>Ver Certificado Oficial</span>
+              <span>{copy.officialCertificate}</span>
             </button>
           ) : isProjectAllDone ? (
             <button
@@ -1484,14 +1568,14 @@ export default function ProjectDetailPage({
               ) : (
                 <Award className="size-3.5" />
               )}
-              <span>¡Proyecto completado! Ver Certificado Oficial</span>
+              <span>{copy.completedCertificate}</span>
             </button>
           ) : (
             <button
               onClick={() => setIsCertModalOpen(true)}
               className="text-xs font-bold text-[#845326] underline hover:text-[#433022] transition-colors mt-2 cursor-pointer"
             >
-              Ver vista previa del Certificado
+              {copy.previewCertificate}
             </button>
           )}
         </div>
@@ -1499,7 +1583,7 @@ export default function ProjectDetailPage({
 
       {/* 2. LISTA DE TAREAS */}
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h2 className="text-xl font-bold text-on-surface">Plan de Acción</h2>
+        <h2 className="text-xl font-bold text-on-surface">{copy.actionPlan}</h2>
 
         {(certStatus.issued || isProjectAllDone) && (
           <button
@@ -1512,7 +1596,7 @@ export default function ProjectDetailPage({
             ) : (
               <Award className="size-4 text-[#FEB800]" />
             )}
-            <span>Ver Certificado Oficial</span>
+            <span>{copy.officialCertificate}</span>
           </button>
         )}
       </div>
@@ -1551,12 +1635,9 @@ export default function ProjectDetailPage({
 
       {project.tasks.length === 0 ? (
         <div className="bg-white border border-[#E8DCD1] rounded-2xl p-8 text-center">
-          <p className="text-sm font-semibold text-on-surface mb-2">
-            Aún no hay tareas registradas
-          </p>
+          <p className="text-sm font-semibold text-on-surface mb-2">{copy.noTasks}</p>
           <p className="text-xs text-on-surface-variant mb-6 max-w-md mx-auto">
-            Puedes generar tu plan de estudio automáticamente con la IA de n8n o agregar tareas de
-            forma manual.
+            {copy.noTasksDescription}
           </p>
           <div
             id="tour-project-add-task-empty"
@@ -1571,7 +1652,7 @@ export default function ProjectDetailPage({
               className="inline-flex items-center gap-2 rounded-xl bg-[#f5e5d9] px-5 py-2.5 text-xs sm:text-sm font-bold text-[#845326] hover:bg-[#E8DCD1] transition-all cursor-pointer"
             >
               <Plus className="size-4" />
-              <span>Agregar Tarea</span>
+              <span>{copy.addTask}</span>
             </button>
             <button
               type="button"
@@ -1586,7 +1667,7 @@ export default function ProjectDetailPage({
               className="inline-flex items-center gap-2 rounded-xl bg-[#2C1F14] hover:bg-[#433022] text-white px-5 py-2.5 text-xs sm:text-sm font-semibold shadow-xs transition-all hover:brightness-105 active:scale-95 cursor-pointer"
             >
               <Sparkles className="size-4 text-[#FEB800]" />
-              <span>Generar tarea con IA</span>
+              <span>{copy.generateAiTask}</span>
             </button>
           </div>
         </div>
@@ -1600,6 +1681,7 @@ export default function ProjectDetailPage({
                 projectId={project.id}
                 projectName={project.title}
                 projectPriority={project.priority}
+                locale={locale}
                 userPreferredTechnique={userPreferredTechnique}
                 onToggleComplete={handleToggleTask}
                 onDeleteTask={handleDeleteTaskClick}
@@ -1669,7 +1751,7 @@ export default function ProjectDetailPage({
               className="inline-flex items-center gap-2 rounded-2xl bg-[#f5e5d9] px-7 py-3 text-sm font-bold text-[#845326] shadow-sm hover:shadow-md transition-all hover:bg-[#E8DCD1] hover:-translate-y-0.5 active:scale-95 cursor-pointer"
             >
               <Plus className="size-5" />
-              <span>Agregar Tarea</span>
+              <span>{copy.addTask}</span>
             </button>
             <button
               type="button"
@@ -1684,7 +1766,7 @@ export default function ProjectDetailPage({
               className="inline-flex items-center gap-2 rounded-2xl bg-[#2C1F14] hover:bg-[#433022] text-white px-7 py-3 text-sm font-bold shadow-sm hover:shadow-md transition-all hover:brightness-105 hover:-translate-y-0.5 active:scale-95 cursor-pointer"
             >
               <Sparkles className="size-5 text-[#FEB800]" />
-              <span>Generar tarea con IA</span>
+              <span>{copy.generateAiTask}</span>
             </button>
           </div>
         </>
@@ -1699,7 +1781,7 @@ export default function ProjectDetailPage({
           className="inline-flex items-center gap-2 text-sm font-bold text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-4 py-2.5 rounded-xl border border-red-200/60 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
         >
           <Trash2 className="size-4" />
-          <span>Eliminar Proyecto</span>
+          <span>{copy.deleteProject}</span>
         </button>
       </div>
 
@@ -1714,7 +1796,7 @@ export default function ProjectDetailPage({
               <X className="size-5" />
             </button>
 
-            <h2 className="text-xl font-bold text-on-surface mb-5">Nueva Tarea</h2>
+            <h2 className="text-xl font-bold text-on-surface mb-5">{copy.newTask}</h2>
 
             {taskErrorMessage && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2">
@@ -1726,14 +1808,14 @@ export default function ProjectDetailPage({
             <form onSubmit={handleAddTask} className="flex flex-col gap-5">
               <div>
                 <label htmlFor="taskTitle" className="block text-sm font-bold text-on-surface mb-2">
-                  Título de la tarea
+                  {copy.taskTitle}
                 </label>
                 <input
                   id="taskTitle"
                   type="text"
                   value={newTaskTitle}
                   onChange={(e) => setNewTaskTitle(e.target.value)}
-                  placeholder="Ej. Revisar vocabulario o hacer ejercicio 1"
+                  placeholder={copy.taskExample}
                   className="w-full rounded-xl border-2 border-[#E8DCD1] bg-white px-4 py-3 text-on-surface placeholder:text-gray-400 focus:border-[#2C1F14] focus:outline-none transition-all text-sm"
                   required
                 />
@@ -1744,7 +1826,7 @@ export default function ProjectDetailPage({
                   htmlFor="taskDescription"
                   className="block text-sm font-bold text-on-surface mb-2"
                 >
-                  Descripción (opcional)
+                  {copy.optionalDescription}
                 </label>
                 <textarea
                   id="taskDescription"
@@ -1758,7 +1840,7 @@ export default function ProjectDetailPage({
               {/* Apartado de Día de inicio y Hora de inicio */}
               <div>
                 <label className="block text-sm font-bold text-on-surface mb-2">
-                  Fecha y hora de inicio
+                  {copy.startDateTime}
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
@@ -1812,7 +1894,7 @@ export default function ProjectDetailPage({
                   htmlFor="durationInput"
                   className="block text-sm font-bold text-on-surface mb-2"
                 >
-                  Duración estimada
+                  {locale === 'es' ? 'Duración estimada' : 'Estimated duration'}
                 </label>
                 <div className="flex gap-2.5">
                   <div className="relative flex-1">
@@ -1835,22 +1917,27 @@ export default function ProjectDetailPage({
                       onChange={(e) => setDurationUnit(e.target.value as 'minutos' | 'horas')}
                       className="w-full rounded-xl border-2 border-[#E8DCD1] bg-[#FDFBF9] px-3.5 py-3 text-on-surface font-semibold focus:border-[#2C1F14] focus:outline-none transition-all text-sm cursor-pointer"
                     >
-                      <option value="minutos">Minutos</option>
-                      <option value="horas">Horas</option>
+                      <option value="minutos">{locale === 'es' ? 'Minutos' : 'Minutes'}</option>
+                      <option value="horas">{locale === 'es' ? 'Horas' : 'Hours'}</option>
                     </select>
                   </div>
                 </div>
                 <p className="mt-1.5 text-xs text-gray-500">
                   {durationUnit === 'horas'
-                    ? `Equivale a ${(Math.round(Number(durationValue)) || 1) * 60} minutos.`
-                    : `${Math.round(Number(durationValue)) || 1} minutos registrados.`}
+                    ? locale === 'es'
+                      ? `Equivale a ${(Math.round(Number(durationValue)) || 1) * 60} minutos.`
+                      : `Equals ${(Math.round(Number(durationValue)) || 1) * 60} minutes.`
+                    : locale === 'es'
+                      ? `${Math.round(Number(durationValue)) || 1} minutos registrados.`
+                      : `${Math.round(Number(durationValue)) || 1} minutes recorded.`}
                 </p>
               </div>
 
               {/* Sección URLs recomendadas dinámicas (mismo formato que el wizard) */}
               <div>
                 <label className="flex items-center gap-2 text-sm font-bold text-on-surface mb-2">
-                  <LinkIcon className="size-4 text-[#845326]" /> Enlaces y URLs recomendadas
+                  <LinkIcon className="size-4 text-[#845326]" />{' '}
+                  {locale === 'es' ? 'Enlaces y URLs recomendadas' : 'Recommended links and URLs'}
                   (opcional)
                 </label>
 
@@ -1869,7 +1956,7 @@ export default function ProjectDetailPage({
                           type="button"
                           onClick={() => handleRemoveTaskUrl(idx)}
                           className="p-2.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
-                          title="Eliminar enlace"
+                          title={locale === 'es' ? 'Eliminar enlace' : 'Remove link'}
                         >
                           <Trash2 className="size-4" />
                         </button>
@@ -1913,7 +2000,7 @@ export default function ProjectDetailPage({
                   onClick={() => setIsAddModalOpen(false)}
                   className="flex-1 rounded-xl bg-gray-100 hover:bg-gray-200 px-4 py-3 text-sm font-bold text-gray-700 transition-colors cursor-pointer"
                 >
-                  Cancelar
+                  {copy.cancel}
                 </button>
                 <button
                   type="submit"
@@ -1922,7 +2009,7 @@ export default function ProjectDetailPage({
                   }
                   className="flex-1 rounded-xl bg-[#2C1F14] hover:bg-[#433022] px-4 py-3 text-sm font-bold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm active:scale-98"
                 >
-                  {isSubmittingTask ? 'Guardando...' : 'Guardar Tarea'}
+                  {isSubmittingTask ? copy.saving : copy.saveTask}
                 </button>
               </div>
             </form>
@@ -1943,7 +2030,7 @@ export default function ProjectDetailPage({
               }}
               disabled={isGeneratingWithAI}
               className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors cursor-pointer disabled:opacity-40"
-              aria-label="Cerrar modal"
+              aria-label={locale === 'es' ? 'Cerrar modal' : 'Close modal'}
             >
               <X className="size-5" />
             </button>
@@ -1952,12 +2039,14 @@ export default function ProjectDetailPage({
               <span className="flex size-9 items-center justify-center rounded-xl bg-[#2C1F14] text-[#FEB800] shadow-xs">
                 <Sparkles className="size-5" />
               </span>
-              <h2 className="text-xl font-bold text-on-surface">Generar tarea con IA</h2>
+              <h2 className="text-xl font-bold text-on-surface">{copy.generateAiTask}</h2>
             </div>
             <p className="text-xs text-on-surface-variant mb-5 leading-relaxed">
               Komo analizará tu proyecto{' '}
               <span className="font-semibold text-on-surface">&quot;{project.title}&quot;</span> y
-              creará nuevas tareas de forma automática.
+              {locale === 'es'
+                ? 'creará nuevas tareas de forma automática.'
+                : 'will create new tasks automatically.'}
             </p>
 
             {isTasksAtDeadline && (
@@ -2009,14 +2098,19 @@ export default function ProjectDetailPage({
                   className="w-full rounded-xl border-2 border-[#E8DCD1] bg-white px-4 py-2.5 text-on-surface placeholder:text-gray-400 focus:border-[#2C1F14] focus:outline-none transition-all text-sm disabled:bg-gray-50"
                 />
                 <p className="mt-1 text-[11px] text-gray-500">
-                  Enlace a tutorial, repositorio o material que la IA tomará en cuenta.
+                  {locale === 'es'
+                    ? 'Enlace a tutorial, repositorio o material que la IA tomará en cuenta.'
+                    : 'A link to a tutorial, repository, or material that AI will use.'}
                 </p>
               </div>
 
               {/* Campo opcional: Archivo */}
               <div>
                 <label className="flex items-center gap-2 text-sm font-bold text-on-surface mb-1.5">
-                  <Paperclip className="size-4 text-[#845326]" /> Archivo de referencia (opcional)
+                  <Paperclip className="size-4 text-[#845326]" />{' '}
+                  {locale === 'es'
+                    ? 'Archivo de referencia (opcional)'
+                    : 'Reference file (optional)'}
                 </label>
 
                 <input
@@ -2064,11 +2158,17 @@ export default function ProjectDetailPage({
                     className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#E8DCD1] hover:border-[#845326] bg-[#FDFBF9] hover:bg-[#f5e5d9]/30 p-3.5 text-xs text-[#845326] font-semibold transition-all cursor-pointer disabled:opacity-50"
                   >
                     <Paperclip className="size-4" />
-                    <span>Subir archivo (PDF, TXT, Markdown, etc.)</span>
+                    <span>
+                      {locale === 'es'
+                        ? 'Subir archivo (PDF, TXT, Markdown, etc.)'
+                        : 'Upload file (PDF, TXT, Markdown, etc.)'}
+                    </span>
                   </button>
                 )}
                 <p className="mt-1 text-[11px] text-gray-500">
-                  La IA extraerá el contenido del documento para diseñar las tareas.
+                  {locale === 'es'
+                    ? 'La IA extraerá el contenido del documento para diseñar las tareas.'
+                    : 'AI will extract the document content to design the tasks.'}
                 </p>
               </div>
 
@@ -2086,7 +2186,7 @@ export default function ProjectDetailPage({
                   disabled={isGeneratingWithAI}
                   className="flex-1 rounded-xl bg-gray-100 hover:bg-gray-200 px-4 py-3 text-sm font-bold text-gray-700 transition-colors cursor-pointer disabled:opacity-50"
                 >
-                  Cancelar
+                  {copy.cancel}
                 </button>
                 <button
                   type="submit"
@@ -2099,11 +2199,11 @@ export default function ProjectDetailPage({
                       <span>Generando...</span>
                     </>
                   ) : isTasksAtDeadline ? (
-                    <span>Fecha límite alcanzada</span>
+                    <span>{locale === 'es' ? 'Fecha límite alcanzada' : 'Deadline reached'}</span>
                   ) : (
                     <>
                       <Sparkles className="size-4 text-[#FEB800]" />
-                      <span>Generar tareas</span>
+                      <span>{locale === 'es' ? 'Generar tareas' : 'Generate tasks'}</span>
                     </>
                   )}
                 </button>
@@ -2124,7 +2224,7 @@ export default function ProjectDetailPage({
               <X className="size-5" />
             </button>
 
-            <h2 className="text-xl font-bold text-on-surface mb-5">Editar Tarea</h2>
+            <h2 className="text-xl font-bold text-on-surface mb-5">{copy.editTask}</h2>
 
             {editErrorMessage && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2">
@@ -2139,7 +2239,7 @@ export default function ProjectDetailPage({
                   htmlFor="editTaskTitle"
                   className="block text-sm font-bold text-on-surface mb-2"
                 >
-                  Título de la tarea
+                  {copy.taskTitle}
                 </label>
                 <input
                   id="editTaskTitle"
@@ -2157,7 +2257,7 @@ export default function ProjectDetailPage({
                   htmlFor="editTaskDescription"
                   className="block text-sm font-bold text-on-surface mb-2"
                 >
-                  Descripción (opcional)
+                  {copy.optionalDescription}
                 </label>
                 <textarea
                   id="editTaskDescription"
@@ -2171,7 +2271,7 @@ export default function ProjectDetailPage({
               {/* Apartado de Día de inicio y Hora de inicio */}
               <div>
                 <label className="block text-sm font-bold text-on-surface mb-2">
-                  Fecha y hora de inicio
+                  {copy.startDateTime}
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
@@ -2225,7 +2325,7 @@ export default function ProjectDetailPage({
                   htmlFor="editDurationInput"
                   className="block text-sm font-bold text-on-surface mb-2"
                 >
-                  Duración estimada
+                  {locale === 'es' ? 'Duración estimada' : 'Estimated duration'}
                 </label>
                 <div className="flex gap-2.5">
                   <div className="relative flex-1">
@@ -2248,22 +2348,27 @@ export default function ProjectDetailPage({
                       onChange={(e) => setEditDurationUnit(e.target.value as 'minutos' | 'horas')}
                       className="w-full rounded-xl border-2 border-[#E8DCD1] bg-[#FDFBF9] px-3.5 py-3 text-on-surface font-semibold focus:border-[#2C1F14] focus:outline-none transition-all text-sm cursor-pointer"
                     >
-                      <option value="minutos">Minutos</option>
-                      <option value="horas">Horas</option>
+                      <option value="minutos">{locale === 'es' ? 'Minutos' : 'Minutes'}</option>
+                      <option value="horas">{locale === 'es' ? 'Horas' : 'Hours'}</option>
                     </select>
                   </div>
                 </div>
                 <p className="mt-1.5 text-xs text-gray-500">
                   {editDurationUnit === 'horas'
-                    ? `Equivale a ${(Math.round(Number(editDurationValue)) || 1) * 60} minutos.`
-                    : `${Math.round(Number(editDurationValue)) || 1} minutos registrados.`}
+                    ? locale === 'es'
+                      ? `Equivale a ${(Math.round(Number(editDurationValue)) || 1) * 60} minutos.`
+                      : `Equals ${(Math.round(Number(editDurationValue)) || 1) * 60} minutes.`
+                    : locale === 'es'
+                      ? `${Math.round(Number(editDurationValue)) || 1} minutos registrados.`
+                      : `${Math.round(Number(editDurationValue)) || 1} minutes recorded.`}
                 </p>
               </div>
 
               {/* Sección URLs recomendadas dinámicas (mismo formato que el wizard) */}
               <div>
                 <label className="flex items-center gap-2 text-sm font-bold text-on-surface mb-2">
-                  <LinkIcon className="size-4 text-[#845326]" /> Enlaces y URLs recomendadas
+                  <LinkIcon className="size-4 text-[#845326]" />{' '}
+                  {locale === 'es' ? 'Enlaces y URLs recomendadas' : 'Recommended links and URLs'}
                   (opcional)
                 </label>
 
@@ -2282,7 +2387,7 @@ export default function ProjectDetailPage({
                           type="button"
                           onClick={() => handleRemoveEditUrl(idx)}
                           className="p-2.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
-                          title="Eliminar enlace"
+                          title={locale === 'es' ? 'Eliminar enlace' : 'Remove link'}
                         >
                           <Trash2 className="size-4" />
                         </button>
@@ -2326,7 +2431,7 @@ export default function ProjectDetailPage({
                   onClick={() => setTaskToEdit(null)}
                   className="flex-1 rounded-xl bg-gray-100 hover:bg-gray-200 px-4 py-3 text-sm font-bold text-gray-700 transition-colors cursor-pointer"
                 >
-                  Cancelar
+                  {copy.cancel}
                 </button>
                 <button
                   type="submit"
@@ -2337,7 +2442,7 @@ export default function ProjectDetailPage({
                   }
                   className="flex-1 rounded-xl bg-[#2C1F14] hover:bg-[#433022] px-4 py-3 text-sm font-bold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm active:scale-98"
                 >
-                  {isSubmittingEdit ? 'Guardando...' : 'Guardar Cambios'}
+                  {isSubmittingEdit ? copy.saving : copy.saveChanges}
                 </button>
               </div>
             </form>
@@ -2350,10 +2455,14 @@ export default function ProjectDetailPage({
         isOpen={isDeleteProjectModalOpen}
         onClose={() => setIsDeleteProjectModalOpen(false)}
         onConfirm={confirmDeleteProject}
-        title="¿Eliminar proyecto?"
-        description="Esta acción eliminará de forma permanente el proyecto y todas sus tareas asociadas. Esta acción no se puede deshacer."
+        title={copy.deleteProjectQuestion}
+        description={
+          locale === 'es'
+            ? 'Esta acción eliminará de forma permanente el proyecto y todas sus tareas asociadas. Esta acción no se puede deshacer.'
+            : 'This action permanently deletes the project and all of its tasks. It cannot be undone.'
+        }
         itemName={project.title}
-        confirmText="Eliminar Proyecto"
+        confirmText={copy.deleteProject}
         isDeleting={isDeletingProject}
       />
 
@@ -2362,10 +2471,14 @@ export default function ProjectDetailPage({
         isOpen={Boolean(taskToDelete)}
         onClose={() => setTaskToDelete(null)}
         onConfirm={confirmDeleteTask}
-        title="¿Eliminar tarea?"
-        description="Esta tarea será eliminada permanentemente de tu plan de acción y el progreso del proyecto se actualizará."
+        title={copy.deleteTaskQuestion}
+        description={
+          locale === 'es'
+            ? 'Esta tarea será eliminada permanentemente de tu plan de acción y el progreso del proyecto se actualizará.'
+            : 'This task will be permanently deleted from your action plan and the project progress will be updated.'
+        }
         itemName={taskToDelete?.title}
-        confirmText="Eliminar Tarea"
+        confirmText={locale === 'es' ? 'Eliminar Tarea' : 'Delete task'}
         isDeleting={isDeletingTask}
       />
 

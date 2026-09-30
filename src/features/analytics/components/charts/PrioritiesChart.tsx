@@ -1,6 +1,7 @@
 'use client';
 
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import type { Locale } from '@/lib/i18n/locale';
 
 interface PrioritiesChartProps {
   data: Array<{
@@ -8,6 +9,7 @@ interface PrioritiesChartProps {
     value: number;
     tone: 'priority' | 'required' | 'personal' | 'neutral';
   }>;
+  locale: Locale;
 }
 
 function getToneColor(tone: string) {
@@ -17,14 +19,30 @@ function getToneColor(tone: string) {
   return 'var(--color-outline-variant)';
 }
 
-export function PrioritiesChart({ data }: PrioritiesChartProps) {
+export function PrioritiesChart({ data, locale }: PrioritiesChartProps) {
   // Filter out 0 values so they don't render empty slices
-  const activeData = data.filter((item) => item.value > 0);
+  const priorityNames =
+    locale === 'es'
+      ? {
+          priority: 'Prioritario',
+          required: 'Obligatorio',
+          personal: 'Personal',
+          neutral: 'Sin prioridad',
+        }
+      : {
+          priority: 'High priority',
+          required: 'Required',
+          personal: 'Personal',
+          neutral: 'No priority',
+        };
+  const activeData = data
+    .filter((item) => item.value > 0)
+    .map((item) => ({ ...item, name: priorityNames[item.tone] }));
 
   return (
     <div
       className="h-[350px] w-full pt-4 min-w-[34rem] sm:min-w-0"
-      aria-label="Proyectos por prioridad"
+      aria-label={locale === 'es' ? 'Proyectos por prioridad' : 'Projects by priority'}
     >
       <ResponsiveContainer width="100%" height="100%">
         <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
@@ -60,7 +78,14 @@ export function PrioritiesChart({ data }: PrioritiesChartProps) {
                     />
                     <p className="font-bold text-on-surface">{data.name}:</p>
                     <p className="font-semibold text-on-surface-variant">
-                      {data.value} {data.value === 1 ? 'proyecto' : 'proyectos'}
+                      {data.value}{' '}
+                      {locale === 'es'
+                        ? data.value === 1
+                          ? 'proyecto'
+                          : 'proyectos'
+                        : data.value === 1
+                          ? 'project'
+                          : 'projects'}
                     </p>
                   </div>
                 );

@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { X, Calendar, AlertCircle, Loader2, Save } from 'lucide-react';
 import { updateProjectAction } from '@/features/proyectos/actions/proyectoActions';
+import { usePathname } from 'next/navigation';
+import { defaultLocale, getLocaleFromPathname } from '@/lib/i18n/locale';
 
 interface EditProjectModalProps {
   isOpen: boolean;
@@ -22,6 +24,45 @@ interface EditProjectModalProps {
 }
 
 export function EditProjectModal({ isOpen, onClose, project, onSuccess }: EditProjectModalProps) {
+  const locale = getLocaleFromPathname(usePathname()) ?? defaultLocale;
+  const copy =
+    locale === 'es'
+      ? {
+          close: 'Cerrar modal',
+          title: 'Editar Proyecto',
+          description: 'Modifica el nombre, descripción y fecha límite de tu proyecto.',
+          name: 'Nombre del proyecto',
+          nameHint: 'Ej. Curso de Inteligencia Artificial',
+          maximum: 'Máximo',
+          characters: 'caracteres',
+          objective: 'Descripción u objetivo',
+          objectiveHint: 'Describe la meta final de este proyecto...',
+          deadline: 'Fecha límite',
+          deadlineHint: 'Límite permitido hasta 1 año desde hoy',
+          cancel: 'Cancelar',
+          saving: 'Guardando...',
+          save: 'Guardar Cambios',
+          updateError: 'Error al actualizar el proyecto.',
+          connectionError: 'Error inesperado al conectar con el servidor.',
+        }
+      : {
+          close: 'Close modal',
+          title: 'Edit project',
+          description: 'Update your project’s name, description, and deadline.',
+          name: 'Project name',
+          nameHint: 'For example, Artificial Intelligence course',
+          maximum: 'Maximum',
+          characters: 'characters',
+          objective: 'Description or objective',
+          objectiveHint: 'Describe this project’s final goal...',
+          deadline: 'Deadline',
+          deadlineHint: 'Deadline allowed up to 1 year from today',
+          cancel: 'Cancel',
+          saving: 'Saving...',
+          save: 'Save changes',
+          updateError: 'Could not update the project.',
+          connectionError: 'Unexpected error connecting to the server.',
+        };
   const maxDate = new Date();
   maxDate.setFullYear(maxDate.getFullYear() + 1);
   const todayStr = new Date().toISOString().split('T')[0];
@@ -60,12 +101,11 @@ export function EditProjectModal({ isOpen, onClose, project, onSuccess }: EditPr
         window.dispatchEvent(new Event('projects_updated'));
         onClose();
       } else {
-        setErrorMessage(res.error || 'Error al actualizar el proyecto.');
+        setErrorMessage(res.error || copy.updateError);
       }
     } catch (err: unknown) {
       console.error('Error al actualizar proyecto:', err);
-      const msg =
-        err instanceof Error ? err.message : 'Error inesperado al conectar con el servidor.';
+      const msg = err instanceof Error ? err.message : copy.connectionError;
       setErrorMessage(msg);
     } finally {
       setIsSubmitting(false);
@@ -81,15 +121,13 @@ export function EditProjectModal({ isOpen, onClose, project, onSuccess }: EditPr
           onClick={onClose}
           disabled={isSubmitting}
           className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors cursor-pointer disabled:opacity-50"
-          aria-label="Cerrar modal"
+          aria-label={copy.close}
         >
           <X className="size-5" />
         </button>
 
-        <h2 className="text-xl sm:text-2xl font-bold text-[#2C1F14] mb-1">Editar Proyecto</h2>
-        <p className="text-xs sm:text-sm text-[#845326] mb-6">
-          Modifica el nombre, descripción y fecha límite de tu proyecto.
-        </p>
+        <h2 className="text-xl sm:text-2xl font-bold text-[#2C1F14] mb-1">{copy.title}</h2>
+        <p className="text-xs sm:text-sm text-[#845326] mb-6">{copy.description}</p>
 
         {errorMessage && (
           <div className="mb-5 p-3.5 bg-red-50 border border-red-200 text-red-700 text-xs sm:text-sm rounded-xl flex items-start gap-2.5">
@@ -102,7 +140,7 @@ export function EditProjectModal({ isOpen, onClose, project, onSuccess }: EditPr
           {/* Nombre del Proyecto */}
           <div>
             <label htmlFor="projectTitle" className="block text-sm font-bold text-[#2C1F14] mb-1.5">
-              Nombre del proyecto <span className="text-red-500">*</span>
+              {copy.name} <span className="text-red-500">*</span>
             </label>
             <input
               id="projectTitle"
@@ -111,11 +149,13 @@ export function EditProjectModal({ isOpen, onClose, project, onSuccess }: EditPr
               maxLength={50}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ej. Curso de Inteligencia Artificial"
+              placeholder={copy.nameHint}
               className="w-full px-4 py-3 rounded-xl border border-[#E2D9D0] bg-[#FAF8F5] text-[#2C1F14] focus:bg-white focus:border-[#845326] focus:ring-2 focus:ring-[#845326]/20 outline-none text-sm transition-all"
             />
             <div className="flex justify-between items-center mt-1 text-xs text-[#845326]/80 font-medium">
-              <span>Máximo 50 caracteres</span>
+              <span>
+                {copy.maximum} 50 {copy.characters}
+              </span>
               <span>{title.length}/50</span>
             </div>
           </div>
@@ -126,7 +166,7 @@ export function EditProjectModal({ isOpen, onClose, project, onSuccess }: EditPr
               htmlFor="projectObjective"
               className="block text-sm font-bold text-[#2C1F14] mb-1.5"
             >
-              Descripción u objetivo
+              {copy.objective}
             </label>
             <textarea
               id="projectObjective"
@@ -134,11 +174,13 @@ export function EditProjectModal({ isOpen, onClose, project, onSuccess }: EditPr
               maxLength={250}
               value={objective}
               onChange={(e) => setObjective(e.target.value)}
-              placeholder="Describe la meta final de este proyecto..."
+              placeholder={copy.objectiveHint}
               className="w-full px-4 py-3 rounded-xl border border-[#E2D9D0] bg-[#FAF8F5] text-[#2C1F14] focus:bg-white focus:border-[#845326] focus:ring-2 focus:ring-[#845326]/20 outline-none text-sm transition-all resize-none"
             />
             <div className="flex justify-between items-center mt-1 text-xs text-[#845326]/80 font-medium">
-              <span>Máximo 250 caracteres</span>
+              <span>
+                {copy.maximum} 250 {copy.characters}
+              </span>
               <span>{objective.length}/250</span>
             </div>
           </div>
@@ -149,7 +191,7 @@ export function EditProjectModal({ isOpen, onClose, project, onSuccess }: EditPr
               htmlFor="projectDeadline"
               className="block text-sm font-bold text-[#2C1F14] mb-1.5"
             >
-              Fecha límite
+              {copy.deadline}
             </label>
             <div className="relative">
               <input
@@ -164,7 +206,7 @@ export function EditProjectModal({ isOpen, onClose, project, onSuccess }: EditPr
             </div>
             <p className="mt-1 text-xs text-[#845326]/80 font-medium flex items-center gap-1">
               <Calendar className="size-3" />
-              Límite permitido hasta 1 año desde hoy ({maxDateStr}).
+              {copy.deadlineHint} ({maxDateStr}).
             </p>
           </div>
 
@@ -176,7 +218,7 @@ export function EditProjectModal({ isOpen, onClose, project, onSuccess }: EditPr
               disabled={isSubmitting}
               className="px-5 py-2.5 rounded-xl border border-[#E2D9D0] text-sm font-semibold text-[#845326] hover:bg-gray-50 transition-colors cursor-pointer disabled:opacity-50"
             >
-              Cancelar
+              {copy.cancel}
             </button>
             <button
               type="submit"
@@ -186,12 +228,12 @@ export function EditProjectModal({ isOpen, onClose, project, onSuccess }: EditPr
               {isSubmitting ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
-                  <span>Guardando...</span>
+                  <span>{copy.saving}</span>
                 </>
               ) : (
                 <>
                   <Save className="size-4" />
-                  <span>Guardar Cambios</span>
+                  <span>{copy.save}</span>
                 </>
               )}
             </button>

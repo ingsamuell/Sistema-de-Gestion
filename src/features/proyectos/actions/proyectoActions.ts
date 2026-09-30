@@ -10,6 +10,7 @@ import {
 } from '@/services/ai/scheduleAiService';
 import { validateContent, validateProjectContent } from '@/lib/moderation/contentFilter';
 import { getCaracasNextMidnightISO } from '@/services/notifications/dateUtils';
+import { calculateTaskDeadline } from '@/lib/utils/taskUtils';
 
 export interface CreateProjectInput {
   titulo: string;
@@ -534,7 +535,7 @@ export async function getProjectsAction() {
 
     const { data: taskRows, error: tasksError } = await supabase
       .from('tareas')
-      .select('id, id_proyecto, titulo, duracion, completado')
+      .select('id, id_proyecto, titulo, duracion, completado, fecha_inicio, fecha_limite')
       .in('id_proyecto', projectIds);
 
     if (tasksError) {
@@ -1100,21 +1101,38 @@ export async function createTaskAction(data: {
 
     const newTaskId = crypto.randomUUID();
 
-    const { data: task, error: insertError } = await db
+    const finalDuracion = Math.round(Number(data.duracion)) || 0;
+    const computedFechaLimite = calculateTaskDeadline(parsedFechaInicio, finalDuracion);
+
+    const insertPayload: Record<string, unknown> = {
+      id: newTaskId,
+      id_proyecto: data.projectId,
+      titulo: data.titulo.trim(),
+      duracion: finalDuracion,
+      completado: false,
+      descripcion: data.descripcion?.trim() || null,
+      prioridad: data.prioridad || null,
+      fecha_inicio: parsedFechaInicio,
+      fecha_limite: computedFechaLimite,
+      resources: data.resources?.trim() || null,
+      metodo_estudio: null,
+    };
+
+    let { data: task, error: insertError } = await db
       .from('tareas')
-      .insert({
-        id: newTaskId,
-        id_proyecto: data.projectId,
-        titulo: data.titulo.trim(),
-        duracion: Math.round(Number(data.duracion)) || 0,
-        completado: false,
-        descripcion: data.descripcion?.trim() || null,
-        prioridad: data.prioridad || null,
-        fecha_inicio: parsedFechaInicio,
-        resources: data.resources?.trim() || null,
-      })
+      .insert(insertPayload)
       .select()
       .single();
+
+    if (
+      insertError &&
+      (insertError.message?.includes('fecha_limite') || insertError.code === '42703')
+    ) {
+      delete insertPayload.fecha_limite;
+      const retry = await db.from('tareas').insert(insertPayload).select().single();
+      task = retry.data;
+      insertError = retry.error;
+    }
 
     if (insertError) {
       console.error('Error insertando en tareas:', insertError);
@@ -1679,20 +1697,42 @@ export async function updateTaskAction(data: {
       }
     }
 
-    const { data: updatedTask, error: updateError } = await db
+    const finalDuracion = Math.round(Number(data.duracion)) || 0;
+    const computedFechaLimite = calculateTaskDeadline(parsedFechaInicio, finalDuracion);
+
+    const updatePayload: Record<string, unknown> = {
+      titulo: data.titulo.trim(),
+      duracion: finalDuracion,
+      descripcion: data.descripcion?.trim() || null,
+      prioridad: data.prioridad || null,
+      fecha_inicio: parsedFechaInicio,
+      fecha_limite: computedFechaLimite,
+      resources: data.resources?.trim() || null,
+    };
+
+    let { data: updatedTask, error: updateError } = await db
       .from('tareas')
-      .update({
-        titulo: data.titulo.trim(),
-        duracion: Math.round(Number(data.duracion)) || 0,
-        descripcion: data.descripcion?.trim() || null,
-        prioridad: data.prioridad || null,
-        fecha_inicio: parsedFechaInicio,
-        resources: data.resources?.trim() || null,
-      })
+      .update(updatePayload)
       .eq('id', data.taskId)
       .eq('id_proyecto', data.projectId)
       .select()
       .single();
+
+    if (
+      updateError &&
+      (updateError.message?.includes('fecha_limite') || updateError.code === '42703')
+    ) {
+      delete updatePayload.fecha_limite;
+      const retry = await db
+        .from('tareas')
+        .update(updatePayload)
+        .eq('id', data.taskId)
+        .eq('id_proyecto', data.projectId)
+        .select()
+        .single();
+      updatedTask = retry.data;
+      updateError = retry.error;
+    }
 
     if (updateError) {
       console.error('Error actualizando tarea:', updateError);
@@ -2126,6 +2166,61 @@ export async function saveTaskStudyFeedbackAction(input: {
   } catch (error: unknown) {
     console.error('Error en saveTaskStudyFeedbackAction:', error);
     const msg = error instanceof Error ? error.message : 'Error inesperado al guardar feedback.';
+    return { success: false, error: msg };
+  }
+}
+
+/**
+ * saveTaskStartTechniqueAction
+ * Guarda en la base de datos la técnica de estudio seleccionada por el usuario
+ * al momento de iniciar la tarea (ej. 'Regla 50/10', 'Técnica Pomodoro', etc.).
+ */
+export async function saveTaskStartTechniqueAction(input: {
+  taskId: string;
+  metodoEstudio: string;
+  projectId?: string;
+}) {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return { success: false, error: 'No se encontró una sesión activa.' };
+    }
+
+    if (!input.taskId || !input.metodoEstudio) {
+      return { success: false, error: 'Datos insuficientes para registrar la técnica.' };
+    }
+
+    const adminDb = getAdminClient();
+    const db = adminDb || supabase;
+
+    const { error: updateError } = await db
+      .from('tareas')
+      .update({ metodo_estudio: input.metodoEstudio.trim() })
+      .eq('id', input.taskId);
+
+    if (updateError) {
+      console.warn(
+        '[saveTaskStartTechniqueAction] Error guardando técnica de estudio:',
+        updateError.message,
+      );
+      return { success: false, error: updateError.message };
+    }
+
+    if (input.projectId) {
+      revalidatePath(`/proyectos/${input.projectId}`);
+    }
+    revalidatePath('/app');
+    revalidatePath('/proyectos');
+
+    return { success: true };
+  } catch (error: unknown) {
+    console.error('Error en saveTaskStartTechniqueAction:', error);
+    const msg = error instanceof Error ? error.message : 'Error inesperado.';
     return { success: false, error: msg };
   }
 }

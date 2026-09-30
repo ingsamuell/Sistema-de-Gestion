@@ -30,7 +30,7 @@ BEGIN
   -- 3. Eliminar notificaciones y relaciones
   DELETE FROM public.notificaciones_enviadas WHERE usuario_id = current_user_id;
   DELETE FROM public.topic_projects WHERE project_id IN (SELECT id FROM public.projects WHERE user_id = current_user_id);
-  
+
   -- 4. Eliminar proyectos, temas y fuentes
   DELETE FROM public.projects WHERE user_id = current_user_id;
   DELETE FROM public.topics WHERE user_id = current_user_id;

@@ -25,6 +25,7 @@ export interface ProjectForTaskGeneration {
     descripcion?: string | null;
     completado?: boolean | null;
     fecha_inicio?: string | null;
+    fecha_limite?: string | null;
     duracion?: number | null;
   }> | null;
 }
@@ -37,6 +38,7 @@ export interface GeneratedTaskCandidate {
   duracion?: number | string;
   duration?: number | string;
   fecha_inicio?: string;
+  fecha_limite?: string;
   startDate?: string;
   prioridad?: string;
   priority?: string;
@@ -714,6 +716,9 @@ export async function generateProjectTasksFromN8n(project: ProjectForTaskGenerat
       const hStr = String(hours).padStart(2, '0');
       const mStr = String(minutes).padStart(2, '0');
       const fechaInicio = new Date(`${assignedDate}T${hStr}:${mStr}:00`).toISOString();
+      const fechaLimite = new Date(
+        new Date(fechaInicio).getTime() + duracion * 60 * 1000,
+      ).toISOString();
 
       const resources =
         (
@@ -736,16 +741,32 @@ export async function generateProjectTasksFromN8n(project: ProjectForTaskGenerat
         duracion,
         completado: false,
         fecha_inicio: fechaInicio,
+        fecha_limite: fechaLimite,
         prioridad,
         resources,
+        metodo_estudio: null,
       };
     });
 
     // 6. Conectar a Supabase e insertar en lote
-    const { data: insertedTasks, error: insertError } = await db
+    let { data: insertedTasks, error: insertError } = await db
       .from('tareas')
       .insert(tasksToInsert)
       .select();
+
+    if (
+      insertError &&
+      (insertError.message?.includes('fecha_limite') || insertError.code === '42703')
+    ) {
+      const fallbackTasks = tasksToInsert.map((t) => {
+        const item = { ...t };
+        delete (item as Record<string, unknown>).fecha_limite;
+        return item;
+      });
+      const retry = await db.from('tareas').insert(fallbackTasks).select();
+      insertedTasks = retry.data;
+      insertError = retry.error;
+    }
 
     if (insertError) {
       console.error('Error insertando tareas en Supabase:', insertError);

@@ -842,6 +842,9 @@ DIRECTRICES ADICIONALES:
         t.hora_inicio && /^\d{2}:\d{2}$/.test(t.hora_inicio) ? t.hora_inicio : '09:00';
       const horaFin = t.hora_fin && /^\d{2}:\d{2}$/.test(t.hora_fin) ? t.hora_fin : '10:00';
       const fechaInicioIso = new Date(`${assignedDate}T${horaInicio}:00`).toISOString();
+      const fechaLimiteIso = new Date(
+        new Date(fechaInicioIso).getTime() + duracion * 60 * 1000,
+      ).toISOString();
 
       return {
         id: taskId,
@@ -851,6 +854,7 @@ DIRECTRICES ADICIONALES:
         duracion,
         completado: false,
         fecha_inicio: fechaInicioIso,
+        fecha_limite: fechaLimiteIso,
         prioridad: t.prioridad || prioridad,
         resources: t.url_recomendada || project.material_url || null,
         fecha: assignedDate,
@@ -859,22 +863,38 @@ DIRECTRICES ADICIONALES:
       };
     });
 
-    const { data: insertedTasks, error: insertTasksErr } = await db
+    const tasksToInsertPayload = tasksToInsert.map((t) => ({
+      id: t.id,
+      id_proyecto: t.id_proyecto,
+      titulo: t.titulo,
+      descripcion: t.descripcion,
+      duracion: t.duracion,
+      completado: t.completado,
+      fecha_inicio: t.fecha_inicio,
+      fecha_limite: t.fecha_limite,
+      prioridad: t.prioridad,
+      resources: t.resources,
+      metodo_estudio: null,
+    }));
+
+    let { data: insertedTasks, error: insertTasksErr } = await db
       .from('tareas')
-      .insert(
-        tasksToInsert.map((t) => ({
-          id: t.id,
-          id_proyecto: t.id_proyecto,
-          titulo: t.titulo,
-          descripcion: t.descripcion,
-          duracion: t.duracion,
-          completado: t.completado,
-          fecha_inicio: t.fecha_inicio,
-          prioridad: t.prioridad,
-          resources: t.resources,
-        })),
-      )
+      .insert(tasksToInsertPayload)
       .select();
+
+    if (
+      insertTasksErr &&
+      (insertTasksErr.message?.includes('fecha_limite') || insertTasksErr.code === '42703')
+    ) {
+      const fallbackPayload = tasksToInsertPayload.map((t) => {
+        const item = { ...t };
+        delete (item as Record<string, unknown>).fecha_limite;
+        return item;
+      });
+      const retry = await db.from('tareas').insert(fallbackPayload).select();
+      insertedTasks = retry.data;
+      insertTasksErr = retry.error;
+    }
 
     if (insertTasksErr) {
       console.error('Error al insertar tareas generadas por Gemini:', insertTasksErr);
@@ -1483,14 +1503,25 @@ export async function rescheduleConflictingCalendarTasksWithGemini(
         .eq('id', conf.ev.id)
         .eq('usuario_id', usuarioId);
 
-      // Si tiene tarea_id, actualizar fecha_inicio en tareas
+      // Si tiene tarea_id, actualizar fecha_inicio y fecha_limite en tareas
       if (conf.ev.tarea_id) {
-        await db
+        const updateTaskPayload: Record<string, unknown> = {
+          fecha_inicio: startIso,
+          fecha_limite: endIso,
+        };
+        const { error: updErr } = await db
           .from('tareas')
-          .update({
-            fecha_inicio: startIso,
-          })
+          .update(updateTaskPayload)
           .eq('id', conf.ev.tarea_id);
+
+        if (updErr && (updErr.message?.includes('fecha_limite') || updErr.code === '42703')) {
+          await db
+            .from('tareas')
+            .update({
+              fecha_inicio: startIso,
+            })
+            .eq('id', conf.ev.tarea_id);
+        }
       }
 
       // Si tiene proyecto_id, actualizar cronograma activo si existe
