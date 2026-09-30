@@ -12,6 +12,7 @@ import { WorkloadChart } from './charts/WorkloadChart';
 import { ProgressChart } from './charts/ProgressChart';
 import { PrioritiesChart } from './charts/PrioritiesChart';
 import { DeadlinesTimeline } from './charts/DeadlinesTimeline';
+import { GanttChart } from './charts/GanttChart';
 import { ExportMenu } from './ExportMenu';
 import { useAnalyticsTour } from '@/hooks/useAnalyticsTour';
 import { defaultLocale, getLocaleFromPathname, type Locale } from '@/lib/i18n/locale';
@@ -51,6 +52,12 @@ function getMetrics(locale: Locale): Record<AnalyticsMetricId, Metric> {
         description: 'Projects ordered by how close their deadlines are.',
         question: 'Which deadline needs attention first?',
       },
+      gantt: {
+        label: 'Gantt',
+        title: 'Your task timeline',
+        description: 'See when each scheduled task starts and ends across your projects.',
+        question: 'Which tasks are at risk according to my timeline?',
+      },
     };
   return {
     workload: {
@@ -76,6 +83,12 @@ function getMetrics(locale: Locale): Record<AnalyticsMetricId, Metric> {
       title: 'Ritmo de tus fechas límite',
       description: 'Proyectos ordenados según la cercanía de su fecha límite.',
       question: '¿Qué entrega necesita atención primero?',
+    },
+    gantt: {
+      label: 'Gantt',
+      title: 'Cronograma de tareas',
+      description: 'Visualiza cuándo empieza y termina cada tarea programada de tus proyectos.',
+      question: '¿Qué tareas están en riesgo según mi cronograma?',
     },
   };
 }
@@ -327,6 +340,14 @@ function getMetricPresentation(
         ? `${data.summary.highPriorityProjects} proyectos prioritarios de ${data.summary.activeProjects} activos.`
         : `${data.summary.highPriorityProjects} priority projects out of ${data.summary.activeProjects} active projects.`,
     };
+  if (metric === 'gantt')
+    return {
+      value: String(data.series.gantt.length),
+      label: isSpanish ? 'tareas programadas' : 'scheduled tasks',
+      accessibleSummary: isSpanish
+        ? `${data.series.gantt.length} tareas programadas en el cronograma.`
+        : `${data.series.gantt.length} scheduled tasks in the timeline.`,
+    };
   return {
     value: String(data.summary.upcomingDeadlines),
     label: isSpanish ? 'entregas requieren atención' : 'deadlines need attention',
@@ -353,6 +374,9 @@ function MetricChart({
   }
   if (metric === 'priorities') {
     return <PrioritiesChart data={data.series.priorities} locale={locale} />;
+  }
+  if (metric === 'gantt') {
+    return <GanttChart data={data.series.gantt} milestones={data.series.ganttMilestones} projects={data.series.ganttProjects} locale={locale} />;
   }
   return <DeadlinesTimeline data={data.series.deadlines} locale={locale} />;
 }
@@ -392,6 +416,9 @@ function getAvailabilityMessage(
           deadlines: available
             ? 'Basada en las fechas límite registradas en tus proyectos.'
             : 'Añade una fecha límite a un proyecto para ver próximas entregas.',
+          gantt: available
+            ? 'Basada en tareas con fecha de inicio y duración registrada.'
+            : 'Programa tareas con fecha de inicio para construir tu cronograma.',
         }
       : {
           workload: available
@@ -408,6 +435,9 @@ function getAvailabilityMessage(
           deadlines: available
             ? 'Based on the deadlines recorded in your projects.'
             : 'Add a deadline to a project to see upcoming due dates.',
+          gantt: available
+            ? 'Based on tasks with a start date and recorded duration.'
+            : 'Schedule tasks with a start date to build your timeline.',
         };
   return messages[metric];
 }

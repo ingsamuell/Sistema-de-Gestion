@@ -451,12 +451,14 @@ function getAnalyticsContext(
           progress: 'Progreso de proyectos',
           priorities: 'Prioridades',
           deadlines: 'Entregas próximas',
+          gantt: 'Cronograma Gantt',
         }
       : {
           workload: 'Planned hours',
           progress: 'Project progress',
           priorities: 'Priorities',
           deadlines: 'Upcoming deadlines',
+          gantt: 'Gantt timeline',
         };
 
   if (params.get('source') !== 'analytics' || !view || !labels[view] || period !== 'week') {

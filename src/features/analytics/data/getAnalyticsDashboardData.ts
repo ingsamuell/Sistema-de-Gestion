@@ -35,7 +35,7 @@ export async function getAnalyticsDashboardData(): Promise<AnalyticsDashboardDat
 
   const { data: taskRows, error: tasksError } = await supabase
     .from('tareas')
-    .select('id, id_proyecto, duracion, completado, fecha_inicio, prioridad')
+    .select('id, id_proyecto, titulo, duracion, completado, fecha_inicio, fecha_limite, prioridad')
     .in('id_proyecto', projectIds);
 
   return buildAnalyticsDashboardData({
