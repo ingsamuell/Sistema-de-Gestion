@@ -192,6 +192,47 @@ export function buildAnalyticsDashboardData({
       tone,
     }));
 
+  const projectById = new Map(projects.map((project) => [project.id, project]));
+  const gantt = tasks
+    .flatMap((task) => {
+      const startDate = dateOnly(task.fecha_inicio);
+      if (!startDate) return [];
+      const project = projectById.get(task.id_proyecto);
+      const calculatedEnd = new Date(`${startDate}T12:00:00Z`);
+      calculatedEnd.setUTCMinutes(
+        calculatedEnd.getUTCMinutes() + Math.max(15, safeMinutes(task.duracion) || 30),
+      );
+      const endDate = dateOnly(task.fecha_limite) ?? calculatedEnd.toISOString().slice(0, 10);
+      return [
+        {
+          taskId: task.id,
+          projectId: task.id_proyecto,
+          taskName: task.titulo?.trim() || 'Tarea sin título',
+          projectName: project?.titulo?.trim() || 'Proyecto sin título',
+          startDate,
+          endDate: endDate < startDate ? startDate : endDate,
+          completed: Boolean(task.completado),
+          progress: task.completado ? 100 : 0,
+        },
+      ];
+    })
+    .sort((a, b) => a.startDate.localeCompare(b.startDate));
+  const ganttMilestones = projects
+    .flatMap((project) => {
+      const date = deadlineDateOnly(project.fecha_limite);
+      if (!date) return [];
+      return [{
+        projectId: project.id,
+        projectName: project.titulo?.trim() || 'Proyecto sin título',
+        date,
+      }];
+    })
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const ganttProjects = projects.map((project) => ({
+    projectId: project.id,
+    projectName: project.titulo?.trim() || 'Proyecto sin título',
+  }));
+
   const totalTasks = tasks.length;
   const completedTasks = tasks.filter((task) => task.completado).length;
   const highPriorityProjects =
@@ -226,7 +267,7 @@ export function buildAnalyticsDashboardData({
       highPriorityProjects,
       upcomingDeadlines,
     },
-    series: { workload: days, progress, priorities, deadlines },
+    series: { workload: days, progress, priorities, deadlines, gantt, ganttMilestones, ganttProjects },
     availability: {
       workload:
         tasksAvailable && days.some((day) => day.plannedMinutes > 0)
@@ -268,6 +309,15 @@ export function buildAnalyticsDashboardData({
           : {
               available: false,
               message: 'Añade una fecha límite a un proyecto para ver próximas entregas.',
+            },
+      gantt:
+        tasksAvailable && gantt.length > 0
+          ? { available: true, message: 'Basado en tareas con fecha de inicio y duración registrada.' }
+          : {
+              available: false,
+              message: tasksAvailable
+                ? 'Programa tareas con fecha de inicio para construir tu cronograma.'
+                : 'No fue posible leer las tareas de esta cuenta.',
             },
     },
     messages,

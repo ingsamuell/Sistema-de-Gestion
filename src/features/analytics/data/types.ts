@@ -1,4 +1,4 @@
-export type AnalyticsMetricId = 'workload' | 'progress' | 'priorities' | 'deadlines';
+export type AnalyticsMetricId = 'workload' | 'progress' | 'priorities' | 'deadlines' | 'gantt';
 
 export type AnalyticsMetricAvailability = {
   available: boolean;
@@ -43,6 +43,25 @@ export type AnalyticsDashboardData = {
       state: string;
       tone: 'urgent' | 'attention' | 'onTime';
     }>;
+    gantt: Array<{
+      taskId: string;
+      projectId: string;
+      taskName: string;
+      projectName: string;
+      startDate: string;
+      endDate: string;
+      completed: boolean;
+      progress: number;
+    }>;
+    ganttMilestones: Array<{
+      projectId: string;
+      projectName: string;
+      date: string;
+    }>;
+    ganttProjects: Array<{
+      projectId: string;
+      projectName: string;
+    }>;
   };
   availability: Record<AnalyticsMetricId, AnalyticsMetricAvailability>;
   messages: string[];
@@ -64,8 +83,10 @@ export type AnalyticsProject = {
 export type AnalyticsTask = {
   id: string;
   id_proyecto: string;
+  titulo: string | null;
   duracion: number | null;
   completado: boolean | null;
   fecha_inicio: string | null;
+  fecha_limite: string | null;
   prioridad: string | null;
 };

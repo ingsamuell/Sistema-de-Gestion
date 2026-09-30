@@ -24,6 +24,7 @@ export function ExportMenu({ data, activeMetric, locale }: ExportMenuProps) {
           progress: 'Progreso de proyectos',
           priorities: 'Prioridades',
           deadlines: 'Próximas entregas',
+          gantt: 'Cronograma Gantt',
           aiError: 'Error obteniendo el reporte de IA',
           unavailable: 'Análisis no disponible en este momento.',
           error: 'Error al generar el reporte',
@@ -39,6 +40,7 @@ export function ExportMenu({ data, activeMetric, locale }: ExportMenuProps) {
           progress: 'Project progress',
           priorities: 'Priorities',
           deadlines: 'Upcoming deadlines',
+          gantt: 'Gantt timeline',
           aiError: 'Error getting the AI report',
           unavailable: 'Analysis is unavailable right now.',
           error: 'Error generating the report',
@@ -49,11 +51,12 @@ export function ExportMenu({ data, activeMetric, locale }: ExportMenuProps) {
           excel: 'Excel report',
           image: 'Image + summary (PNG)',
         };
-  const metricTitles = {
+  const metricTitles: Record<AnalyticsMetricId, string> = {
     workload: copy.workload,
     progress: copy.progress,
     priorities: copy.priorities,
     deadlines: copy.deadlines,
+    gantt: copy.gantt,
   };
 
   const handleExport = async (format: 'png' | 'pdf' | 'excel') => {
