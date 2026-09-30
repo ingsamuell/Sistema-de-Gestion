@@ -54,7 +54,7 @@ export function HomeTaskList({ initialTasks, onTaskToggled }: HomeTaskListProps)
 
   const [isPending, startTransition] = useTransition();
   const [loadingTaskId, setLoadingTaskId] = useState<string | null>(null);
-  const [focusModalTask, setFocusModalTask] = useState<{ id: string; title: string } | null>(null);
+  const [focusModalTask, setFocusModalTask] = useState<{ id: string; title: string; duration?: number } | null>(null);
 
   const handleToggle = async (task: HomeTaskItem) => {
     const newStatus = !task.completado;
@@ -292,7 +292,7 @@ export function HomeTaskList({ initialTasks, onTaskToggled }: HomeTaskListProps)
                   <div className="hidden sm:flex flex-col items-end shrink-0 self-center pl-2 gap-2">
                     {!task.completado && (
                       <button
-                        onClick={() => setFocusModalTask({ id: task.id, title: task.titulo })}
+                        onClick={() => setFocusModalTask({ id: task.id, title: task.titulo, duration: task.duracion })}
                         className="inline-flex items-center gap-1.5 text-xs font-bold text-surface bg-on-surface hover:bg-[#333] transition-transform hover:scale-105 active:scale-95 px-3 py-1.5 rounded-xl shadow-xs cursor-pointer"
                       >
                         <Play className="size-3.5" fill="currentColor" />
@@ -320,6 +320,7 @@ export function HomeTaskList({ initialTasks, onTaskToggled }: HomeTaskListProps)
         onClose={() => setFocusModalTask(null)}
         taskId={focusModalTask?.id}
         taskTitle={focusModalTask?.title}
+        taskDuration={focusModalTask?.duration}
       />
     </div>
   );

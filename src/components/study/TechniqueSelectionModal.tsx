@@ -13,6 +13,7 @@ interface TechniqueSelectionModalProps {
   onClose: () => void;
   taskId?: string;
   taskTitle?: string;
+  taskDuration?: number;
 }
 
 export function TechniqueSelectionModal({
@@ -20,6 +21,7 @@ export function TechniqueSelectionModal({
   onClose,
   taskId,
   taskTitle,
+  taskDuration,
 }: TechniqueSelectionModalProps) {
   const { startSession } = useFocusSession();
 
@@ -66,33 +68,48 @@ export function TechniqueSelectionModal({
 
           <div className="p-6 overflow-y-auto">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {STUDY_TECHNIQUES.map((technique) => (
-                <Card
-                  key={technique.id}
-                  className="p-5 hover:shadow-md transition-shadow flex flex-col h-full border border-surface-container-highest cursor-pointer hover:border-primary/50 group"
-                  onClick={() => handleStart(technique.id)}
-                >
-                  <div
-                    className="h-2 w-16 rounded-full mb-4 opacity-70 group-hover:opacity-100 transition-opacity"
-                    style={{ background: technique.gradient }}
-                  />
+              {STUDY_TECHNIQUES.map((technique) => {
+                const isDisabled = taskDuration !== undefined && taskDuration < technique.focusMinutes;
+                
+                return (
+                  <Card
+                    key={technique.id}
+                    className={`p-5 flex flex-col h-full border transition-all ${
+                      isDisabled
+                        ? 'opacity-50 cursor-not-allowed border-surface-container'
+                        : 'hover:shadow-md cursor-pointer border-surface-container-highest hover:border-primary/50 group'
+                    }`}
+                    onClick={() => !isDisabled && handleStart(technique.id)}
+                  >
+                    <div
+                      className={`h-2 w-16 rounded-full mb-4 transition-opacity ${
+                        isDisabled ? 'opacity-40' : 'opacity-70 group-hover:opacity-100'
+                      }`}
+                      style={{ background: technique.gradient }}
+                    />
 
-                  <h3 className="text-lg font-bold text-on-surface mb-1">{technique.name}</h3>
+                    <h3 className="text-lg font-bold text-on-surface mb-1">{technique.name}</h3>
 
-                  <div className="flex items-center text-sm font-medium text-primary mb-3">
-                    <Clock className="size-4 mr-1.5" />
-                    {technique.shortDescription}
-                  </div>
+                    <div className="flex items-center text-sm font-medium text-primary mb-3">
+                      <Clock className="size-4 mr-1.5" />
+                      {technique.shortDescription}
+                    </div>
 
-                  <p className="text-sm text-on-surface-variant mb-4 flex-grow">
-                    {technique.description}
-                  </p>
+                    <p className="text-sm text-on-surface-variant mb-4 flex-grow">
+                      {technique.description}
+                    </p>
 
-                  <Button className="w-full gap-2 mt-auto" variant="secondary">
-                    <Play className="size-4" /> Iniciar Sesión
-                  </Button>
-                </Card>
-              ))}
+                    <Button 
+                      className="w-full gap-2 mt-auto" 
+                      variant="secondary"
+                      disabled={isDisabled}
+                      title={isDisabled ? `Requiere al menos ${technique.focusMinutes} min` : undefined}
+                    >
+                      <Play className="size-4" /> Iniciar Sesión
+                    </Button>
+                  </Card>
+                );
+              })}
             </div>
           </div>
         </motion.div>

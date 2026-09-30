@@ -135,6 +135,7 @@ export function CreateProjectWizard() {
     tiempoMinimo?: string;
   } | null>(null);
 
+
   const totalSteps = 7;
   const progressPercent = Math.round(((currentStep + 1) / totalSteps) * 100);
   const todayStr = new Date().toISOString().split('T')[0];

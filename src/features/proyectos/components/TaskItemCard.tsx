@@ -389,6 +389,7 @@ export function TaskItemCard({
         onClose={() => setShowFocusModal(false)}
         taskId={task.id}
         taskTitle={task.title}
+        taskDuration={typeof task.duration === 'number' ? task.duration : parseInt(String(task.duration).replace(/\D/g, '')) || 0}
       />
 
       <TaskCompletedDetailModal

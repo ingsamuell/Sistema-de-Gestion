@@ -9,7 +9,7 @@ import {
   checkProjectFeasibilityWithGemini,
 } from '@/services/ai/scheduleAiService';
 import { validateContent, validateProjectContent } from '@/lib/moderation/contentFilter';
-import { getCaracasNextNextMidnightISO } from '@/services/notifications/dateUtils';
+import { getCaracasNextMidnightISO } from '@/services/notifications/dateUtils';
 
 export interface CreateProjectInput {
   titulo: string;
@@ -745,14 +745,14 @@ export async function toggleTaskStatusAction(
     const currentMax = typeof profile?.racha_maxima === 'number' ? profile.racha_maxima : 0;
     const currentExpira = profile?.racha_expira_en;
 
-    const nextNextMidnight = getCaracasNextNextMidnightISO();
+    const nextMidnightISO = getCaracasNextMidnightISO();
 
     // Comparar usando getTime() para evitar errores de formato en strings ISO de la base de datos
     const currentExpiraTime = currentExpira ? new Date(currentExpira).getTime() : 0;
-    const nextMidnightTime = new Date(nextNextMidnight).getTime();
+    const nextMidnightTime = new Date(nextMidnightISO).getTime();
 
     if (isCompleted && !wasCompleted) {
-      // Si la fecha de expiración ya es la de mañana en la noche (nextNextMidnight),
+      // Si la fecha de expiración ya es la de mañana (nextMidnightISO),
       // significa que ya sumó racha hoy, no aumentamos.
       if (currentExpiraTime === nextMidnightTime) {
         updatedRacha = currentStreak;
@@ -761,7 +761,8 @@ export async function toggleTaskStatusAction(
         await db
           .from('profiles')
           .update({
-            racha_expira_en: nextNextMidnight,
+            racha_expira_en: nextMidnightISO,
+            racha_completada_hoy: true,
           })
           .eq('id', user.id);
       } else {
@@ -774,7 +775,8 @@ export async function toggleTaskStatusAction(
           .update({
             racha_activa: updatedRacha,
             racha_maxima: updatedRachaMaxima,
-            racha_expira_en: nextNextMidnight,
+            racha_expira_en: nextMidnightISO,
+            racha_completada_hoy: true,
           })
           .eq('id', user.id);
       }
