@@ -274,15 +274,30 @@ export async function createProjectWithMilestonesAction(
 
     const completedCount = 0;
     if (cleanMilestones.length > 0) {
-      const milestoneRows = cleanMilestones.map((title) => ({
-        id: crypto.randomUUID(),
-        id_proyecto: project.id,
-        user_id: user.id,
-        titulo: title,
-        completado: false,
-        duracion: 30,
-        metodo_estudio: null,
-      }));
+      const baseDate = new Date();
+      const milestoneRows = cleanMilestones.map((title, idx) => {
+        const d = new Date(baseDate);
+        d.setDate(d.getDate() + idx + 1);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const fechaInicio = new Date(`${y}-${m}-${day}T09:00:00`).toISOString();
+        const fechaLimite = new Date(
+          new Date(fechaInicio).getTime() + 30 * 60 * 1000,
+        ).toISOString();
+
+        return {
+          id: crypto.randomUUID(),
+          id_proyecto: project.id,
+          user_id: user.id,
+          titulo: title,
+          completado: false,
+          duracion: 30,
+          fecha_inicio: fechaInicio,
+          fecha_limite: fechaLimite,
+          metodo_estudio: null,
+        };
+      });
 
       await supabase.from('tareas').insert(milestoneRows);
     }

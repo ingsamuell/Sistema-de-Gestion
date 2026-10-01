@@ -30,11 +30,43 @@ export async function captureChartImage(elementId: string): Promise<string | nul
 
     const html2canvas = (await import('html2canvas-pro')).default;
 
+    const contentWidth = Math.max(element.scrollWidth, element.offsetWidth, 860);
+    const contentHeight = Math.max(element.scrollHeight, element.offsetHeight, 320);
+
     const canvas = await html2canvas(element, {
       backgroundColor: '#fff8f4', // --color-surface
       scale: 2, // High resolution
       useCORS: true,
       logging: false,
+      scrollX: 0,
+      scrollY: 0,
+      width: contentWidth,
+      height: contentHeight,
+      windowWidth: contentWidth + 100,
+      windowHeight: contentHeight + 100,
+      onclone: (_clonedDoc, clonedElement) => {
+        clonedElement.style.overflow = 'visible';
+        clonedElement.style.width = `${contentWidth}px`;
+        clonedElement.style.maxWidth = 'none';
+
+        const scrollContainers = clonedElement.querySelectorAll<HTMLElement>(
+          '.overflow-auto, .overflow-x-auto, [class*="max-h-"], [class*="overflow-"]',
+        );
+        scrollContainers.forEach((el) => {
+          el.style.overflow = 'visible';
+          el.style.maxHeight = 'none';
+          el.style.height = 'auto';
+        });
+
+        const stickyElements = clonedElement.querySelectorAll<HTMLElement>(
+          '.sticky, [class*="sticky"]',
+        );
+        stickyElements.forEach((el) => {
+          el.style.position = 'relative';
+          el.style.top = 'auto';
+          el.style.left = 'auto';
+        });
+      },
     });
 
     return canvas.toDataURL('image/png');
@@ -156,14 +188,18 @@ export async function exportAsPDF(
   if (chartImage) {
     try {
       const imgProps = pdf.getImageProperties(chartImage);
-      const imgHeight = (imgProps.height * contentWidth) / imgProps.width;
+      let finalImgWidth = contentWidth;
+      let finalImgHeight = (imgProps.height * contentWidth) / imgProps.width;
+      const maxImgHeight = 350;
 
-      // Si la imagen es demasiado grande para caber con margen, ajustarla
-      const maxImgHeight = 280;
-      const finalImgHeight = imgHeight > maxImgHeight ? maxImgHeight : imgHeight;
+      if (finalImgHeight > maxImgHeight) {
+        finalImgHeight = maxImgHeight;
+        finalImgWidth = (imgProps.width * maxImgHeight) / imgProps.height;
+      }
 
-      pdf.addImage(chartImage, 'PNG', margin, yPosition, contentWidth, finalImgHeight);
-      yPosition += finalImgHeight + 35;
+      const xOffset = margin + (contentWidth - finalImgWidth) / 2;
+      pdf.addImage(chartImage, 'PNG', xOffset, yPosition, finalImgWidth, finalImgHeight);
+      yPosition += finalImgHeight + 30;
     } catch (err) {
       console.warn('Error al insertar gráfico en PDF:', err);
     }
@@ -237,10 +273,10 @@ export async function exportAsExcel(
 
       sheet.addImage(imageId, {
         tl: { col: 1, row: currentStartRow - 1 },
-        ext: { width: 600, height: 300 },
+        ext: { width: 680, height: 340 },
       });
 
-      currentStartRow = currentStartRow + 17;
+      currentStartRow = currentStartRow + 19;
     } catch (err) {
       console.warn('Error al adjuntar imagen en Excel:', err);
     }

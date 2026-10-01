@@ -454,15 +454,18 @@ export async function generateProjectTasksFromN8n(project: ProjectForTaskGenerat
     }
 
     const maxTasks = targetDates.length;
-    const datesListFormatted = targetDates.map((d, i) => `   - Tarea ${i + 1}: ${d}`).join('\n');
+    const existingCount = existingTasks.length;
+    const datesListFormatted = targetDates
+      .map((d, i) => `   - Tarea ${existingCount + i + 1}: ${d}`)
+      .join('\n');
 
     // 1. Preparar mensaje explicito para el Agente/Chatbot de n8n
-    const hasExisting = existingTasks.length > 0;
+    const hasExisting = existingCount > 0;
 
     let existingTasksPrompt = '';
     if (hasExisting) {
       existingTasksPrompt =
-        `\n\nTAREAS ACTUALES YA CREADAS EN ESTE PROYECTO (${existingTasks.length} tareas existentes que el usuario YA TIENE):\n` +
+        `\n\nTAREAS ACTUALES YA CREADAS EN ESTE PROYECTO (${existingCount} tareas existentes que el usuario YA TIENE):\n` +
         existingTasks
           .map(
             (t, idx) =>
@@ -471,9 +474,11 @@ export async function generateProjectTasksFromN8n(project: ProjectForTaskGenerat
               }`,
           )
           .join('\n') +
-        `\n\nREQUISITO OBLIGATORIO DE CONTINUIDAD:\n` +
-        `El usuario ya tiene registradas las tareas anteriores. NO repitas ninguna de esas tareas bajo ninguna circunstancia ni generes tareas equivalentes. ` +
-        `Genera ÚNICAMENTE un conjunto de tareas NUEVAS y DIFERENTES que continúen la progresión a partir de la última tarea existente, ` +
+        `\n\n🚨 REQUISITO OBLIGATORIO DE CONTINUIDAD Y NUMERACIÓN:\n` +
+        `- El usuario ya tiene registradas las ${existingCount} tareas anteriores (de la tarea 1 a la ${existingCount}).\n` +
+        `- La numeración de las nuevas tareas DEBE ser estrictamente correlativa y comenzar en el número ${existingCount + 1} (ej. "${existingCount + 1}. [Título]", "${existingCount + 2}. [Título]").\n` +
+        `- ¡BAJO NINGUNA CIRCUNSTANCIA reinicies la numeración en 1 ni repitas ninguna de esas tareas anteriores ni generes tareas equivalentes!\n` +
+        `- Genera ÚNICAMENTE un conjunto de tareas NUEVAS y DIFERENTES que continúen la progresión a partir de la última tarea existente, ` +
         `avanzando hacia los siguientes pasos, conceptos o prácticas para cumplir el objetivo del proyecto.`;
     }
 
@@ -502,8 +507,8 @@ export async function generateProjectTasksFromN8n(project: ProjectForTaskGenerat
     const contextPart = contextExtraText ? `\n\n${contextExtraText}` : '';
 
     const promptMessage = hasExisting
-      ? `Genera las SIGUIENTES tareas de continuidad para el proyecto: "${project.titulo}". Objetivo: ${project.objetivo || 'Avanzar en el aprendizaje'}. Nivel de conocimiento actual: ${project.nivel_conocimiento || 'Principiante'}. Minutos diarios disponibles: ${minutosDiarios}. Fecha límite: ${effectiveDeadlineStr}.\n\n🚨 LÍMITE ESTRICTO DE TAREAS Y FECHAS:\n- Quedan exactamente ${maxTasks} fecha(s) autorizada(s) para este proyecto antes de la fecha límite (${effectiveDeadlineStr}):\n${datesListFormatted}\n- Debes generar ${maxTasks <= 3 ? `EXACTAMENTE ${maxTasks}` : `como máximo ${maxTasks}`} tareas en total (¡PROHIBIDO generar más de ${maxTasks} tareas!).\n- ¡BAJO NINGUNA CIRCUNSTANCIA generes tareas con fechas posteriores al ${effectiveDeadlineStr}!${materialPart}${filePart}${contextPart}${existingTasksPrompt}\n\nPor favor genera tareas estructuradas completamente NUEVAS sin duplicar nada anterior. Para cada tarea, incluye una URL o enlace recomendado en el campo "resourceUrl" o "resources". Adapta el ritmo, formato y temas a las preferencias inclusivas (intereses, estilo de IA, ritmo/micro-pasos) y fuentes del usuario.`
-      : `Genera un plan de tareas detallado para el proyecto: "${project.titulo}". Objetivo: ${project.objetivo || 'Avanzar en el aprendizaje'}. Nivel de conocimiento actual: ${project.nivel_conocimiento || 'Principiante'}. Minutos diarios disponibles: ${minutosDiarios}. Fecha límite: ${effectiveDeadlineStr}.\n\n🚨 LÍMITE ESTRICTO DE TAREAS Y FECHAS:\n- Quedan exactamente ${maxTasks} fecha(s) autorizada(s) para este proyecto antes de la fecha límite (${effectiveDeadlineStr}):\n${datesListFormatted}\n- Debes generar ${maxTasks <= 3 ? `EXACTAMENTE ${maxTasks}` : `como máximo ${maxTasks}`} tareas en total (¡PROHIBIDO generar más de ${maxTasks} tareas!).\n- ¡BAJO NINGUNA CIRCUNSTANCIA generes tareas con fechas posteriores al ${effectiveDeadlineStr}!${materialPart}${filePart}${contextPart} Por favor genera el listado de tareas estructurado acorde al plazo calculado. Para cada tarea, incluye obligatoriamente una URL o enlace recomendado (documentación oficial, tutorial o recurso web) en el campo "resourceUrl" o "resources". Adapta el enfoque a su perfil de aprendizaje, preferencias inclusivas (intereses, micro-pasos, estilo de IA) y biblioteca de temas.`;
+      ? `Genera las SIGUIENTES tareas de continuidad para el proyecto: "${project.titulo}". Objetivo: ${project.objetivo || 'Avanzar en el aprendizaje'}. Nivel de conocimiento actual: ${project.nivel_conocimiento || 'Principiante'}. Minutos diarios disponibles: ${minutosDiarios}. Fecha límite: ${effectiveDeadlineStr}.\n\n🚨 LÍMITE ESTRICTO DE TAREAS, FECHAS Y NUMERACIÓN:\n- El proyecto ya tiene ${existingCount} tareas registradas (de la 1 a la ${existingCount}).\n- Las nuevas tareas DEBEN comenzar estrictamente numeradas desde ${existingCount + 1} (ej. "${existingCount + 1}. ...", "${existingCount + 2}. ..."). ¡ESTRICTAMENTE PROHIBIDO iniciar en 1!\n- Quedan exactamente ${maxTasks} fecha(s) autorizada(s) para este proyecto antes de la fecha límite (${effectiveDeadlineStr}):\n${datesListFormatted}\n- Debes generar ${maxTasks <= 3 ? `EXACTAMENTE ${maxTasks}` : `como máximo ${maxTasks}`} tareas en total (¡PROHIBIDO generar más de ${maxTasks} tareas!).\n- ¡BAJO NINGUNA CIRCUNSTANCIA generes tareas con fechas posteriores al ${effectiveDeadlineStr}!${materialPart}${filePart}${contextPart}${existingTasksPrompt}\n\nPor favor genera tareas estructuradas completamente NUEVAS sin duplicar nada anterior. Para cada tarea, incluye una URL o enlace recomendado en el campo "resourceUrl" o "resources". Adapta el ritmo, formato y temas a las preferencias inclusivas (intereses, estilo de IA, ritmo/micro-pasos) y fuentes del usuario.`
+      : `Genera un plan de tareas detallado para el proyecto: "${project.titulo}". Objetivo: ${project.objetivo || 'Avanzar en el aprendizaje'}. Nivel de conocimiento actual: ${project.nivel_conocimiento || 'Principiante'}. Minutos diarios disponibles: ${minutosDiarios}. Fecha límite: ${effectiveDeadlineStr}.\n\n🚨 LÍMITE ESTRICTO DE TAREAS Y FECHAS:\n- Quedan exactamente ${maxTasks} fecha(s) autorizada(s) para este proyecto antes de la fecha límite (${effectiveDeadlineStr}):\n${datesListFormatted}\n- Debes generar ${maxTasks <= 3 ? `EXACTAMENTE ${maxTasks}` : `como máximo ${maxTasks}`} tareas en total numeradas desde 1 (¡PROHIBIDO generar más de ${maxTasks} tareas!).\n- ¡BAJO NINGUNA CIRCUNSTANCIA generes tareas con fechas posteriores al ${effectiveDeadlineStr}!${materialPart}${filePart}${contextPart} Por favor genera el listado de tareas estructurado acorde al plazo calculado. Para cada tarea, incluye obligatoriamente una URL o enlace recomendado (documentación oficial, tutorial o recurso web) en el campo "resourceUrl" o "resources". Adapta el enfoque a su perfil de aprendizaje, preferencias inclusivas (intereses, micro-pasos, estilo de IA) y biblioteca de temas.`;
 
     // 2. Preparar payload completo con compatibilidad para nodos de Supabase (userId, user_id) y agentes de chat (chatInput, message)
     const payload = {
@@ -619,11 +624,44 @@ export async function generateProjectTasksFromN8n(project: ProjectForTaskGenerat
     const adminDb = getAdminClient();
     const db = adminDb || supabase;
 
+    // Si n8n insertó tareas directamente en Supabase mediante su nodo (las cuales carecen de fecha_inicio y duracion):
+    // Limpiamos los registros sin fecha creados por n8n para este proyecto para evitar duplicados sin fechas.
+    if (taskCandidates && taskCandidates.length > 0) {
+      try {
+        await db.from('tareas').delete().eq('id_proyecto', project.id).is('fecha_inicio', null);
+      } catch (cleanErr) {
+        console.warn(
+          'Aviso: no se pudieron limpiar tareas sin fecha insertadas por n8n:',
+          cleanErr,
+        );
+      }
+    }
+
     if (!taskCandidates || taskCandidates.length === 0) {
       // Si n8n no devolvió las tareas en el JSON, verificar si su nodo de Supabase las insertó directamente en la BD
       const { data: dbTasks } = await db.from('tareas').select('*').eq('id_proyecto', project.id);
 
       if (dbTasks && dbTasks.length > 0) {
+        // Asignar fechas y duración a las tareas que hayan quedado sin fecha
+        const unScheduledTasks = dbTasks.filter((t) => !t.fecha_inicio);
+        if (unScheduledTasks.length > 0) {
+          const defaultDur = Math.max(10, Number(project.minutos_diarios) || 30);
+          for (let i = 0; i < unScheduledTasks.length; i++) {
+            const t = unScheduledTasks[i];
+            const assignedDate = targetDates[i] || targetDates[targetDates.length - 1];
+            const dur = Math.max(15, Number(t.duracion) || defaultDur);
+            const startIso = new Date(`${assignedDate}T09:00:00`).toISOString();
+            const endIso = new Date(new Date(startIso).getTime() + dur * 60 * 1000).toISOString();
+            await db
+              .from('tareas')
+              .update({ fecha_inicio: startIso, fecha_limite: endIso, duracion: dur })
+              .eq('id', t.id);
+            t.fecha_inicio = startIso;
+            t.fecha_limite = endIso;
+            t.duracion = dur;
+          }
+        }
+
         return {
           success: true,
           count: dbTasks.length,
@@ -647,30 +685,39 @@ export async function generateProjectTasksFromN8n(project: ProjectForTaskGenerat
     }
 
     // 5. Normalizar y desduplicar datos para la tabla 'tareas' de Supabase
-    const existingTitlesSet = new Set(
+    // Normalizar títulos sin números iniciales para comparar el contenido real de la tarea
+    const cleanExistingTitles = new Set(
       existingTasks.map((t) =>
         t.titulo
+          .replace(/^(?:tarea\s*)?\d+[\.\)\-:\s]+/i, '')
           .toLowerCase()
           .trim()
           .replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, ''),
       ),
     );
 
-    // Filtrar candidatos cuyo título sea idéntico o muy similar a una tarea existente
+    // Filtrar candidatos cuyo contenido sea idéntico o muy similar a una tarea existente
     let candidatesToUse = taskCandidates.filter((c) => {
-      const norm = (c.titulo || c.title || '')
+      const raw = (c.titulo || c.title || '').trim();
+      const norm = raw
+        .replace(/^(?:tarea\s*)?\d+[\.\)\-:\s]+/i, '')
         .toLowerCase()
         .trim()
         .replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, '');
-      return norm.length > 0 && !existingTitlesSet.has(norm);
+      return norm.length > 0 && !cleanExistingTitles.has(norm);
     });
 
-    // Si todas las candidatas devueltas eran duplicadas, diferenciarlas con sufijo de fase
-    if (candidatesToUse.length === 0 && taskCandidates.length > 0) {
-      candidatesToUse = taskCandidates.map((c, i) => ({
-        ...c,
-        titulo: `${c.titulo || c.title || 'Tarea'} (Continuación ${existingTasks.length + i + 1})`,
-      }));
+    // Si todas las candidatas devueltas ya existían y el proyecto ya tiene tareas, evitar duplicados idénticos
+    if (candidatesToUse.length === 0 && taskCandidates.length > 0 && hasExisting) {
+      return {
+        success: false,
+        error:
+          'La IA generó tareas similares a las que ya tienes en este proyecto. Si deseas tareas diferentes, puedes crearlas manualmente con "Nueva tarea".',
+      };
+    }
+
+    if (candidatesToUse.length === 0) {
+      candidatesToUse = taskCandidates;
     }
 
     // Truncar estrictamente al número máximo de ranuras de estudio autorizadas
@@ -681,7 +728,11 @@ export async function generateProjectTasksFromN8n(project: ProjectForTaskGenerat
     const defaultDuration = Math.max(10, Number(project.minutos_diarios) || 30);
 
     const tasksToInsert = candidatesToUse.map((candidate, index) => {
-      const titulo = (candidate.titulo || candidate.title || `Tarea ${index + 1}`).trim();
+      const targetNumber = existingCount + index + 1;
+      const rawTitle = (candidate.titulo || candidate.title || `Tarea ${targetNumber}`).trim();
+      const cleanTitle = rawTitle.replace(/^(?:tarea\s*)?\d+[\.\)\-:\s]+/i, '').trim();
+      const titulo = cleanTitle ? `${targetNumber}. ${cleanTitle}` : `${targetNumber}. ${rawTitle}`;
+
       const descripcion = (candidate.descripcion || candidate.description || '').trim() || null;
       const duracion = parseDurationMinutes(
         candidate.duracion || candidate.duration,
@@ -774,6 +825,14 @@ export async function generateProjectTasksFromN8n(project: ProjectForTaskGenerat
         success: false,
         error: `Error al guardar tareas generadas en Supabase: ${insertError.message}`,
       };
+    }
+
+    // Limpieza de seguridad: eliminar cualquier tarea residual sin fecha de inicio que n8n haya insertado
+    try {
+      await db.from('tareas').delete().eq('id_proyecto', project.id).is('fecha_inicio', null);
+      await db.from('tareas').delete().is('id_proyecto', null);
+    } catch (cleanErr) {
+      console.warn('Aviso limpiando registros sin fecha de n8n:', cleanErr);
     }
 
     // Sincronizar en eventos_calendario para que aparezcan en el calendario del usuario

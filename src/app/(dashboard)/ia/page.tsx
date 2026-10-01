@@ -207,11 +207,25 @@ export default function IAPage() {
     }
 
     // 2. Guardar mensaje del usuario en la tabla messages
-    await saveMessageAction({
+    const userMsgRes = await saveMessageAction({
       conversationId: convId,
       sender: 'user',
       content: params.content,
       contextData: params.fileAttachment ? { file: params.fileAttachment } : {},
+    });
+
+    const userMessageObj: AssistantMessage = userMsgRes.data || {
+      id: `user-${Date.now()}`,
+      role: 'user',
+      content: params.content,
+      createdAt: new Date().toISOString(),
+      conversationId: convId,
+      fileAttachment: params.fileAttachment,
+    };
+
+    setMessages((prev) => {
+      const filtered = prev.filter((m) => m.id !== userMessageObj.id);
+      return [...filtered, userMessageObj];
     });
 
     // 3. Preparar mensaje para n8n con el texto completo del documento si fue extraído
@@ -398,8 +412,10 @@ export default function IAPage() {
     };
 
     setMessages((prev) => {
-      const base = params.history && params.history.length > 0 ? params.history : prev;
-      return [...base, finalMsg];
+      const hasUserMsg = prev.some((m) => m.id === userMessageObj.id);
+      const base = hasUserMsg ? prev : [...prev, userMessageObj];
+      const hasAssistant = base.some((m) => m.id === finalMsg.id);
+      return hasAssistant ? base : [...base, finalMsg];
     });
 
     return {
@@ -432,7 +448,7 @@ export default function IAPage() {
             }
           : undefined
       }
-      initialDraft={searchParams.get('prompt') || undefined}
+      initialDraft={searchParams.get('prompt') || searchParams.get('question') || undefined}
     />
   );
 }

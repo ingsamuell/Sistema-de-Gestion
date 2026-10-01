@@ -221,11 +221,13 @@ export function buildAnalyticsDashboardData({
     .flatMap((project) => {
       const date = deadlineDateOnly(project.fecha_limite);
       if (!date) return [];
-      return [{
-        projectId: project.id,
-        projectName: project.titulo?.trim() || 'Proyecto sin título',
-        date,
-      }];
+      return [
+        {
+          projectId: project.id,
+          projectName: project.titulo?.trim() || 'Proyecto sin título',
+          date,
+        },
+      ];
     })
     .sort((a, b) => a.date.localeCompare(b.date));
   const ganttProjects = projects.map((project) => ({
@@ -267,7 +269,15 @@ export function buildAnalyticsDashboardData({
       highPriorityProjects,
       upcomingDeadlines,
     },
-    series: { workload: days, progress, priorities, deadlines, gantt, ganttMilestones, ganttProjects },
+    series: {
+      workload: days,
+      progress,
+      priorities,
+      deadlines,
+      gantt,
+      ganttMilestones,
+      ganttProjects,
+    },
     availability: {
       workload:
         tasksAvailable && days.some((day) => day.plannedMinutes > 0)
@@ -312,7 +322,10 @@ export function buildAnalyticsDashboardData({
             },
       gantt:
         tasksAvailable && gantt.length > 0
-          ? { available: true, message: 'Basado en tareas con fecha de inicio y duración registrada.' }
+          ? {
+              available: true,
+              message: 'Basado en tareas con fecha de inicio y duración registrada.',
+            }
           : {
               available: false,
               message: tasksAvailable

@@ -352,6 +352,7 @@ export async function createProjectFromAITasksAction(params: {
     }
 
     if (params.tasks && params.tasks.length > 0) {
+      const baseDate = new Date();
       const tasksToInsert = params.tasks.map((t, idx) => {
         const rawDur = t.duration || t.duracion;
         let durMins = 30;
@@ -361,9 +362,25 @@ export async function createProjectFromAITasksAction(params: {
           if (!isNaN(num) && num > 0) durMins = num;
         }
 
-        const taskTitle = (t.title || t.titulo || `Tarea ${idx + 1}`).trim().slice(0, 120);
+        const targetNumber = idx + 1;
+        const rawTitle = (t.title || t.titulo || `Tarea ${targetNumber}`).trim().slice(0, 120);
+        const cleanTitle = rawTitle.replace(/^(?:tarea\s*)?\d+[\.\)\-:\s]+/i, '').trim();
+        const taskTitle = cleanTitle
+          ? `${targetNumber}. ${cleanTitle}`
+          : `${targetNumber}. ${rawTitle}`;
+
         const taskDesc = (t.description || t.descripcion || '').trim();
         const taskRes = (t.resourceUrl || t.resource_url || '').trim() || null;
+
+        const d = new Date(baseDate);
+        d.setDate(d.getDate() + idx + 1);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const fechaInicio = new Date(`${y}-${m}-${day}T09:00:00`).toISOString();
+        const fechaLimite = new Date(
+          new Date(fechaInicio).getTime() + durMins * 60 * 1000,
+        ).toISOString();
 
         return {
           id: crypto.randomUUID(),
@@ -372,6 +389,8 @@ export async function createProjectFromAITasksAction(params: {
           descripcion: taskDesc || null,
           duracion: durMins,
           completado: false,
+          fecha_inicio: fechaInicio,
+          fecha_limite: fechaLimite,
           resources: taskRes,
           prioridad: 'Prioritario',
           metodo_estudio: null,
@@ -381,6 +400,20 @@ export async function createProjectFromAITasksAction(params: {
       const { error: taskErr } = await supabase.from('tareas').insert(tasksToInsert);
       if (taskErr) {
         console.warn('Advertencia insertando tareas en proyecto:', taskErr);
+      } else {
+        const eventsToInsert = tasksToInsert.map((t) => ({
+          id: crypto.randomUUID(),
+          usuario_id: auth.user.id,
+          proyecto_id: project.id,
+          tarea_id: t.id,
+          titulo: t.titulo,
+          descripcion: t.descripcion || '',
+          inicio: t.fecha_inicio,
+          fin: t.fecha_limite,
+          estado: 'pendiente' as const,
+          generado_por_ia: true,
+        }));
+        await supabase.from('eventos_calendario').insert(eventsToInsert);
       }
     }
 
@@ -428,6 +461,22 @@ export async function addTasksToExistingProjectAction(params: {
     }
 
     if (params.tasks && params.tasks.length > 0) {
+      const { data: existingTasks } = await supabase
+        .from('tareas')
+        .select('id, titulo, fecha_inicio')
+        .eq('id_proyecto', project.id);
+
+      const existingCount = existingTasks ? existingTasks.length : 0;
+      let latestDate = new Date();
+      if (existingTasks && existingTasks.length > 0) {
+        for (const et of existingTasks) {
+          if (et.fecha_inicio) {
+            const ed = new Date(et.fecha_inicio);
+            if (ed > latestDate) latestDate = ed;
+          }
+        }
+      }
+
       const tasksToInsert = params.tasks.map((t, idx) => {
         const rawDur = t.duration || t.duracion;
         let durMins = 30;
@@ -437,9 +486,25 @@ export async function addTasksToExistingProjectAction(params: {
           if (!isNaN(num) && num > 0) durMins = num;
         }
 
-        const taskTitle = (t.title || t.titulo || `Nueva tarea ${idx + 1}`).trim().slice(0, 120);
+        const targetNumber = existingCount + idx + 1;
+        const rawTitle = (t.title || t.titulo || `Tarea ${targetNumber}`).trim().slice(0, 120);
+        const cleanTitle = rawTitle.replace(/^(?:tarea\s*)?\d+[\.\)\-:\s]+/i, '').trim();
+        const taskTitle = cleanTitle
+          ? `${targetNumber}. ${cleanTitle}`
+          : `${targetNumber}. ${rawTitle}`;
+
         const taskDesc = (t.description || t.descripcion || '').trim();
         const taskRes = (t.resourceUrl || t.resource_url || '').trim() || null;
+
+        const d = new Date(latestDate);
+        d.setDate(d.getDate() + idx + 1);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const fechaInicio = new Date(`${y}-${m}-${day}T09:00:00`).toISOString();
+        const fechaLimite = new Date(
+          new Date(fechaInicio).getTime() + durMins * 60 * 1000,
+        ).toISOString();
 
         return {
           id: crypto.randomUUID(),
@@ -448,6 +513,8 @@ export async function addTasksToExistingProjectAction(params: {
           descripcion: taskDesc || null,
           duracion: durMins,
           completado: false,
+          fecha_inicio: fechaInicio,
+          fecha_limite: fechaLimite,
           resources: taskRes,
           prioridad: 'Prioritario',
           metodo_estudio: null,
@@ -459,6 +526,20 @@ export async function addTasksToExistingProjectAction(params: {
         console.error('Error al insertar tareas adicionales:', taskErr);
         return { success: false, error: taskErr.message };
       }
+
+      const eventsToInsert = tasksToInsert.map((t) => ({
+        id: crypto.randomUUID(),
+        usuario_id: auth.user.id,
+        proyecto_id: project.id,
+        tarea_id: t.id,
+        titulo: t.titulo,
+        descripcion: t.descripcion || '',
+        inicio: t.fecha_inicio,
+        fin: t.fecha_limite,
+        estado: 'pendiente' as const,
+        generado_por_ia: true,
+      }));
+      await supabase.from('eventos_calendario').insert(eventsToInsert);
 
       // Recalcular progreso del proyecto
       const { data: allTasks } = await supabase

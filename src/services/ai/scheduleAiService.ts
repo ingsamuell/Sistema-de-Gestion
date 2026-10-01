@@ -626,7 +626,10 @@ export async function generateProjectTasksAndScheduleWithGemini(
     }
 
     const maxTasks = targetDates.length;
-    const datesListFormatted = targetDates.map((d, i) => `   - Tarea ${i + 1}: ${d}`).join('\n');
+    const existingCount = existingTasks.length;
+    const datesListFormatted = targetDates
+      .map((d, i) => `   - Tarea ${existingCount + i + 1}: ${d}`)
+      .join('\n');
 
     const minutosDiarios = Math.max(15, Number(project.minutos_diarios) || 30);
     const nivel = project.nivel_conocimiento || 'Principiante';
@@ -635,7 +638,7 @@ export async function generateProjectTasksAndScheduleWithGemini(
     let existingTasksPrompt = '';
     if (existingTasks.length > 0) {
       existingTasksPrompt =
-        `\n\nTAREAS ACTUALES YA REGISTRADAS EN ESTE PROYECTO (${existingTasks.length} tareas existentes que el usuario YA TIENE):\n` +
+        `\n\nTAREAS ACTUALES YA REGISTRADAS EN ESTE PROYECTO (${existingCount} tareas existentes que el usuario YA TIENE):\n` +
         existingTasks
           .map(
             (t, idx) =>
@@ -644,9 +647,11 @@ export async function generateProjectTasksAndScheduleWithGemini(
               }`,
           )
           .join('\n') +
-        `\n\nREQUISITO OBLIGATORIO DE CONTINUIDAD:\n` +
-        `El usuario ya tiene registradas las tareas anteriores. NO repitas ninguna de esas tareas bajo ninguna circunstancia ni generes tareas equivalentes. ` +
-        `Genera ÚNICAMENTE un conjunto de tareas NUEVAS y DIFERENTES que continúen la progresión hacia el objetivo del proyecto a partir de la última tarea existente.`;
+        `\n\n🚨 REQUISITO OBLIGATORIO DE CONTINUIDAD Y NUMERACIÓN:\n` +
+        `- El proyecto YA TIENE registradas ${existingCount} tareas (de la 1 a la ${existingCount}).\n` +
+        `- La numeración de las nuevas tareas DEBE ser estrictamente correlativa y comenzar en el número ${existingCount + 1} (ej. "${existingCount + 1}. [Título]", "${existingCount + 2}. [Título]").\n` +
+        `- ¡BAJO NINGUNA CIRCUNSTANCIA reinicies la numeración en 1 ni repitas temas de las tareas ya existentes!\n` +
+        `- Genera ÚNICAMENTE un conjunto de tareas NUEVAS y DIFERENTES que continúen la progresión hacia el objetivo del proyecto a partir de la última tarea existente.`;
     }
 
     const filePart = project.file_content
@@ -682,6 +687,8 @@ EVENTOS PUNTUALES YA AGENDADOS:
 ${eventosDesc}
 
 🚨 REGLA ESTRICTA DE CANTIDAD DE TAREAS Y FECHAS AUTORIZADAS:
+- El proyecto ya cuenta con ${existingCount} tareas registradas (de la 1 a la ${existingCount}).
+- Las nuevas tareas DEBEN comenzar estrictamente numeradas desde ${existingCount + 1} (ej. "${existingCount + 1}. ...", "${existingCount + 2}. ..."). ¡ESTRICTAMENTE PROHIBIDO iniciar en 1!
 - Quedan exactamente ${maxTasks} fecha(s) autorizada(s) para este proyecto antes de la fecha límite (${effectiveDeadlineStr}):
 ${datesListFormatted}
 - Debes generar ${maxTasks <= 3 ? `EXACTAMENTE ${maxTasks}` : `como máximo ${maxTasks}`} tareas en total (¡PROHIBIDO generar más de ${maxTasks} tareas!).
@@ -846,10 +853,15 @@ DIRECTRICES ADICIONALES:
         new Date(fechaInicioIso).getTime() + duracion * 60 * 1000,
       ).toISOString();
 
+      const targetNumber = existingCount + index + 1;
+      const rawTitle = (t.titulo || `Tarea ${targetNumber}`).trim();
+      const cleanTitle = rawTitle.replace(/^(?:tarea\s*)?\d+[\.\)\-:\s]+/i, '').trim();
+      const titulo = cleanTitle ? `${targetNumber}. ${cleanTitle}` : `${targetNumber}. ${rawTitle}`;
+
       return {
         id: taskId,
         id_proyecto: project.id,
-        titulo: t.titulo.trim(),
+        titulo,
         descripcion: t.descripcion?.trim() || null,
         duracion,
         completado: false,
@@ -995,6 +1007,9 @@ DIRECTRICES ADICIONALES:
           nivel_conocimiento: project.nivel_conocimiento,
           minutos_diarios: project.minutos_diarios,
           material_url: project.material_url,
+          file_content: project.file_content,
+          file_name: project.file_name,
+          existing_tasks: project.existing_tasks || [],
         });
 
         if (n8nResult.success) {
@@ -1012,6 +1027,7 @@ DIRECTRICES ADICIONALES:
             success: true,
             count: n8nResult.count || n8nResult.tasks?.length || 0,
             tasks: n8nResult.tasks || [],
+            progreso: n8nResult.progreso,
             resumen: 'Tareas generadas mediante el servicio de respaldo (n8n).',
           };
         }
