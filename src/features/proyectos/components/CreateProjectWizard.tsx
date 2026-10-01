@@ -490,6 +490,13 @@ export function CreateProjectWizard() {
 
           const filesArray = Array.from(selectedFiles);
           for (const f of filesArray) {
+            // Validación de peso (Máx 50MB)
+            if (f.size > 50 * 1024 * 1024) {
+              setErrorMessage(`El archivo "${f.name}" excede el límite de 50 MB.`);
+              e.target.value = '';
+              return;
+            }
+
             if (hasObsceneContent(f.name)) {
               setErrorMessage('No se permiten contenidos obscenos.');
               e.target.value = '';
