@@ -593,10 +593,76 @@ export async function getProjectDetailAction(id: string) {
 
     const db = supabase;
 
-    const { data: tareas, error: tareasError } = await db
+    const { data: rawTareas, error: tareasError } = await db
       .from('tareas')
       .select('*')
       .eq('id_proyecto', id);
+
+    let tareas = rawTareas || [];
+
+    if (tareas.length > 0) {
+      const datedTasks = tareas.filter((t) => t.fecha_inicio);
+      const nullDateTasks = tareas.filter((t) => !t.fecha_inicio);
+
+      if (nullDateTasks.length > 0) {
+        const datedNormalizedTitles = new Set(
+          datedTasks.map((t) =>
+            t.titulo
+              .replace(/^(?:tarea\s*)?\d+[\.\)\-:\s]+/i, '')
+              .toLowerCase()
+              .trim(),
+          ),
+        );
+
+        const idsToDelete: string[] = [];
+        const tasksToFix: typeof nullDateTasks = [];
+
+        for (const nt of nullDateTasks) {
+          const normTitle = nt.titulo
+            .replace(/^(?:tarea\s*)?\d+[\.\)\-:\s]+/i, '')
+            .toLowerCase()
+            .trim();
+          if (datedNormalizedTitles.has(normTitle)) {
+            idsToDelete.push(nt.id);
+          } else {
+            tasksToFix.push(nt);
+          }
+        }
+
+        if (idsToDelete.length > 0) {
+          await db.from('tareas').delete().in('id', idsToDelete);
+          tareas = tareas.filter((t) => !idsToDelete.includes(t.id));
+        }
+
+        if (tasksToFix.length > 0) {
+          const baseDate = new Date();
+          for (let i = 0; i < tasksToFix.length; i++) {
+            const tFix = tasksToFix[i];
+            const d = new Date(baseDate);
+            d.setDate(d.getDate() + i + 1);
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            const startIso = new Date(`${y}-${m}-${day}T09:00:00`).toISOString();
+            const dur = Number(tFix.duracion) || 30;
+            const endIso = new Date(new Date(startIso).getTime() + dur * 60 * 1000).toISOString();
+
+            await db
+              .from('tareas')
+              .update({
+                fecha_inicio: startIso,
+                fecha_limite: endIso,
+                duracion: dur,
+              })
+              .eq('id', tFix.id);
+
+            tFix.fecha_inicio = startIso;
+            tFix.fecha_limite = endIso;
+            tFix.duracion = dur;
+          }
+        }
+      }
+    }
 
     if (tareasError) {
       console.error('Error cargando tareas:', tareasError);

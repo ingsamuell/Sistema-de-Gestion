@@ -19,7 +19,7 @@ const requestSchema = z.object({
     .union([
       z.object({
         origen: z.literal('analytics'),
-        view: z.enum(['workload', 'progress', 'priorities', 'deadlines']),
+        view: z.enum(['workload', 'progress', 'priorities', 'deadlines', 'gantt']),
         period: z.literal('week'),
       }),
       z.object({
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
     const { data: projects } = await supabase
       .from('projects')
       .select(
-        'id, titulo, objetivo, fecha_limite, prioridad, nivel_conocimiento, progreso, completado, tareas(id, titulo, duracion, completado, resources)',
+        'id, titulo, objetivo, fecha_limite, prioridad, nivel_conocimiento, progreso, completado, tareas(id, titulo, duracion, completado, fecha_inicio, fecha_limite, resources)',
       )
       .eq('user_id', auth.user.id)
       .order('progreso', { ascending: true });
@@ -78,8 +78,21 @@ export async function POST(request: Request) {
               p.tareas && p.tareas.length > 0
                 ? p.tareas
                     .map(
-                      (t: { titulo: string; duracion: number | null; completado: boolean }) =>
-                        `- Tarea: "${t.titulo}" (${t.completado ? 'Completada' : 'Pendiente'}, ${t.duracion || 30} min)`,
+                      (t: {
+                        titulo: string;
+                        duracion: number | null;
+                        completado: boolean;
+                        fecha_inicio?: string | null;
+                        fecha_limite?: string | null;
+                      }) => {
+                        const inicioStr = t.fecha_inicio
+                          ? `, Inicio: ${t.fecha_inicio.split('T')[0]}`
+                          : '';
+                        const limiteStr = t.fecha_limite
+                          ? `, Límite: ${t.fecha_limite.split('T')[0]}`
+                          : '';
+                        return `- Tarea: "${t.titulo}" (${t.completado ? 'Completada' : 'Pendiente'}, ${t.duracion || 30} min${inicioStr}${limiteStr})`;
+                      },
                     )
                     .join('\n  ')
                 : 'Sin tareas registradas aún';
@@ -141,7 +154,23 @@ export async function POST(request: Request) {
       `¡NUNCA olvides escribir esa etiqueta si el usuario aprueba, ya que es el comando interno del sistema para actualizar la base de datos y otorgarle el certificado!\n\n`;
   }
 
-  const promptConContexto = `${languageInstruction}${systemRulesText}${quizRules}${proyectosContextText}${
+  let analyticsRules = '';
+  if (parsed.data.contexto?.origen === 'analytics') {
+    const viewName = parsed.data.contexto.view;
+    if (viewName === 'gantt') {
+      analyticsRules =
+        `\n[CONTEXTO DE ANALÍTICA DEL CRONOGRAMA GANTT]:\n` +
+        `El usuario está consultando específicamente sobre la vista de CRONOGRAMA GANTT en Analítica.\n` +
+        `Tienes acceso a todas las fechas de inicio, duraciones, fechas límites y estado de cumplimiento de sus tareas.\n` +
+        `Analiza la distribución temporal, tareas en riesgo de retraso, solapamientos, hitos de proyectos y tiempos de entrega para responder de manera clara, proactiva y constructiva sobre su cronograma.\n\n`;
+    } else {
+      analyticsRules =
+        `\n[CONTEXTO DE ANALÍTICA - VISTA ${viewName.toUpperCase()}]:\n` +
+        `El usuario está consultando sobre la métrica de ${viewName} en la sección de Analítica. Utiliza los datos de sus proyectos y tareas para responder a sus dudas sobre esta vista.\n\n`;
+    }
+  }
+
+  const promptConContexto = `${languageInstruction}${systemRulesText}${quizRules}${analyticsRules}${proyectosContextText}${
     userAiContextText ? `${userAiContextText}\n\n` : ''
   }Instrucción o consulta del usuario:\n${parsed.data.mensaje}`;
 
