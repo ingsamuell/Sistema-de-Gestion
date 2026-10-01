@@ -185,16 +185,19 @@ export function AssistantChat({
 
     const fileToSend = attachedFile;
 
+    const userMessage: AssistantMessage = {
+      id: `user-${Date.now()}`,
+      role: 'user',
+      content: content.trim() || (fileToSend ? `Archivo: ${fileToSend.name}` : ''),
+      fileAttachment: fileToSend || undefined,
+      createdAt: new Date().toISOString(),
+      conversationId: currentConvId || undefined,
+    };
+
+    const newHistory = isRetry ? conversation : [...conversation, userMessage];
+
     if (!isRetry) {
-      setConversation((current) => [
-        ...current,
-        {
-          id: `user-${Date.now()}`,
-          role: 'user',
-          content: content.trim() || (fileToSend ? `Archivo: ${fileToSend.name}` : ''),
-          fileAttachment: fileToSend || undefined,
-        },
-      ]);
+      setConversation(newHistory);
       setDraft('');
       setAttachedFile(null);
       setFileExtractionStatus(null);
@@ -210,11 +213,14 @@ export function AssistantChat({
         context,
         fileAttachment: fileToSend || undefined,
         conversationId: currentConvId,
-        history: conversation,
+        history: newHistory,
         lastAssistantMessage: lastAssistantMsg,
       });
 
-      setConversation((current) => [...current, response.message]);
+      setConversation((current) => {
+        const hasAssistant = current.some((m) => m.id === response.message.id);
+        return hasAssistant ? current : [...current, response.message];
+      });
       setCurrentConvId(response.conversationId);
       setPendingContent('');
       setStatus('idle');

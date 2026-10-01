@@ -376,7 +376,14 @@ function MetricChart({
     return <PrioritiesChart data={data.series.priorities} locale={locale} />;
   }
   if (metric === 'gantt') {
-    return <GanttChart data={data.series.gantt} milestones={data.series.ganttMilestones} projects={data.series.ganttProjects} locale={locale} />;
+    return (
+      <GanttChart
+        data={data.series.gantt}
+        milestones={data.series.ganttMilestones}
+        projects={data.series.ganttProjects}
+        locale={locale}
+      />
+    );
   }
   return <DeadlinesTimeline data={data.series.deadlines} locale={locale} />;
 }

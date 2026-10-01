@@ -1,9 +1,10 @@
 -- ==============================================================================
--- Migración: Garantizar id_proyecto obligatorio y remover default de metodo_estudio
+-- Migración: Remover default de metodo_estudio y permitir id_proyecto opcional
 -- ==============================================================================
 -- 1. Elimina el valor por defecto 'Técnica Pomodoro' de la columna metodo_estudio
 --    para que solo se guarde la técnica que el usuario elija al iniciar la tarea.
--- 2. Asegura que todas las tareas tengan un id_proyecto válido (NOT NULL) y ON DELETE CASCADE.
+-- 2. Asegura que id_proyecto sea opcional (DROP NOT NULL) para evitar errores con n8n/IA.
+-- 3. Mantiene la clave foránea ON DELETE CASCADE para cuando una tarea sí pertenezca a un proyecto.
 -- URL de ejecución: https://supabase.com/dashboard/project/nxjqilasqjrjpvmmjxve/sql
 -- ==============================================================================
 
@@ -17,25 +18,17 @@ where metodo_estudio = 'Técnica Pomodoro'
   and tiempo_empleado is null
   and tecnica_sirvio is null;
 
--- 3. Limpiar cualquier fila residual sin título ni descripción
+-- 3. Limpiar cualquier fila residual sin título ni contenido válido
 delete from public.tareas
 where id_proyecto is null
   and (titulo is null or trim(titulo) = '' or titulo = 'null');
 
--- 4. Asegurar restricción NOT NULL y clave foránea ON DELETE CASCADE en id_proyecto
+-- 4. Permitir que id_proyecto sea opcional (DROP NOT NULL) para compatibilidad con la IA de n8n
+alter table public.tareas alter column id_proyecto drop not null;
+
+-- 5. Asegurar restricción de clave foránea con borrado en cascada (aplica cuando id_proyecto no sea null)
 do $$
 begin
-  -- Si existiese alguna tarea huérfana, asignarla al proyecto más reciente
-  if exists (select 1 from public.tareas where id_proyecto is null) then
-    update public.tareas
-    set id_proyecto = (select id from public.projects order by created_at desc limit 1)
-    where id_proyecto is null;
-  end if;
-
-  -- Establecer NOT NULL en id_proyecto
-  alter table public.tareas alter column id_proyecto set not null;
-
-  -- Asegurar restricción de clave foránea con borrado en cascada
   if not exists (
     select 1 from pg_constraint
     where conname = 'tareas_id_proyecto_fkey'
@@ -47,3 +40,4 @@ begin
   end if;
 end;
 $$;
+

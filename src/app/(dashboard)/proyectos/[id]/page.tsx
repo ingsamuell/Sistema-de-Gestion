@@ -663,7 +663,9 @@ export default function ProjectDetailPage({
 
         setProject((prev) => {
           if (!prev) return null;
-          const merged = [...prev.tasks, ...newTasks];
+          const existingIds = new Set(prev.tasks.map((t) => t.id));
+          const trulyNewTasks = newTasks.filter((t) => !existingIds.has(t.id));
+          const merged = [...prev.tasks, ...trulyNewTasks];
           return {
             ...prev,
             tasks: merged,
@@ -1290,10 +1292,31 @@ export default function ProjectDetailPage({
   const sortedTasks = [...project.tasks].sort((a, b) => {
     if (a.isCompleted && !b.isCompleted) return -1;
     if (!a.isCompleted && b.isCompleted) return 1;
-    if (a.startDate && b.startDate) {
-      return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+
+    // Extraer número correlativo del título si existe (ej. "1. Tarea", "12. Tarea")
+    const matchA = a.title.match(/^(?:tarea\s*)?(\d+)[\.\)\-:\s]/i);
+    const matchB = b.title.match(/^(?:tarea\s*)?(\d+)[\.\)\-:\s]/i);
+    const numA = matchA ? parseInt(matchA[1], 10) : 0;
+    const numB = matchB ? parseInt(matchB[1], 10) : 0;
+
+    if (numA > 0 && numB > 0 && numA !== numB) {
+      return numA - numB;
     }
-    return 0;
+
+    if (a.startDate && b.startDate) {
+      const diff = new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+      if (diff !== 0) return diff;
+    } else if (a.startDate && !b.startDate) {
+      return -1;
+    } else if (!a.startDate && b.startDate) {
+      return 1;
+    }
+
+    if (numA > 0 || numB > 0) {
+      return (numA || 999999) - (numB || 999999);
+    }
+
+    return a.title.localeCompare(b.title);
   });
 
   const numericDuration = Math.max(1, Math.round(Number(durationValue)) || 1);
