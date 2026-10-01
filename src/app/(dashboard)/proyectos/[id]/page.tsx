@@ -2043,10 +2043,10 @@ export default function ProjectDetailPage({
             </div>
             <p className="text-xs text-on-surface-variant mb-5 leading-relaxed">
               Komo analizará tu proyecto{' '}
-              <span className="font-semibold text-on-surface">&quot;{project.title}&quot;</span> y
+              <span className="font-semibold text-on-surface">&quot;{project.title}&quot;</span>
               {locale === 'es'
-                ? 'creará nuevas tareas de forma automática.'
-                : 'will create new tasks automatically.'}
+                ? ' y creará nuevas tareas de forma automática.'
+                : ' and will create new tasks automatically.'}
             </p>
 
             {isTasksAtDeadline && (
