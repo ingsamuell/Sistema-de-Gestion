@@ -290,7 +290,7 @@ export default function CalendarioPage() {
             cancel: 'Cancelar',
             apply: 'Aplicar horario',
             googleConnect: 'Conectar Google Calendar',
-            googleConnected: 'Conectado a Google',
+            googleConnected: 'Conectado a Google Calendar',
             googleDisconnect: 'Desconectar',
             googleSynced: 'Google Calendar sincronizado correctamente',
             googleDisconnected: 'Google Calendar desconectado',
@@ -389,7 +389,7 @@ export default function CalendarioPage() {
             cancel: 'Cancel',
             apply: 'Apply schedule',
             googleConnect: 'Connect Google Calendar',
-            googleConnected: 'Connected to Google',
+            googleConnected: 'Connected to Google Calendar',
             googleDisconnect: 'Disconnect',
             googleSynced: 'Google Calendar synced successfully',
             googleDisconnected: 'Google Calendar disconnected',
@@ -1050,17 +1050,12 @@ export default function CalendarioPage() {
                 <span className="truncate">{copy.googleConnect}</span>
               </button>
             ) : (
-              <button
-                onClick={handleDisconnectGoogle}
-                className="group flex items-center justify-center gap-2 px-4 py-2 bg-[#E6F4EA] text-[#137333] hover:bg-[#FCE8E6] hover:text-[#C5221F] border border-[#CEEAD6] hover:border-[#FAD2CF] rounded-xl font-semibold shadow-sm transition-all w-full sm:w-auto"
+              <div
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg text-sm font-medium shadow-sm cursor-default select-none"
               >
-                <span className="group-hover:hidden flex items-center gap-2">
-                  <Check className="size-4" /> {copy.googleConnected}
-                </span>
-                <span className="hidden group-hover:flex items-center gap-2">
-                  <X className="size-4" /> {copy.googleDisconnect}
-                </span>
-              </button>
+                <Check className="size-4" />
+                <span>{copy.googleConnected}</span>
+              </div>
             )}
           </div>
         </div>
