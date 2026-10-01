@@ -3192,7 +3192,10 @@ export default function CalendarioPage() {
 
                     const newTitle = editLabel || copy.newTask;
                     if (hasObsceneContent(newTitle)) {
-                      setToastMessage({ type: 'error', text: 'El texto contiene palabras inapropiadas.' });
+                      setToastMessage({
+                        type: 'error',
+                        text: 'El texto contiene palabras inapropiadas.',
+                      });
                       return;
                     }
 

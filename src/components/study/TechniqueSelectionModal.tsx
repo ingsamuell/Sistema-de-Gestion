@@ -89,8 +89,9 @@ export function TechniqueSelectionModal({
           <div className="p-6 overflow-y-auto">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {STUDY_TECHNIQUES.map((technique) => {
-                const isDisabled = taskDuration !== undefined && taskDuration < technique.focusMinutes;
-                
+                const isDisabled =
+                  taskDuration !== undefined && taskDuration < technique.focusMinutes;
+
                 return (
                   <Card
                     key={technique.id}
@@ -119,11 +120,13 @@ export function TechniqueSelectionModal({
                       {technique.description}
                     </p>
 
-                    <Button 
-                      className="w-full gap-2 mt-auto" 
+                    <Button
+                      className="w-full gap-2 mt-auto"
                       variant="secondary"
                       disabled={isDisabled}
-                      title={isDisabled ? `Requiere al menos ${technique.focusMinutes} min` : undefined}
+                      title={
+                        isDisabled ? `Requiere al menos ${technique.focusMinutes} min` : undefined
+                      }
                     >
                       <Play className="size-4" /> Iniciar Sesión
                     </Button>

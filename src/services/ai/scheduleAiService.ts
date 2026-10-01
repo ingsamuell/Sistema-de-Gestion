@@ -1277,7 +1277,8 @@ export async function rescheduleConflictingCalendarTasksWithGemini(
       .eq('usuario_id', usuarioId);
 
     const nonBusyTypes = ['tareas', 'libre'];
-    const busyBlocks = allBlocks?.filter(b => !nonBusyTypes.includes(b.tipo?.toLowerCase())) || [];
+    const busyBlocks =
+      allBlocks?.filter((b) => !nonBusyTypes.includes(b.tipo?.toLowerCase())) || [];
 
     if (busyErr) {
       console.warn('Error consultando bloques_disponibilidad en reagendamiento:', busyErr);
