@@ -252,12 +252,14 @@ export function RegisterForm({ locale }: { locale: Locale }) {
               onChange={handleChange}
               disabled={isLoading || isSuccess}
               required
+              maxLength={30}
               className={`w-full rounded-xl border bg-surface px-4 py-2.5 text-sm text-on-surface placeholder:text-outline/60 focus:bg-surface-container-lowest focus:outline-none transition-all shadow-sm ${
                 fieldErrors.firstName
                   ? 'border-error focus:border-error focus:ring-2 focus:ring-error/20'
                   : 'border-outline-variant/50 focus:border-primary focus:ring-2 focus:ring-primary/20'
               }`}
             />
+            <p className="text-right text-xs text-outline">{formData.firstName.length}/30</p>
             {fieldErrors.firstName && (
               <p className="text-xs text-error mt-1 ml-1">{fieldErrors.firstName}</p>
             )}
@@ -275,12 +277,14 @@ export function RegisterForm({ locale }: { locale: Locale }) {
               onChange={handleChange}
               disabled={isLoading || isSuccess}
               required
+              maxLength={30}
               className={`w-full rounded-xl border bg-surface px-4 py-2.5 text-sm text-on-surface placeholder:text-outline/60 focus:bg-surface-container-lowest focus:outline-none transition-all shadow-sm ${
                 fieldErrors.lastName
                   ? 'border-error focus:border-error focus:ring-2 focus:ring-error/20'
                   : 'border-outline-variant/50 focus:border-primary focus:ring-2 focus:ring-primary/20'
               }`}
             />
+            <p className="text-right text-xs text-outline">{formData.lastName.length}/30</p>
             {fieldErrors.lastName && (
               <p className="text-xs text-error mt-1 ml-1">{fieldErrors.lastName}</p>
             )}
@@ -301,12 +305,14 @@ export function RegisterForm({ locale }: { locale: Locale }) {
             onChange={handleChange}
             disabled={isLoading || isSuccess}
             required
+            maxLength={30}
             className={`w-full rounded-xl border bg-surface px-4 py-2.5 text-sm text-on-surface placeholder:text-outline/60 focus:bg-surface-container-lowest focus:outline-none transition-all shadow-sm ${
               fieldErrors.username
                 ? 'border-error focus:border-error focus:ring-2 focus:ring-error/20'
                 : 'border-outline-variant/50 focus:border-primary focus:ring-2 focus:ring-primary/20'
             }`}
           />
+          <p className="text-right text-xs text-outline">{formData.username.length}/30</p>
           {fieldErrors.username && (
             <p className="text-xs text-error mt-1 ml-1">{fieldErrors.username}</p>
           )}

@@ -6,7 +6,7 @@ export const registerSchema = z
       .string()
       .trim()
       .min(2, { message: 'El nombre debe tener al menos 2 caracteres' })
-      .max(35, { message: 'El nombre no puede tener más de 35 caracteres' })
+      .max(30, { message: 'El nombre no puede tener más de 30 caracteres' })
       .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s'-]+$/, {
         message: 'El nombre solo puede contener letras y espacios',
       }),
@@ -14,7 +14,7 @@ export const registerSchema = z
       .string()
       .trim()
       .min(2, { message: 'El apellido debe tener al menos 2 caracteres' })
-      .max(35, { message: 'El apellido no puede tener más de 35 caracteres' })
+      .max(30, { message: 'El apellido no puede tener más de 30 caracteres' })
       .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s'-]+$/, {
         message: 'El apellido solo puede contener letras y espacios',
       }),
@@ -22,7 +22,7 @@ export const registerSchema = z
       .string()
       .trim()
       .min(3, { message: 'El nombre de usuario debe tener al menos 3 caracteres' })
-      .max(25, { message: 'El nombre de usuario no puede tener más de 25 caracteres' })
+      .max(30, { message: 'El nombre de usuario no puede tener más de 30 caracteres' })
       .regex(/^[a-zA-Z0-9_.]+$/, {
         message: 'Solo se permiten letras, números, puntos y guiones bajos',
       }),

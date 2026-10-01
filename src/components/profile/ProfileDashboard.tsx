@@ -668,10 +668,11 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
                       required
-                      maxLength={50}
+                      maxLength={30}
                       placeholder="Tu nombre"
                       className="mt-2 block w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-3 py-2.5 text-sm text-on-surface outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
                     />
+                    <p className="mt-1 text-right text-xs text-outline">{firstName.length}/30</p>
                   </div>
 
                   <div>
@@ -687,10 +688,11 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
                       required
-                      maxLength={50}
+                      maxLength={30}
                       placeholder="Tu apellido"
                       className="mt-2 block w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-3 py-2.5 text-sm text-on-surface outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
                     />
+                    <p className="mt-1 text-right text-xs text-outline">{lastName.length}/30</p>
                   </div>
                 </div>
 
@@ -718,9 +720,10 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
                       className="block w-full rounded-xl border border-outline-variant bg-surface-container-lowest pl-8 pr-3 py-2.5 text-sm text-on-surface outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
-                  <span className="mt-1 block text-xs text-on-surface-variant">
-                    Letras, números, guiones y puntos.
-                  </span>
+                  <div className="mt-1 flex items-center justify-between gap-2 text-xs text-on-surface-variant">
+                    <span>Letras, números, guiones y puntos.</span>
+                    <span className="shrink-0 text-outline">{username.replace(/^@+/, '').length}/30</span>
+                  </div>
                 </div>
 
                 {/* Descripción de perfil con límites de resize mínimo y máximo */}

@@ -26,6 +26,9 @@ export const metadata: Metadata = {
   },
   description:
     'Komorebi es un sistema de gestión de calendarios con Google OAuth y productividad académica para organizar sesiones de estudio y sincronizar eventos.',
+  icons: {
+    icon: '/icon.png',
+  },
 };
 
 export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

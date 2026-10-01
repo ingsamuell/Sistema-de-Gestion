@@ -33,8 +33,8 @@ export async function updateProfileIdentity(
     return { success: false, error: 'Por favor ingresa tu nombre.' };
   }
 
-  if (normalizedFirstName.length > 35) {
-    return { success: false, error: 'El nombre no puede exceder los 35 caracteres.' };
+  if (normalizedFirstName.length > 30) {
+    return { success: false, error: 'El nombre no puede exceder los 30 caracteres.' };
   }
 
   if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s'-]+$/.test(normalizedFirstName)) {
@@ -45,8 +45,8 @@ export async function updateProfileIdentity(
     return { success: false, error: 'Por favor ingresa tu apellido.' };
   }
 
-  if (normalizedLastName.length > 35) {
-    return { success: false, error: 'El apellido no puede exceder los 35 caracteres.' };
+  if (normalizedLastName.length > 30) {
+    return { success: false, error: 'El apellido no puede exceder los 30 caracteres.' };
   }
 
   if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s'-]+$/.test(normalizedLastName)) {
@@ -66,8 +66,8 @@ export async function updateProfileIdentity(
     return { success: false, error: 'El nombre de usuario debe tener al menos 3 caracteres.' };
   }
 
-  if (normalizedUsername.length > 25) {
-    return { success: false, error: 'El nombre de usuario no puede exceder los 25 caracteres.' };
+  if (normalizedUsername.length > 30) {
+    return { success: false, error: 'El nombre de usuario no puede exceder los 30 caracteres.' };
   }
 
   if (!/^[a-zA-Z0-9_.-]+$/.test(normalizedUsername)) {
