@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
+import { rescheduleConflictingCalendarTasksWithGemini } from '@/services/ai/scheduleAiService';
 
 export interface CalendarEventItem {
   id: string;
@@ -412,6 +413,12 @@ export async function syncAvailabilityBlocksAction(
       }
     } catch (calUpsertErr) {
       console.warn('Error en upsert calendar_availability:', calUpsertErr);
+    }
+
+    try {
+      await rescheduleConflictingCalendarTasksWithGemini(user.id);
+    } catch (rescheduleErr) {
+      console.warn('Error al reagendar tareas manualmente:', rescheduleErr);
     }
 
     revalidatePath('/calendario');

@@ -1822,6 +1822,12 @@ export default function CalendarioPage() {
     const targetSet = new Set(targetSlots);
 
     const labelClean = editLabel.trim().substring(0, 15);
+
+    if (hasObsceneContent(labelClean)) {
+      setToastMessage({ type: 'error', text: 'El texto contiene palabras inapropiadas.' });
+      return;
+    }
+
     const displayLabel = labelClean || (editType === 'tareas' ? copy.tasks : '');
     const newBlockId = `block_${editingCell.date}_${startIdx}_${endIdx}`;
 
@@ -3184,12 +3190,18 @@ export default function CalendarioPage() {
                       (new Date(eIso).getTime() - new Date(sIso).getTime()) / 60000,
                     );
 
+                    const newTitle = editLabel || copy.newTask;
+                    if (hasObsceneContent(newTitle)) {
+                      setToastMessage({ type: 'error', text: 'El texto contiene palabras inapropiadas.' });
+                      return;
+                    }
+
                     setToastMessage({ type: 'success', text: copy.creatingTask });
                     setProjectSelectorState(null);
 
                     const res = await createTaskAction({
                       projectId: proj.id,
-                      titulo: editLabel || copy.newTask,
+                      titulo: newTitle,
                       duracion: durationMins,
                       fecha_inicio: sIso,
                     });

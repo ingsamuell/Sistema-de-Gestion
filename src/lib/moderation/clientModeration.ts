@@ -123,5 +123,5 @@ export function validateClientContent(
  */
 export function hasObsceneContent(text: string): boolean {
   const result = validateClientContent(text);
-  return !result.isValid && result.type === 'obscene';
+  return !result.isValid;
 }

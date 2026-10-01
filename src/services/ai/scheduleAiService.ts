@@ -1255,11 +1255,13 @@ export async function rescheduleConflictingCalendarTasksWithGemini(
 
   try {
     // 1. Obtener bloques de disponibilidad donde el usuario esté ocupado (no tareas)
-    const { data: busyBlocks, error: busyErr } = await db
+    const { data: allBlocks, error: busyErr } = await db
       .from('bloques_disponibilidad')
       .select('*')
-      .eq('usuario_id', usuarioId)
-      .neq('tipo', 'tareas');
+      .eq('usuario_id', usuarioId);
+
+    const nonBusyTypes = ['tareas', 'libre'];
+    const busyBlocks = allBlocks?.filter(b => !nonBusyTypes.includes(b.tipo?.toLowerCase())) || [];
 
     if (busyErr) {
       console.warn('Error consultando bloques_disponibilidad en reagendamiento:', busyErr);
