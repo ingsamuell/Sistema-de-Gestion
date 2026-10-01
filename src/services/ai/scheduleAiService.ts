@@ -1263,6 +1263,7 @@ function intervalsOverlap(startA: number, endA: number, startB: number, endB: nu
  */
 export async function rescheduleConflictingCalendarTasksWithGemini(
   usuarioId: string,
+  timezoneOffset: number = 0,
 ): Promise<RescheduleConflictingTasksResult> {
   const startTime = Date.now();
   const supabase = await createClient();
@@ -1344,25 +1345,28 @@ export async function rescheduleConflictingCalendarTasksWithGemini(
     const nonConflictingEvents: NonConflictingItem[] = [];
 
     for (const ev of pendingEvents) {
-      const startDate = new Date(ev.inicio);
-      const endDate = new Date(ev.fin);
-      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) continue;
+      const realStartDate = new Date(ev.inicio);
+      const realEndDate = new Date(ev.fin);
+      if (isNaN(realStartDate.getTime()) || isNaN(realEndDate.getTime())) continue;
 
-      const year = startDate.getFullYear();
-      const month = String(startDate.getMonth() + 1).padStart(2, '0');
-      const day = String(startDate.getDate()).padStart(2, '0');
+      const startDate = new Date(realStartDate.getTime() - timezoneOffset * 60000);
+      const endDate = new Date(realEndDate.getTime() - timezoneOffset * 60000);
+
+      const year = startDate.getUTCFullYear();
+      const month = String(startDate.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(startDate.getUTCDate()).padStart(2, '0');
       const dateStr = `${year}-${month}-${day}`;
-      const dayOfWeek = startDate.getDay(); // 0: Dom, 1: Lun, ... 6: Sab
+      const dayOfWeek = startDate.getUTCDay(); // 0: Dom, 1: Lun, ... 6: Sab
 
-      const startH = String(startDate.getHours()).padStart(2, '0');
-      const startM = String(startDate.getMinutes()).padStart(2, '0');
-      const endH = String(endDate.getHours()).padStart(2, '0');
-      const endM = String(endDate.getMinutes()).padStart(2, '0');
+      const startH = String(startDate.getUTCHours()).padStart(2, '0');
+      const startM = String(startDate.getUTCMinutes()).padStart(2, '0');
+      const endH = String(endDate.getUTCHours()).padStart(2, '0');
+      const endM = String(endDate.getUTCMinutes()).padStart(2, '0');
       const startSlot = `${startH}:${startM}`;
       const endSlot = `${endH}:${endM}`;
 
-      const evStartMin = startDate.getHours() * 60 + startDate.getMinutes();
-      const evEndMin = endDate.getHours() * 60 + endDate.getMinutes();
+      const evStartMin = startDate.getUTCHours() * 60 + startDate.getUTCMinutes();
+      const evEndMin = endDate.getUTCHours() * 60 + endDate.getUTCMinutes();
       const durationMin = Math.max(
         15,
         Math.round((endDate.getTime() - startDate.getTime()) / (60 * 1000)),
@@ -1508,8 +1512,10 @@ export async function rescheduleConflictingCalendarTasksWithGemini(
       });
 
       // 5. Actualizar en Supabase
-      const startIso = new Date(`${targetDate}T${targetStart}:00`).toISOString();
-      const endIso = new Date(`${targetDate}T${targetEnd}:00`).toISOString();
+      const localStartIso = new Date(`${targetDate}T${targetStart}:00Z`);
+      const startIso = new Date(localStartIso.getTime() + timezoneOffset * 60000).toISOString();
+      const localEndIso = new Date(`${targetDate}T${targetEnd}:00Z`);
+      const endIso = new Date(localEndIso.getTime() + timezoneOffset * 60000).toISOString();
 
       // Actualizar evento_calendario
       await db

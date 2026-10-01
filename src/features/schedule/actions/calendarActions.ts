@@ -329,6 +329,7 @@ export async function syncAvailabilityBlocksAction(
     label?: string;
     color?: string | null;
   }>,
+  timezoneOffset: number = 0,
 ) {
   try {
     const supabase = await createClient();
@@ -416,7 +417,7 @@ export async function syncAvailabilityBlocksAction(
     }
 
     try {
-      await rescheduleConflictingCalendarTasksWithGemini(user.id);
+      await rescheduleConflictingCalendarTasksWithGemini(user.id, timezoneOffset);
     } catch (rescheduleErr) {
       console.warn('Error al reagendar tareas manualmente:', rescheduleErr);
     }

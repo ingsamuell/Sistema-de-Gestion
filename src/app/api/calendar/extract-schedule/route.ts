@@ -16,6 +16,7 @@ const extractScheduleBodySchema = z.object({
   semanasEspecificas: z.array(z.string()).optional(),
   mesEspecifico: z.number().optional(),
   anoEspecifico: z.number().optional(),
+  timezoneOffset: z.number().optional().default(0),
 });
 
 /**
@@ -57,6 +58,7 @@ export async function POST(req: NextRequest) {
       semanasEspecificas,
       mesEspecifico,
       anoEspecifico,
+      timezoneOffset,
     } = parsed.data;
 
     // Ejecutar extracción con visión multimodal de Gemini
@@ -172,7 +174,10 @@ export async function POST(req: NextRequest) {
 
       // Reagendar automáticamente cualquier tarea que colisione con el nuevo horario
       try {
-        reagendamientoResult = await rescheduleConflictingCalendarTasksWithGemini(user.id);
+        reagendamientoResult = await rescheduleConflictingCalendarTasksWithGemini(
+          user.id,
+          timezoneOffset,
+        );
       } catch (rescheduleErr) {
         console.warn('Aviso reagendando tareas en conflicto tras subir horario:', rescheduleErr);
       }

@@ -1248,6 +1248,7 @@ export default function CalendarioPage() {
           semanasEspecificas: uploadReplicateOption === 'semanas' ? selectedWeekStarts : undefined,
           mesEspecifico: uploadReplicateOption === 'mes' ? uploadSelectedMonth : undefined,
           anoEspecifico: uploadReplicateOption === 'mes' ? uploadSelectedYear : undefined,
+          timezoneOffset: new Date().getTimezoneOffset(),
         }),
       });
 
@@ -1707,7 +1708,7 @@ export default function CalendarioPage() {
 
       // Persistir inmediatamente el bloque manual movido en Supabase
       const consolidated = consolidateAvailabilitySlots(updatedList);
-      syncAvailabilityBlocksAction(consolidated).catch((err) =>
+      syncAvailabilityBlocksAction(consolidated, new Date().getTimezoneOffset()).catch((err) =>
         console.warn('Error sincronizando bloque movido en Supabase:', err),
       );
 
@@ -1775,7 +1776,7 @@ export default function CalendarioPage() {
     } else {
       // Si fue un bloque de disponibilidad, sincronizar inmediatamente para eliminarlo de Supabase
       const consolidated = consolidateAvailabilitySlots(updatedAvails);
-      syncAvailabilityBlocksAction(consolidated).catch((err) =>
+      syncAvailabilityBlocksAction(consolidated, new Date().getTimezoneOffset()).catch((err) =>
         console.warn('Error sincronizando eliminación en Supabase:', err),
       );
     }
@@ -1911,7 +1912,7 @@ export default function CalendarioPage() {
 
     // Sincronizar inmediatamente con Supabase para persistir categorías, colores y nombres
     const consolidated = consolidateAvailabilitySlots(updatedList);
-    syncAvailabilityBlocksAction(consolidated).catch((err) =>
+    syncAvailabilityBlocksAction(consolidated, new Date().getTimezoneOffset()).catch((err) =>
       console.warn('Error sincronizando cambios en Supabase:', err),
     );
 
