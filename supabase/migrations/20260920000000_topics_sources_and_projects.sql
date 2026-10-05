@@ -156,7 +156,7 @@ VALUES (
   'topic-files',
   'topic-files',
   true,
-  52428800, -- 50 MB
+  5242880, -- 5 MB
   ARRAY[
     'application/pdf',
     'application/msword',
@@ -167,7 +167,7 @@ VALUES (
 )
 ON CONFLICT (id) DO UPDATE SET
   public = true,
-  file_size_limit = 52428800,
+  file_size_limit = 5242880,
   allowed_mime_types = ARRAY[
     'application/pdf',
     'application/msword',

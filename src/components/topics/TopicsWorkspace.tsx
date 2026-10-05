@@ -224,6 +224,12 @@ export function TopicsWorkspace() {
     ? selectedTopic.sources.filter((source) => source.enabledForAi).length
     : 0;
 
+  const totalExistingSize = selectedTopic
+    ? selectedTopic.sources.reduce((acc, source) => acc + (source.fileSize || 0), 0)
+    : 0;
+  const MAX_TOTAL_SIZE = 5 * 1024 * 1024; // 5MB
+  const isStorageFull = totalExistingSize >= MAX_TOTAL_SIZE;
+
   function selectTopic(topic: Topic) {
     setSelectedTopicId(topic.id);
     setNote(topic.mainNote);
@@ -398,6 +404,13 @@ export function TopicsWorkspace() {
     if (!selectedTopic) return;
     const files = Array.from(event.target.files ?? []);
     if (files.length === 0) return;
+
+    const newFilesSize = files.reduce((acc, file) => acc + file.size, 0);
+    if (totalExistingSize + newFilesSize > MAX_TOTAL_SIZE) {
+      toast.error('Límite de almacenamiento alcanzado. El peso total de los archivos no puede superar los 5MB.');
+      event.target.value = '';
+      return;
+    }
 
     setUploadingFile(true);
     const supabase = createClient();
@@ -813,7 +826,7 @@ export function TopicsWorkspace() {
                       {copy.sourcesDescription}
                     </p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 items-start">
                     <Button
                       type="button"
                       variant="secondary"
@@ -824,21 +837,26 @@ export function TopicsWorkspace() {
                       <FileText className="size-3.5" />
                       {copy.writeNote}
                     </Button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      disabled={uploadingFile}
-                      className="min-h-10 gap-2"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      {uploadingFile ? (
-                        <Loader2 className="size-3.5 animate-spin" />
-                      ) : (
-                        <Upload className="size-3.5" />
-                      )}
-                      {uploadingFile ? copy.uploading : copy.uploadFile}
-                    </Button>
+                    <div className="flex flex-col gap-1 items-center sm:items-start">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        disabled={uploadingFile || isStorageFull}
+                        className={cn('min-h-10 gap-2', isStorageFull && 'opacity-50 cursor-not-allowed')}
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        {uploadingFile ? (
+                          <Loader2 className="size-3.5 animate-spin" />
+                        ) : (
+                          <Upload className="size-3.5" />
+                        )}
+                        {uploadingFile ? copy.uploading : copy.uploadFile}
+                      </Button>
+                      <span className="text-xs text-stone-500 px-1">
+                        Espacio usado: {(totalExistingSize / (1024 * 1024)).toFixed(1)}MB / 5MB
+                      </span>
+                    </div>
                   </div>
                 </div>
 
