@@ -24,6 +24,7 @@ import { localizedHref, localizedProjectHref } from '@/lib/i18n/routes';
 
 interface StepMaterials {
   files: string[];
+  fileSizes?: number[];
   urls: string[];
 }
 
@@ -481,6 +482,7 @@ export function CreateProjectWizard() {
       case 5: {
         const currentData = answers[5] || { files: [], urls: [''] };
         const files: string[] = currentData.files || [];
+        const fileSizes: number[] = currentData.fileSizes || [];
         const urls: string[] =
           currentData.urls && currentData.urls.length > 0 ? currentData.urls : [''];
 
@@ -489,14 +491,18 @@ export function CreateProjectWizard() {
           if (!selectedFiles) return;
 
           const filesArray = Array.from(selectedFiles);
-          for (const f of filesArray) {
-            // Validación de peso (Máx 50MB)
-            if (f.size > 50 * 1024 * 1024) {
-              setErrorMessage(`El archivo "${f.name}" excede el límite de 50 MB.`);
-              e.target.value = '';
-              return;
-            }
+          
+          const MAX_TOTAL_SIZE = 50 * 1024 * 1024; // 50MB
+          const existingTotalSize = fileSizes.reduce((acc, size) => acc + size, 0);
+          const newTotalSize = filesArray.reduce((acc, f) => acc + f.size, 0);
 
+          if (existingTotalSize + newTotalSize > MAX_TOTAL_SIZE) {
+            setErrorMessage('Límite superado. El peso total de los archivos no puede superar los 50MB.');
+            e.target.value = '';
+            return;
+          }
+
+          for (const f of filesArray) {
             if (hasObsceneContent(f.name)) {
               setErrorMessage('No se permiten contenidos obscenos.');
               e.target.value = '';
@@ -505,14 +511,17 @@ export function CreateProjectWizard() {
           }
 
           const newFileNames = filesArray.map((f) => f.name);
-          const combined = [...files, ...newFileNames].slice(0, 3);
+          const newSizes = filesArray.map((f) => f.size);
+          const combinedNames = [...files, ...newFileNames].slice(0, 3);
+          const combinedSizes = [...fileSizes, ...newSizes].slice(0, 3);
           setErrorMessage(null);
-          updateAnswer(5, { ...currentData, files: combined });
+          updateAnswer(5, { ...currentData, files: combinedNames, fileSizes: combinedSizes });
         };
 
         const handleRemoveFile = (indexToRemove: number) => {
-          const updated = files.filter((_, idx) => idx !== indexToRemove);
-          updateAnswer(5, { ...currentData, files: updated });
+          const updatedFiles = files.filter((_, idx) => idx !== indexToRemove);
+          const updatedSizes = fileSizes.filter((_, idx) => idx !== indexToRemove);
+          updateAnswer(5, { ...currentData, files: updatedFiles, fileSizes: updatedSizes });
         };
 
         const handleUrlChange = (index: number, val: string) => {
@@ -547,7 +556,12 @@ export function CreateProjectWizard() {
                 <div className="flex justify-between items-center mb-2">
                   <label className="text-sm font-bold text-[#2C1F14]">{questions.files}</label>
                   <span className="text-xs font-semibold text-[#845326] bg-[#f5e5d9] px-2 py-0.5 rounded-full">
-                    {files.length}/3 archivos
+                    {files.length > 0
+                      ? `${files.length}/3 archivos (${(
+                          fileSizes.reduce((a, b) => a + b, 0) /
+                          (1024 * 1024)
+                        ).toFixed(1)}MB / 50MB)`
+                      : "0/3 archivos"}
                   </span>
                 </div>
 
