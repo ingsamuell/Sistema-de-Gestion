@@ -804,24 +804,19 @@ export async function toggleTaskStatusAction(
 
     const { data: profile } = await db
       .from('profiles')
-      .select('racha_activa, racha_maxima, racha_expira_en')
+      .select('racha_activa, racha_maxima, racha_expira_en, racha_completada_hoy')
       .eq('id', user.id)
       .maybeSingle();
 
     const currentStreak = typeof profile?.racha_activa === 'number' ? profile.racha_activa : 0;
     const currentMax = typeof profile?.racha_maxima === 'number' ? profile.racha_maxima : 0;
-    const currentExpira = profile?.racha_expira_en;
+    const isRachaCompletadaHoy = profile?.racha_completada_hoy === true;
 
     const nextMidnightISO = getCaracasNextMidnightISO();
 
-    // Comparar usando getTime() para evitar errores de formato en strings ISO de la base de datos
-    const currentExpiraTime = currentExpira ? new Date(currentExpira).getTime() : 0;
-    const nextMidnightTime = new Date(nextMidnightISO).getTime();
-
     if (isCompleted && !wasCompleted) {
-      // Si la fecha de expiración ya es la de mañana (nextMidnightISO),
-      // significa que ya sumó racha hoy, no aumentamos.
-      if (currentExpiraTime === nextMidnightTime) {
+      if (isRachaCompletadaHoy) {
+        // Ya completó la racha hoy, no aumentamos
         updatedRacha = currentStreak;
         updatedRachaMaxima = currentMax;
 
