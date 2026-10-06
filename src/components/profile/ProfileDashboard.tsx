@@ -722,7 +722,9 @@ export function ProfileDashboard({ profile }: { profile: ProfileDashboardData })
                   </div>
                   <div className="mt-1 flex items-center justify-between gap-2 text-xs text-on-surface-variant">
                     <span>Letras, números, guiones y puntos.</span>
-                    <span className="shrink-0 text-outline">{username.replace(/^@+/, '').length}/30</span>
+                    <span className="shrink-0 text-outline">
+                      {username.replace(/^@+/, '').length}/30
+                    </span>
                   </div>
                 </div>
 

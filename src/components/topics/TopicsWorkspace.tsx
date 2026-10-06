@@ -407,7 +407,9 @@ export function TopicsWorkspace() {
 
     const newFilesSize = files.reduce((acc, file) => acc + file.size, 0);
     if (totalExistingSize + newFilesSize > MAX_TOTAL_SIZE) {
-      toast.error('Límite de almacenamiento alcanzado. El peso total de los archivos no puede superar los 5MB.');
+      toast.error(
+        'Límite de almacenamiento alcanzado. El peso total de los archivos no puede superar los 5MB.',
+      );
       event.target.value = '';
       return;
     }
@@ -843,7 +845,10 @@ export function TopicsWorkspace() {
                         variant="secondary"
                         size="sm"
                         disabled={uploadingFile || isStorageFull}
-                        className={cn('min-h-10 gap-2', isStorageFull && 'opacity-50 cursor-not-allowed')}
+                        className={cn(
+                          'min-h-10 gap-2',
+                          isStorageFull && 'opacity-50 cursor-not-allowed',
+                        )}
                         onClick={() => fileInputRef.current?.click()}
                       >
                         {uploadingFile ? (

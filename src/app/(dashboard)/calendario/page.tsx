@@ -1050,9 +1050,7 @@ export default function CalendarioPage() {
                 <span className="truncate">{copy.googleConnect}</span>
               </button>
             ) : (
-              <div
-                className="flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg text-sm font-medium shadow-sm cursor-default select-none"
-              >
+              <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg text-sm font-medium shadow-sm cursor-default select-none">
                 <Check className="size-4" />
                 <span>{copy.googleConnected}</span>
               </div>

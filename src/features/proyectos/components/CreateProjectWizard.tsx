@@ -491,13 +491,15 @@ export function CreateProjectWizard() {
           if (!selectedFiles) return;
 
           const filesArray = Array.from(selectedFiles);
-          
+
           const MAX_TOTAL_SIZE = 50 * 1024 * 1024; // 50MB
           const existingTotalSize = fileSizes.reduce((acc, size) => acc + size, 0);
           const newTotalSize = filesArray.reduce((acc, f) => acc + f.size, 0);
 
           if (existingTotalSize + newTotalSize > MAX_TOTAL_SIZE) {
-            setErrorMessage('Límite superado. El peso total de los archivos no puede superar los 50MB.');
+            setErrorMessage(
+              'Límite superado. El peso total de los archivos no puede superar los 50MB.',
+            );
             e.target.value = '';
             return;
           }
@@ -561,7 +563,7 @@ export function CreateProjectWizard() {
                           fileSizes.reduce((a, b) => a + b, 0) /
                           (1024 * 1024)
                         ).toFixed(1)}MB / 50MB)`
-                      : "0/3 archivos"}
+                      : '0/3 archivos'}
                   </span>
                 </div>
 
