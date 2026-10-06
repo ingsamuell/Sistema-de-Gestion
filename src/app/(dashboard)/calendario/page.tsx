@@ -969,6 +969,7 @@ export default function CalendarioPage() {
     window.location.href = '/api/auth/google';
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleDisconnectGoogle = async () => {
     setIsGoogleConnected(false);
     setAvailabilities((prev) => prev.filter((a) => a.source !== 'google'));

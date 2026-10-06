@@ -223,6 +223,7 @@ export function GanttChart({
     todayRef.current?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const renderTimelineCells = () =>
     days.map((day) => (
       <div
